@@ -17,6 +17,7 @@ namespace Sample
             emulator.Audit = this;
             emulator.Debug = true;
             emulator.Config.TermType = "IBM-3278-2-E";
+            emulator.Config.FastScreenMode = true;
 
 #if true
             emulator.Connect("locis.loc.gov", 23, null);
