@@ -1,0 +1,235 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ApplicationIcon>
+    </ApplicationIcon>
+    <AssemblyKeyContainerName>
+    </AssemblyKeyContainerName>
+    <AssemblyName>WinFX3270Library</AssemblyName>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <DelaySign>false</DelaySign>
+    <OutputType>Library</OutputType>
+    <RootNamespace>WinFX3270Library</RootNamespace>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <StartupObject>
+    </StartupObject>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn>
+    </NoWarn>
+    <Optimize>false</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>false</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn>
+    </NoWarn>
+    <Optimize>true</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System">
+      <Name>System</Name>
+    </Reference>
+    <Reference Include="System.Data">
+      <Name>System.Data</Name>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization.Formatters.Soap">
+      <Name>system.runtime.serialization.formatters.soap</Name>
+    </Reference>
+    <Reference Include="System.Xml">
+      <Name>System.XML</Name>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Engine\ConnectionConfig.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Engine\TNEmulator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Engine\TnXMLScreen.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\TNHostException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\TNIdentificationException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Exceptions\TNRouteException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Interfaces\IAudit.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Interfaces\IXMLScreen.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Interfaces\StringAudit.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="LogParser\TN3270ClientParser.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="LogParser\TN3270HostParser.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\TN3270API.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Events.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\NetBuffer.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\actions.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\AID.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\ansi.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\Appres.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\CFormat.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\CG.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\Ctlr.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\ExtendedAttribute.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\Idle.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\Keyboard.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\print.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\see.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\sf.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\Tables.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\tn3270e_header.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\Util.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\Telnet.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270E\X3270\TNTrace.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270Server\TN3270Server.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270Server\TN3270ServerEmulationBase.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270Server\TN3270ServerException.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TN3270Server\TNServerScreen.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WinFX.NET\Audit.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WinFX.NET\ByteHandler.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WinFX.NET\ClientSocket.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WinFX.NET\Message.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WinFX.NET\Semaphore.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WinFX.NET\ServerSocket.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Open3270.key" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>
