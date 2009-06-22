@@ -39,7 +39,7 @@ namespace Open3270.TN3270
 		Home
 
 	}
-	internal class TN3270API
+	internal class TN3270API : IDisposable
 	{
 		public event RunScriptDelegate RunScriptEvent;
 		public event OnDisconnectDelegate OnDisconnect;
@@ -52,6 +52,73 @@ namespace Open3270.TN3270
 		{
 			tn = null;
 		}
+
+        private string _sourceIP = string.Empty;
+
+
+        bool isDisposed = false;
+
+        ~TN3270API()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+                return;
+            isDisposed = true;
+
+            if (disposing)
+            {
+                Disconnect();
+                if ( tnDataDelegate != null )
+                    tn.telnetDataEvent -= tnDataDelegate;
+                tnDataDelegate = null;
+                OnDisconnect = null;
+                RunScriptEvent = null;
+                if (tn != null)
+                    tn.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Connects to host using a local IP
+        /// <remarks>
+        /// Added by CFCJR on Feb/29/2008
+        /// if a source IP is given then use it for the local IP
+        /// </remarks>
+        /// </summary>
+        /// <param name="audit">IAudit interface to post debug/tracing to</param>
+        /// <param name="localIP">ip to use for local end point</param>
+        /// <param name="host">host ip/name</param>
+        /// <param name="port">port to use</param>
+        /// <param name="config">configuration parameters</param>
+        /// <returns></returns>
+        public bool Connect(IAudit audit, string localIP, string host, int port, ConnectionConfig config)
+        {
+            _sourceIP = localIP;
+            return Connect(audit, host, port, string.Empty, config);
+        }
+
+        /// <summary>
+        /// Connects a Telnet object to the host using the parameters provided
+        /// </summary>
+        /// <param name="audit">IAudit interface to post debug/tracing to</param>
+        /// <param name="host">host ip/name</param>
+        /// <param name="port">port to use</param>
+        /// <param name="lu">lu to use or empty string for host negotiated</param>
+        /// <param name="config">configuration parameters</param>
+        /// <returns></returns>
+        /// 
+        TelnetDataDelegate tnDataDelegate;
+
 		public bool Connect(IAudit audit, string host, int port, string lu, ConnectionConfig config)
 		{
 			tn = new Telnet(this, audit, config);
@@ -61,7 +128,10 @@ namespace Open3270.TN3270
 			tn.trace.optionTraceDSN = mDebug;
 			tn.trace.optionTraceEvent = mDebug;
 			tn.trace.optionTraceNetworkData = mDebug;
-			tn.telnetDataEvent += new TelnetDataDelegate(tn_telnetDataEvent);
+
+            tnDataDelegate = new TelnetDataDelegate(tn_telnetDataEvent); // CFC,Jr 8/2/2008
+            tn.telnetDataEvent += tnDataDelegate;
+                
 			if (lu==null || lu.Length==0)
 				tn.lus = null;
 			else
@@ -70,7 +140,16 @@ namespace Open3270.TN3270
 				tn.lus.Add(lu);
 			}
 			
+            // Modified CFCJR Feb/29/2008 to allow for local IP endpoint
+            if (!string.IsNullOrEmpty(_sourceIP))
+            {
+                tn.Connect(this, host, port, _sourceIP);
+            }
+            else
+            {
 			tn.Connect(this, host, port);
+            }
+
 			if (!tn.WaitForConnect())
 			{
 				tn.Disconnect();
@@ -82,6 +161,10 @@ namespace Open3270.TN3270
 			tn.trace.WriteLine("--connected");
 			return true;
 		}
+
+        /// <summary>
+        /// Disconnects the connected telnet object from the host
+        /// </summary>
 		public void Disconnect()
 		{
 			if (tn != null)
@@ -90,6 +173,7 @@ namespace Open3270.TN3270
 				tn = null;
 			}
 		}
+
 		internal string DisconnectReason
 		{
 			get { if (this.tn != null) return this.tn.DisconnectReason; else return null;}
@@ -226,6 +310,7 @@ namespace Open3270.TN3270
 				}
 			}
 		}
+
 		public bool SendText(string text, bool paste)
 		{
 			lock (tn)
@@ -245,10 +330,19 @@ namespace Open3270.TN3270
 				return ok;
 			}
 		}
+
+        /// <summary>
+        /// This method has not been implemented yet
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
 		public string GetText(int x, int y, int length)
 		{
 			return null;
 		}
+
 		public bool MoveCursor(CursorOp op, int x, int y)
 		{
 			lock (tn)
@@ -257,6 +351,7 @@ namespace Open3270.TN3270
 				return tn.tnctlr.MoveCursor(op,x,y);
 			}
 		}
+
 		public int keyboardLock
 		{
 			get 
@@ -290,7 +385,7 @@ namespace Open3270.TN3270
 		private void tn_telnetDataEvent(object parentData, TNEvent eventType, string text)
 		{
 			
-			Console.WriteLine("event = "+eventType+" text='"+text+"'");
+			//Console.WriteLine("event = "+eventType+" text='"+text+"'");
 			if (eventType==TNEvent.Disconnect)
 			{
 				if (OnDisconnect != null)
