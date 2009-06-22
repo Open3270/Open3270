@@ -104,6 +104,8 @@ namespace Open3270
 		/// <returns>XML Text for screen</returns>
 		string GetXMLText();
 
+        string[] GetUnformatedStrings();
+
 		/// <summary>
 		/// Returns a unique id for the screen so you can tell whether it's changed since you last
 		/// looked - doesn't necessarily mean the content has changed, just that we think it might
