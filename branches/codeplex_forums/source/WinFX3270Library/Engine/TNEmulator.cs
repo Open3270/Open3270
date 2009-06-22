@@ -147,7 +147,7 @@ namespace Open3270
 			if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
 			//
 
-			if (text.Length<=2)
+			if (text.Length < 2)
 				return false; // no keys are less than 2 characters.
 			//
 			bool submit = false;
