@@ -2838,7 +2838,7 @@ struct ea * fa2ea(byte *fa)
 				dump_rangeXML(start, len, true, screen_buf, ROWS, COLS);
 				telnet.action.action_output("</Field>");
 			}
-			if (baddr < address) return -1;
+			if (baddr <= address) return -1;
 			return baddr;
 		}
 
