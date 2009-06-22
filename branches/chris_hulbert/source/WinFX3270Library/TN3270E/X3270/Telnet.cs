@@ -1184,7 +1184,7 @@ namespace Open3270.TN3270
                 //unsigned char *s;
                 pds rv;
 
-                trace.trace_dsn("RCVD TN3270E(" + h.data_type + "," + h.request_flag + "," + h.response_flag + "," + (h.seq_number[0] << 8 | h.seq_number[1]) + ")\n");
+                trace.trace_dsn("RCVD TN3270E(datatype: " + h.data_type + ", request: " + h.request_flag + ", response: " + h.response_flag + ", seq: " + (h.seq_number[0] << 8 | h.seq_number[1]) + ")\n");
 
                 switch (h.data_type)
                 {
