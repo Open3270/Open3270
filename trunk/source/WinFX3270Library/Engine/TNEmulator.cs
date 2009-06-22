@@ -264,11 +264,11 @@ namespace Open3270
 			{
 				if (text.Substring(0,2)=="PF")
 				{
-					submit = this.currentConnection.KeyboardCommandCausesSubmit("PF", System.Convert.ToInt32(text.Substring(2)));
+					submit = this.currentConnection.KeyboardCommandCausesSubmit("PF", System.Convert.ToInt32(text.Substring(2,2)));
 				}
 				else if (text.Substring(0,2)=="PA")
 				{
-					submit = this.currentConnection.KeyboardCommandCausesSubmit("PA", System.Convert.ToInt32(text.Substring(3)));
+					submit = this.currentConnection.KeyboardCommandCausesSubmit("PA", System.Convert.ToInt32(text.Substring(2,2)));
 				}
 				else
 					submit = this.currentConnection.KeyboardCommandCausesSubmit(text);
@@ -289,11 +289,11 @@ namespace Open3270
 			
 			if (text.Substring(0,2)=="PF")
 			{
-				ok = this.currentConnection.ExecuteAction(submit, "PF", System.Convert.ToInt32(text.Substring(2)));
+				ok = this.currentConnection.ExecuteAction(submit, "PF", System.Convert.ToInt32(text.Substring(2,2)));
 			}
 			else if (text.Substring(0,2)=="PA")
 			{
-				ok = this.currentConnection.ExecuteAction(submit, "PA", System.Convert.ToInt32(text.Substring(3)));
+				ok = this.currentConnection.ExecuteAction(submit, "PA", System.Convert.ToInt32(text.Substring(2,2)));
 			}
 			else
 				ok = this.currentConnection.ExecuteAction(submit, text);

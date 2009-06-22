@@ -238,7 +238,7 @@ namespace Open3270.TN3270
 		public byte default_gr = 0;
 		public bool ever_3270 = false;
 		public int maxCOLS = 132;
-		public int maxROWS = 100;
+		public int maxROWS = 43;
 		public int model_num;
 		public byte reply_mode = 0;
 
@@ -2880,7 +2880,7 @@ struct ea * fa2ea(byte *fa)
 				dump_rangeXML(start, len, true, screen_buf, ROWS, COLS);
 				telnet.action.action_output("</Field>");
 			}
-			if (baddr < address) return -1;
+			if (baddr <= address) return -1;
 			return baddr;
 		}
 

@@ -142,8 +142,8 @@ namespace Open3270.TN3270
 			}
 			request_flag = buf[1];
 			response_flag = buf[2];
-            seq_number[0] = buf[3]; // buf[4];
-            seq_number[1] = buf[4]; // buf[5];
+			seq_number[0] = buf[3];
+			seq_number[1] = buf[4];
 		}
 		private void AddWithDoubledIAC(NetBuffer buffer, byte ch)
 		{

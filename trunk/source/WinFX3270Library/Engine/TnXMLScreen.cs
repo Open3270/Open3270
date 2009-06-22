@@ -166,9 +166,16 @@ namespace Open3270.TN3270
 			if (_CX==0 || _CY==0)
 			{
                 // TODO: Need to fix this
-				_CX = 80; 
-				_CY = 25; 
+				_CX = 132; 
+				_CY = 43; 
 			}
+
+            // CFCJr 2008/07/11
+            if (_CX < 80)
+				_CX = 80; 
+            if (_CY < 25)
+				_CY = 25; 
+
 
             // CFCJr 2008/07/11
             if (_CX < 80)
@@ -223,7 +230,7 @@ namespace Open3270.TN3270
                 /*
 				for (i=0; i<mScreenRows.Length; i++)
 				{
-					mScreenRows[i] = "                                                                                              ".Substring(0,_CX);
+					mScreenRows[i] = new String(' ',_CX); 
 				}
                 */
 			}
@@ -461,8 +468,14 @@ namespace Open3270.TN3270
 		{
 			int i;
 			stream.WriteLine("-----");
-			stream.WriteLine("   0         1         2         3         4         5         6         7         ");
-			stream.WriteLine("   01234567890123456789012345678901234567890123456789012345678901234567890123456789");
+			string tens = " ", singles= " "; // the quoted strings must be 3 spaces each, it gets lost in translation by codeplex...
+			for (i = 0; i < _CX; i += 10)
+			{
+				tens += String.Format("{0,-10}", i / 10);
+				singles += "0123456789";
+			}
+			stream.WriteLine(tens.Substring(0,3+_CX));
+			stream.WriteLine(singles.Substring(0, 3 + _CX));
 			for (i=0; i<_CY; i++)
 			{
 				string line = GetText(0,i, _CX);
