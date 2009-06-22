@@ -238,7 +238,7 @@ namespace Open3270.TN3270
 		public byte default_gr = 0;
 		public bool ever_3270 = false;
 		public int maxCOLS = 132;
-		public int maxROWS = 100;
+		public int maxROWS = 43;
 		public int model_num;
 		public byte reply_mode = 0;
 
