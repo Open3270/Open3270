@@ -203,6 +203,21 @@ namespace Open3270
 			else
 				return ok;
 		}
+
+        /// <summary>
+        /// Wait until the keyboard unlocks, up until timeoutms
+        /// </summary>
+        /// <param name="timeoutms"></param>
+        public void WaitTillKeyboardUnlocked(int timeoutms)
+        {
+            DateTime dttm = DateTime.Now.AddMilliseconds(timeoutms);
+
+            while (KeyboardLocked != 0 && DateTime.Now < dttm)
+            {
+                Thread.Sleep(10); // Wait 1/100th of a second
+            }
+        }
+
 		/// <summary>
 		/// Refresh the current screen.  If timeout > 0, it will wait for 
 		/// this number of milliseconds.
