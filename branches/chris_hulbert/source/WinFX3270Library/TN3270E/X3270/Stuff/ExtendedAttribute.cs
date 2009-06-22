@@ -45,6 +45,14 @@ public const byte CS_GE		=0x04;	/* cs flag for Graphic Escape */
 			gr = 0;
 			bg = 0;
 		}
+        internal void Clear()
+        {
+            cs = 0;
+            fg = 0;
+            gr = 0;
+            bg = 0;
+        }
+
 		public byte cs;
 		public byte fg;
 		public byte bg;

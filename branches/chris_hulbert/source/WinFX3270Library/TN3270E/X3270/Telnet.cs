@@ -85,7 +85,7 @@ namespace Open3270.TN3270
 	/// <summary>
 	/// Summary description for Form1.
 	/// </summary>
-    internal class Telnet
+    internal class Telnet : IDisposable
     {
         public bool mParseLogFileOnly = false;
         public TN3270API mAPI = null;
@@ -197,6 +197,7 @@ namespace Open3270.TN3270
 
         private ArrayList m_ListOptions = new ArrayList();
         private IPEndPoint iep;
+        private IPEndPoint localIEP;
         private AsyncCallback callbackProc;
         private string address;
         private int port;
@@ -279,6 +280,7 @@ namespace Open3270.TN3270
         string reported_type = null;
         string connected_lu = null;
         string reported_lu = null;
+        public string sourceIP = string.Empty;
 
 
         public Telnet(TN3270API api, IAudit audit, ConnectionConfig config)
@@ -331,11 +333,40 @@ namespace Open3270.TN3270
                 hisopts[i] = 0;
 
         }
+
+        // CFC,Jr. 8/24/2008
+        // Handle IDisposable Interface
+
         ~Telnet()
         {
-            Disconnect();
-            this.mDisconnectReason = null;
+            Dispose(false);
         }
+
+        bool isDisposed = false;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+                return;
+            isDisposed = true;
+
+            if (disposing)
+            {
+            Disconnect();
+                if (tnctlr != null)
+                    tnctlr.Dispose();
+        }
+        }
+
+        //END, CFC,Jr.
+
+
         void main_connect(bool ignored)
         {
             if (CONNECTED || appres.disconnect_clear)
@@ -349,7 +380,26 @@ namespace Open3270.TN3270
         private Thread mMainThread = null;
         private string mDisconnectReason = null;
 
+        /// <summary>
+        /// Connects to host using a sourceIP for VPN's that require
+        /// source IP to determine LU
+        /// </summary>
+        /// <param name="_ParentData">object to send to callbacks/events</param>
+        /// <param name="_address">host ip address or name</param>
+        /// <param name="_port">host port</param>
+        /// <param name="_sourceIP">IP to use as local IP</param>
+        public void Connect(object _ParentData, string _address, int _port, string _sourceIP)
+        {
+            this.sourceIP = _sourceIP;
+            Connect(_ParentData, _address, _port);
+        }
 
+        /// <summary>
+        /// Connects to host at address/port
+        /// </summary>
+        /// <param name="_ParentData">object to send to callbacks/events</param>
+        /// <param name="_address">host ip address or name</param>
+        /// <param name="_port">host port</param>
         public void Connect(object _ParentData, string _address, int _port)
         {
             this.mParentData = _ParentData;
@@ -456,8 +506,29 @@ namespace Open3270.TN3270
                     }
                     catch (System.FormatException se)
                     {
-                        throw new TNHostException("Invalid TCP/IP address '" + address + "'", se.Message, null);
+                        throw new TNHostException("Invalid Host TCP/IP address '" + address + "'", se.Message, null);
                     }
+                }
+
+                /// <remarks>
+                /// Added by CFCJR on Feb/29/2008
+                /// if a source IP is given then use it for the local IP
+                /// </remarks>
+
+                if ( ! string.IsNullOrEmpty(sourceIP))
+                {
+                    try
+                    {
+                        localIEP = new IPEndPoint(IPAddress.Parse(sourceIP), port);
+                    }
+                    catch (System.FormatException se)
+                    {
+                        throw new TNHostException("Invalid Source TCP/IP address '" + address + "'", se.Message, null);
+                    }
+                }
+                else
+                {
+                    localIEP = new IPEndPoint(IPAddress.Any, port);
                 }
 
                 this.mDisconnectReason = null;
@@ -471,6 +542,8 @@ namespace Open3270.TN3270
                     callbackProc = new AsyncCallback(ConnectCallback);
                     // Begin Asyncronous Connection
                     cstate = CSTATE.RESOLVING;
+
+                    mSocketBase.Bind(localIEP); // CFCJR
 
                     mSocketBase.BeginConnect(iep, callbackProc, mSocketBase);
 
@@ -499,6 +572,9 @@ namespace Open3270.TN3270
                         mCloseRequested = true;
                         mSocketStream.Close();
                         mSocketStream = null;
+
+                        if ( string.IsNullOrEmpty(mDisconnectReason) )
+                            this.mDisconnectReason = "telnet.disconnect socket-stream requested";
                     }
                     //
                     if (mSocketBase != null)
@@ -508,6 +584,9 @@ namespace Open3270.TN3270
                         try
                         {
                             mSocketBase.Close();
+
+                            if (string.IsNullOrEmpty(mDisconnectReason))
+                                this.mDisconnectReason = "telnet.disconnect socket-base requested";
                         }
                         catch (System.ObjectDisposedException)
                         {
@@ -602,6 +681,7 @@ namespace Open3270.TN3270
                                     {
                                         host_disconnect(true);
                                         Disconnect();
+                                        this.mDisconnectReason = "open3270.LogfileProcessorThreadHandler telnet_fsm error : disconnected";
                                         return;
                                     }
                                     //
@@ -719,6 +799,7 @@ namespace Open3270.TN3270
                     // Begin reading data asyncronously
                     //
                     mSocketStream.BeginRead(m_byBuff, 0, m_byBuff.Length, recieveData, mSocketStream);
+                    trace.trace_dsn("\nConnectCallback : SocketStream.BeginRead called to read asyncronously\n");
                 }
                 else
                 {
@@ -736,6 +817,7 @@ namespace Open3270.TN3270
                 //Console.WriteLine("Setup Receive callback failed " + ex);
                 trace.trace_event("%s", "Exception occured connecting to host. Disconnecting\n\n" + ex);
                 Disconnect();
+                mDisconnectReason = "exception during telnet connect callback";
             }
         }
 
@@ -758,14 +840,57 @@ namespace Open3270.TN3270
                 {
                     host_disconnect(true);
                     Disconnect();
+                    mDisconnectReason = "telnet_fsm error during ParseByte";
                     return false;
                 }
             }
             return true;
         }
 
+        ////////////////////////////////////////////////////////////
+        /// <summary>
+        /// This section is for screen syncronization
+        /// with the user of this library
+        /// startedReceivingCount get incremented
+        /// each time OnReceiveData get invoked by
+        /// the socket.
+        /// (CFC,Jr, 2008/06/26)
+        /// </summary>
+
+        private object startedReceivingLock = new object();
+        private int startedReceivingCount = 0;
+
+        private void NofityStartedReceiving()
+        {
+            lock (startedReceivingLock )
+            {
+                startedReceivingCount++;
+            }
+            trace.trace_dsn("NotifyStartedReceiving : startedReceivingCount = " + StartedReceivingCount.ToString() + Environment.NewLine);
+        }
+
+        public int StartedReceivingCount
+        {
+            get { lock (startedReceivingLock) { return startedReceivingCount; } }
+        }
+
+
+        ///////////////////////////////////////////////////////////////
+        /// <summary>
+        /// Called from the socket when data is available
+        /// </summary>
+        /// <param name="ar"></param>
         private void OnRecievedData(IAsyncResult ar)
         {
+            // (CFC,Jr, added for screen syncronization)
+            try
+            {
+                NofityStartedReceiving();
+            }
+            catch
+            {
+            }
+
             // Get The connection socket from the callback
             Stream streamsock = (Stream)ar.AsyncState;
             bool disconnectme = false;
@@ -776,8 +901,8 @@ namespace Open3270.TN3270
             if (mSocketBase==null || mSocketBase.Connected==false)
             {
                 disconnectme = true;
-                mDisconnectReason = "Host dropped connection";
-
+                if (string.IsNullOrEmpty(mDisconnectReason))
+                    mDisconnectReason = "Host dropped connection or not connected in telnet.OnReceivedData";
             }
             else
             {
@@ -818,6 +943,15 @@ namespace Open3270.TN3270
 #endif
                         lock (this)
                         {
+                            //CFCJR sync up sequence number
+                            if (nBytesRec >= 5 && (e_funcs & E_OPT(TN3270E_FUNC_RESPONSES)) != 0)  // CFCJR
+                            {
+                                e_xmit_seq = (m_byBuff[3] << 8) | m_byBuff[4];
+                                e_xmit_seq = (e_xmit_seq + 1) & 0x7FFF;
+
+                                trace.trace_dsn("\nxmit sequence set to " + e_xmit_seq.ToString() + "\n");
+                            }
+
                             for (i = 0; i < nBytesRec; i++)
                             {
 
@@ -831,6 +965,7 @@ namespace Open3270.TN3270
                                 {
                                     host_disconnect(true);
                                     Disconnect();
+                                    mDisconnectReason = "telnet_fsm error in OnReceiveData"; //CFC,Jr. 7/8/2008
                                     return;
                                 }
                             }
@@ -840,18 +975,19 @@ namespace Open3270.TN3270
                         AsyncCallback recieveData = new AsyncCallback(OnRecievedData);
                         // Begin reading data asyncronously
                         mSocketStream.BeginRead(m_byBuff, 0, m_byBuff.Length,recieveData , mSocketStream);
-
+                        trace.trace_dsn("\nOnReceiveData : SocketStream.BeginRead called to read asyncronously\n");
                         //
                     }
                     else
                     {
                         disconnectme = true;
+                        mDisconnectReason = "No data received in telnet.OnReceivedData, disconnecting";
                     }
                 }
                 catch (System.ObjectDisposedException)
                 {
                     disconnectme = true;
-                    mDisconnectReason = "Client dropped connection";
+                    mDisconnectReason = "Client dropped connection : Using Disposed Object Exception";
                 }
                 catch (Exception e)
                 {
@@ -1341,6 +1477,7 @@ namespace Open3270.TN3270
                             telnet_state = TNSTATE.TNS_DATA;
                             break;
                         case EOR:	/* eor, process accumulated input */
+                            trace.trace_dsn("RCVD EOR\n");
                             if (IN_3270 || (IN_E && tn3270e_negotiated))
                             {
                                 // (can't see this being used) --> ns_rrcvd++;
@@ -1350,7 +1487,6 @@ namespace Open3270.TN3270
                             else
                                 events.Warning("EOR received when not in 3270 mode, ignored.");
                             //
-                            trace.trace_dsn("RCVD EOR\n");
                             ibptr = 0;
                             telnet_state = TNSTATE.TNS_DATA;
                             break;
@@ -1962,11 +2098,21 @@ namespace Open3270.TN3270
                 h.data_type = IN_TN3270E ?
                 TN3270E_DT.TN3270_DATA : TN3270E_DT.SSCP_LU_DATA;
                 h.request_flag = 0;
+
+                // CFCJR
+                // request a response if negotiated to do so
+                if ((e_funcs & E_OPT(TN3270E_FUNC_RESPONSES)) != 0)
+                    h.response_flag = TN3270E_HEADER.TN3270E_RSF_ALWAYS_RESPONSE;
+                else
                 h.response_flag = 0;
+                
                 h.seq_number[0] = (byte)((e_xmit_seq >> 8) & 0xff);
                 h.seq_number[1] = (byte)(e_xmit_seq & 0xff);
 
-                trace.trace_dsn("SENT TN3270E(%s NO-RESPONSE %u)\n", IN_TN3270E ? "3270-DATA" : "SSCP-LU-DATA", e_xmit_seq);
+                trace.trace_dsn("SENT TN3270E(%s %s %u)\n", 
+                    IN_TN3270E ? "3270-DATA" : "SSCP-LU-DATA", 
+                    (h.response_flag == TN3270E_HEADER.TN3270E_RSF_ERROR_RESPONSE) ? "ERROR-RESPONSE" : ((h.response_flag == TN3270E_HEADER.TN3270E_RSF_ALWAYS_RESPONSE) ? "ALWAYS-RESPONSE" : "NO-RESPONSE"),
+                    e_xmit_seq);
 
                 if (this.mConnectionConfig.IgnoreSequenceCount == false &&
                     (e_funcs & E_OPT(TN3270E_FUNC_RESPONSES)) != 0)
@@ -2551,6 +2697,7 @@ namespace Open3270.TN3270
             AsyncCallback recieveData = new AsyncCallback(OnRecievedData);
             // Begin reading data asyncronously
             mSocketStream.BeginRead(m_byBuff, 0, m_byBuff.Length, recieveData, mSocketStream);
+            trace.trace_dsn("\nRestartReceive : SocketStream.BeginRead called to read asyncronously\n");
         }
 
         //
