@@ -37,14 +37,13 @@ namespace Open3270.Library
 	/// that tries to Acquire() the semaphore
 	/// with a zero count blocks until someone else
 	/// calls Release() to increase the count.
-	/// <seealso cref="http://www.fawcette.com/javapro/
-	///            2002_02/magazine/features/krangaraju/"/>
-	/// <seealso cref="http://www.mcs.drexel.edu/~shartley/
-	///         MCS361/Lectures/designingJavaSemaphore.html"/>
+	/// <seealso cref="http://www.fawcette.com/javapro/2002_02/magazine/features/krangaraju/"/>
+	/// <seealso cref="http://www.mcs.drexel.edu/~shartley/MCS361/Lectures/designingJavaSemaphore.html"/>
 	/// </summary>
 	internal sealed class MySemaphore
 	{
 		#region Fields
+        private int initialCount; // CFCJR
 		// Current count available.
 		private int count;
 		// Max slots in the semaphore.
@@ -72,14 +71,14 @@ namespace Open3270.Library
 		/// Creates semaphore object with
 		/// a maximum count and initial count.
 		/// </summary>
-		/// <param name="maxCount">
-		/// Maximum count for the semaphore object.
-		/// This value must be greater than zero.
-		/// </param>
 		/// <param name="initialCount">
 		/// Initial count for the semaphore object.
 		/// This value must be zero or greater
 		/// and less than or equal to maximumCount.
+		/// </param>
+        /// <param name="maxCount">
+		/// Maximum count for the semaphore object.
+		/// This value must be greater than zero.
 		/// </param>
 		public MySemaphore(int initialCount, int maxCount)
 		{
@@ -93,6 +92,7 @@ namespace Open3270.Library
 					ArgumentOutOfRangeException("initialCount", "initialCount" + 
 					" must be <= maxCount.");
 			count = initialCount;
+            this.initialCount = initialCount; // CFCJR
 			this.maxCount = maxCount;
 			syncLock = new object();
 			starvationLock = new object();
@@ -135,6 +135,18 @@ namespace Open3270.Library
 		#region Public Methods
 
 		/// <summary>
+        /// Resets the semaphore to it's initial count
+        /// </summary>
+        public void Reset() //CFCJR
+        {
+            lock (syncLock)
+            {
+                count = initialCount;
+                Monitor.PulseAll(syncLock);
+            }
+        }
+
+		/// <summary>
 		/// Acquires semaphore and decrements count by 1.
 		/// If count is zero, this will
 		/// block indefinitely until another thread executes
@@ -171,7 +183,8 @@ namespace Open3270.Library
 				// would regain the lock and continue and
 				// decrease the count to -1 which is an error.
 				// The while loop/test prevents this.
-				while ( count == 0 )
+                while (count == 0)
+                {
 					try
 					{
 						if (!Monitor.Wait(syncLock, millisecondsTimeout))
@@ -196,6 +209,7 @@ namespace Open3270.Library
 						// decide how to handle exception.
 						throw;
 					}
+                }
 				count--;
 				if ( count == 0 )
 					lock(starvationLock) { Monitor.PulseAll(starvationLock); }
@@ -252,15 +266,18 @@ namespace Open3270.Library
 					}
 					else
 					{
+                        if (timeout > 0) // if not Timeout.Infinite
+                        {
 						elapsedMS = (int)((TimeSpan)
 							(DateTime.Now - start)).TotalMilliseconds;
 						timeout = millisecondsTimeout - elapsedMS;
 						// Next wait will be a smaller timeout.
 
-						if ( timeout < 0 )
+                            if (timeout < 0)
 							timeout = 0;
 						// Next Acquire will return
 						// false if we have to wait;
+                        }
 
 						slotsGot++;
 						// If we get all remaining slots
@@ -275,7 +292,7 @@ namespace Open3270.Library
 					throw;
 				}
 			} // end for.
-			// Count is not zero, so notify any/all starvation consumers.
+			// Count is now zero, so notify any/all starvation consumers.
 			lock(starvationLock) { Monitor.PulseAll(starvationLock); }
 			return true;
 		}

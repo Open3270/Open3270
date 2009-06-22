@@ -670,7 +670,7 @@ struct ea * fa2ea(byte *fa)
 			else if (buf[start]==CMD_EWA || buf[start]==SNA_CMD_EWA)
 			{
 				/* erase/write alternate */
-				trace.trace_ds("EraseWriteAlternate");
+				trace.trace_ds("EraseWriteAlternate\n");
 				ctlr_erase(true);
 				ctlr_write(buf,start,length, true);
 				return pds.PDS_OKAY_NO_OUTPUT;
@@ -679,7 +679,7 @@ struct ea * fa2ea(byte *fa)
 			else if (buf[start]==CMD_EW || buf[start]==SNA_CMD_EW)
 			{
 				/* erase/write */
-				trace.trace_ds("EraseWrite");
+				trace.trace_ds("EraseWrite\n");
 				ctlr_erase(false);
 				//Console.WriteLine("**BUGBUG**");
 				ctlr_write(buf, start, length /*buflen*/, true);
@@ -688,7 +688,7 @@ struct ea * fa2ea(byte *fa)
 			else if (buf[start]==CMD_W || buf[start]==SNA_CMD_W)
 			{
 				/* write */
-				trace.trace_ds("Write");
+				trace.trace_ds("Write\n");
 				ctlr_write(buf, start, length /*buflen*/, false);
 				return pds.PDS_OKAY_NO_OUTPUT;
 
@@ -1861,11 +1861,47 @@ struct ea * fa2ea(byte *fa)
 
 			/* Let a script go. */
 			if (!packetwasjustresetrewrite)
+            {
 				telnet.events.RunScript("ctlr_write - end");
+                try
+                {
+                    NotifyDataAvailable(); // added by CFC,Jr
+                }
+                catch
+                {
+                }
+            }
 			//sms_host_output();
 
 			return rv;
 		}
+
+        ////////////////////////////////////////////////
+        /// <summary>
+        /// Section added for screen syncronization
+        /// (see also Telnet.cs for other)
+        /// (CFC,Jr 2008/06/26)
+        /// </summary>
+        private object dataAvailableLock = new object();
+        private int dataAvailableCount = 0;
+        public int DataAvailableCount
+        {
+            get { lock (dataAvailableLock) { return dataAvailableCount; } }
+        }
+        private void NotifyDataAvailable()
+        {
+            lock(dataAvailableLock)
+            {
+                if (telnet != null)
+                    dataAvailableCount = telnet.StartedReceivingCount;
+                else
+                    dataAvailableCount++;
+            }
+            int rcvCnt = 0;
+            if ( telnet != null )
+                rcvCnt = telnet.StartedReceivingCount;
+            trace.trace_dsn("NotifyDataAvailable : dataReceivedCount = " + rcvCnt + "  dataAvailableCount = " + DataAvailableCount.ToString() + Environment.NewLine);
+        }
 
 		/*
 		 * Write SSCP-LU data, which is quite a bit dumber than regular 3270
@@ -2079,7 +2115,10 @@ struct ea * fa2ea(byte *fa)
 			for (i=0; i<ROWS*COLS; i++)
 			{
 				screen_buf[i] = 0;
-				ea_buf[i] = new ExtendedAttribute();
+                // CFC,Jr. 8/23/2008
+                // Clear the ExtendedAttributes instead of creating new ones
+				//ea_buf[i] = new ExtendedAttribute();
+                ea_buf[i].Clear();
 			}
 			//memset((char *)screen_buf, 0, ROWS*COLS);
 			//memset((char *)ea_buf, 0, ROWS*COLS*sizeof(struct ea));
@@ -2308,7 +2347,10 @@ struct ea * fa2ea(byte *fa)
 				{
 					if (!ea_buf[baddr+i].IsZero)
 					{
-						ea_buf[baddr+i] = new ExtendedAttribute();
+                        // CFC,Jr. 8/23/2008
+                        // Clear the ExtendedAttributes instead of creating new ones
+                        //ea_buf[baddr + i] = new ExtendedAttribute();
+                        ea_buf[baddr + i].Clear();
 						changed = true;
 					}
 				}
@@ -2886,11 +2928,21 @@ struct ea * fa2ea(byte *fa)
 			{
 				telnet.action.action_output("<Formatted>true</Formatted>");
 				ExtendedAttribute ea = new ExtendedAttribute();
+                // CFCJR Mar 4,2008 : user tmcquire in post on www.open3270.net
+                // says this do loop can hang up (pos never changes) in certain cases.
+                // Added lastPos check to prevent this.
+                int lastPos = -1;
+                int cnt = 0;
 				do
 				{
+                    lastPos = pos;
 					pos = dump_fieldAsXML(pos, ea);
+                    if (lastPos == pos)
+                        cnt++;
+                    else
+                        cnt = 0;
 				}
-				while (pos != -1);
+				while (pos != -1 && cnt < 999);
 			}
 			else
 			{
@@ -2919,11 +2971,40 @@ struct ea * fa2ea(byte *fa)
 
 
 		#region IDisposable Members
+        // CFC,Jr. 8/24/2008
+        // Handle IDisposable Interface
+
+        ~Ctlr()
+        {
+            Dispose(false);
+        }
+
+        bool isDisposed = false;
 
 		public void Dispose()
 		{
-			// TODO:  Add Ctlr.Dispose implementation
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+                return;
+            isDisposed = true;
+
+            if (disposing)
+            {
+                for (int i = 0; i < ea_buf.Length; i++)
+                    ea_buf[i] = null;
+                for (int i = 0; i < aea_buf.Length; i++)
+                    aea_buf[i] = null;
+                for (int i = 0; i < zero_buf.Length; i++)
+                    zero_buf[i] = null;
 		}
+        }
+
+        //END, CFC,Jr.
 
 		#endregion
 	}
