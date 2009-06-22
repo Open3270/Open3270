@@ -29,7 +29,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Xml;
 using System.Xml.Serialization;
-using System.Runtime.Serialization.Formatters.Soap;
 
 namespace Open3270.Library
 {
