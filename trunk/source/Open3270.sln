@@ -1,6 +1,6 @@
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinFX3270Library", "WinFX3270Library\WinFX3270Library.csproj", "{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open3270Library", "WinFX3270Library\Open3270Library.csproj", "{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{B41A8260-36C0-4719-A248-78C92EE50FB5}"
 EndProject
@@ -8,14 +8,14 @@ Global
 	GlobalSection(TeamFoundationVersionControl) = preSolution
 		SccNumberOfProjects = 3
 		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://tfs01.codeplex.com/
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = Sample\\Sample.csproj
-		SccProjectName1 = Sample
-		SccLocalPath1 = Sample
-		SccProjectUniqueName2 = WinFX3270Library\\WinFX3270Library.csproj
-		SccProjectName2 = WinFX3270Library
-		SccLocalPath2 = WinFX3270Library
+		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs01
+		SccProjectUniqueName0 = Sample\\Sample.csproj
+		SccProjectName0 = Sample
+		SccLocalPath0 = Sample
+		SccProjectUniqueName1 = WinFX3270Library\\Open3270Library.csproj
+		SccProjectName1 = WinFX3270Library
+		SccLocalPath1 = WinFX3270Library
+		SccLocalPath2 = .
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
