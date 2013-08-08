@@ -50,6 +50,11 @@ namespace Open3270.TN3270
 		[System.Xml.Serialization.XmlElementAttribute("Field")]
 		public XMLScreenField[] Field;
 
+		public XMLScreenField[] Fields
+		{
+			get { return Field; }
+		}
+
 		[System.Xml.Serialization.XmlElementAttribute("Unformatted")]
 		public XMLUnformattedScreen Unformatted;
 
@@ -304,7 +309,7 @@ namespace Open3270.TN3270
                     if (i < mScreenRows.Length)
                     {
                         text = text.PadRight(_CX, ' ');  // CFCJr. 2008/07/11 use PadRight instead of loop above
-					mScreenRows[i] = text;
+					  mScreenRows[i] = text;
 				}
 				}
             }
@@ -334,7 +339,7 @@ namespace Open3270.TN3270
 						{
 							char ch = field.Text[chindex];
 							if (ch<32 || ch>126)
-								ch = ' ';
+							    ch = ' ';
                             // CFCJr, 2008/07/11 make sure we don't get out of bounds 
                             //        of the array m_ScreenBuffer.
                             int bufNdx = chindex + field.Location.left + field.Location.top * _CX;
@@ -467,22 +472,22 @@ namespace Open3270.TN3270
 		public void Dump(IAudit stream)
 		{
 			int i;
-			stream.WriteLine("-----");
-			string tens = " ", singles= " "; // the quoted strings must be 3 spaces each, it gets lost in translation by codeplex...
-			for (i = 0; i < _CX; i += 10)
-			{
-				tens += String.Format("{0,-10}", i / 10);
-				singles += "0123456789";
-			}
-			stream.WriteLine(tens.Substring(0,3+_CX));
-			stream.WriteLine(singles.Substring(0, 3 + _CX));
+			//stream.WriteLine("-----");
+			//string tens = "   ", singles= "   "; // the quoted strings must be 3 spaces each, it gets lost in translation by codeplex...
+			//for (i = 0; i < _CX; i += 10)
+			//{
+			//	tens += String.Format("{0,-10}", i / 10);
+			//	singles += "0123456789";
+			//}
+			//stream.WriteLine(tens.Substring(0,3+_CX));
+			//stream.WriteLine(singles.Substring(0, 3 + _CX));
 			for (i=0; i<_CY; i++)
 			{
 				string line = GetText(0,i, _CX);
-				string lr = ""+i+"       ";
-				stream.WriteLine(lr.Substring(0,2)+" "+line);
+				//string lr = ""+i+"       ";
+				stream.WriteLine(line);
 			}
-			stream.WriteLine("-----");
+			//stream.WriteLine("-----");
 		}
 
         public string[] GetUnformatedStrings()

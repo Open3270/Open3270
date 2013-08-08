@@ -26,48 +26,48 @@ using System;
 namespace Open3270.TN3270
 {
 	/// <summary>
-	/// Summary description for AID.
+	/// Attention ID
 	/// </summary>
 	internal class AID
 	{
-		/* AIDs */
-		public const byte  AID_NO		= 0x60;	/* no AID generated */
-		public const byte  AID_QREPLY	= 0x61;
-		public const byte  AID_ENTER	= 0x7d;
-		public const byte  AID_PF1		= 0xf1;
-		public const byte  AID_PF2		= 0xf2;
-		public const byte  AID_PF3		= 0xf3;
-		public const byte  AID_PF4		= 0xf4;
-		public const byte  AID_PF5		= 0xf5;
-		public const byte  AID_PF6		= 0xf6;
-		public const byte  AID_PF7		= 0xf7;
-		public const byte  AID_PF8		= 0xf8;
-		public const byte  AID_PF9		= 0xf9;
-		public const byte  AID_PF10	= 0x7a;
-		public const byte  AID_PF11	= 0x7b;
-		public const byte  AID_PF12	= 0x7c;
-		public const byte  AID_PF13	= 0xc1;
-		public const byte  AID_PF14	= 0xc2;
-		public const byte  AID_PF15	= 0xc3;
-		public const byte  AID_PF16	= 0xc4;
-		public const byte  AID_PF17	= 0xc5;
-		public const byte  AID_PF18	= 0xc6;
-		public const byte  AID_PF19	= 0xc7;
-		public const byte  AID_PF20	= 0xc8;
-		public const byte  AID_PF21	= 0xc9;
-		public const byte  AID_PF22	= 0x4a;
-		public const byte  AID_PF23	= 0x4b;
-		public const byte  AID_PF24	= 0x4c;
-		public const byte  AID_OICR	= 0xe6;
-		public const byte  AID_MSR_MHS	= 0xe7;
-		public const byte  AID_SELECT	= 0x7e;
-		public const byte  AID_PA1		= 0x6c;
-		public const byte  AID_PA2		= 0x6e;
-		public const byte  AID_PA3		= 0x6b;
-		public const byte  AID_CLEAR	= 0x6d;
-		public const byte  AID_SYSREQ	= 0xf0;
+		//No AID generated
+		public const byte  None		= 0x60;	
+		public const byte  QReply	= 0x61;
+		public const byte  Enter	= 0x7d;
+		public const byte  F1		= 0xf1;
+		public const byte  F2		= 0xf2;
+		public const byte  F3		= 0xf3;
+		public const byte  F4		= 0xf4;
+		public const byte  F5		= 0xf5;
+		public const byte  F6		= 0xf6;
+		public const byte  F7		= 0xf7;
+		public const byte  F8		= 0xf8;
+		public const byte  F9		= 0xf9;
+		public const byte  F10	= 0x7a;
+		public const byte  F11	= 0x7b;
+		public const byte  F12	= 0x7c;
+		public const byte  F13	= 0xc1;
+		public const byte  F14	= 0xc2;
+		public const byte  F15	= 0xc3;
+		public const byte  F16	= 0xc4;
+		public const byte  F17	= 0xc5;
+		public const byte  F18	= 0xc6;
+		public const byte  F19	= 0xc7;
+		public const byte  F20	= 0xc8;
+		public const byte  F21	= 0xc9;
+		public const byte  F22	= 0x4a;
+		public const byte  F23	= 0x4b;
+		public const byte  F24	= 0x4c;
+		public const byte  Oicr	= 0xe6;
+		public const byte  MsrMhs	= 0xe7;
+		public const byte  SELECT	= 0x7e;
+		public const byte  PA1		= 0x6c;
+		public const byte  PA2		= 0x6e;
+		public const byte  PA3		= 0x6b;
+		public const byte  Clear	= 0x6d;
+		public const byte  SysReq	= 0xf0;
 
-		public const byte  AID_SF		= 0x88;
-		public const byte  SFID_QREPLY	= 0x81;
+		public const byte  SF		= 0x88;
+		public const byte  SF_QReply	= 0x81;
 	}
 };

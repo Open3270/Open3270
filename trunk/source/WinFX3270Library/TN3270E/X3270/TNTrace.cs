@@ -120,7 +120,7 @@ namespace Open3270.TN3270
 			int offset;
 			long ts = DateTime.Now.Ticks;
 
-			if (telnet.IN_3270) 
+			if (telnet.Is3270) 
 			{
 				trace_dsn("%c +%f\n", direction, (double)(((ts-ds_ts)/10000)/1000.0));
 			}
@@ -148,7 +148,7 @@ namespace Open3270.TN3270
 		/* display a (row,col) */
 		public string rcba(int baddr)
 		{
-			return "("+(baddr/telnet.tnctlr.COLS+1)+","+(baddr%telnet.tnctlr.COLS+1)+")";
+			return "("+(baddr/telnet.Controller.ColumnCount+1)+","+(baddr%telnet.Controller.ColumnCount+1)+")";
 		}
 
 		//

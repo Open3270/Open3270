@@ -79,14 +79,14 @@ namespace Open3270.TN3270
 		/*
 		 * Process a 3270 Write Structured Field command
 		 */
-		public pds write_structured_field(byte[] buf, int start, int buflen)
+		public PDS write_structured_field(byte[] buf, int start, int buflen)
 		{
 			int fieldlen;
 			//byte *cp = buf;
 			int cp = start;
 			bool first = true;
-			pds rv = pds.PDS_OKAY_NO_OUTPUT;
-			pds rv_this = pds.PDS_OKAY_NO_OUTPUT;
+			PDS rv = PDS.OkayNoOutput;
+			PDS rv_this = PDS.OkayNoOutput;
 			bool bad_cmd = false;
 
 			/* Skip the WSF command itself. */
@@ -98,59 +98,59 @@ namespace Open3270.TN3270
 			{
 
 				if (first)
-					telnet.trace.trace_ds(" ");
+					telnet.Trace.trace_ds(" ");
 				else
-					telnet.trace.trace_ds("< WriteStructuredField ");
+					telnet.Trace.trace_ds("< WriteStructuredField ");
 				first = false;
 
 				/* Pick out the field length. */
 				if (buflen < 2) 
 				{
-					telnet.trace.trace_ds("error: single byte at end of message\n");
-					return (rv != pds.PDS_OKAY_NO_OUTPUT) ? rv : pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds("error: single byte at end of message\n");
+					return (rv != PDS.OkayNoOutput) ? rv : PDS.BadCommand;
 				}
 				fieldlen = (buf[cp] << 8) + buf[cp+1];
 				if (fieldlen == 0)
 					fieldlen = buflen;
 				if (fieldlen < 3) 
 				{
-					telnet.trace.trace_ds("error: field length %d too small\n",
+					telnet.Trace.trace_ds("error: field length %d too small\n",
 						fieldlen);
-					return (rv != pds.PDS_OKAY_NO_OUTPUT)  ? rv : pds.PDS_BAD_CMD;
+					return (rv != PDS.OkayNoOutput)  ? rv : PDS.BadCommand;
 				}
 				if ((int)fieldlen > buflen) 
 				{
-					telnet.trace.trace_ds("error: field length %d exceeds remaining message length %d\n",
+					telnet.Trace.trace_ds("error: field length %d exceeds remaining message length %d\n",
 						fieldlen, buflen);
-					return (rv != pds.PDS_OKAY_NO_OUTPUT)  ? rv : pds.PDS_BAD_CMD;
+					return (rv != PDS.OkayNoOutput)  ? rv : PDS.BadCommand;
 				}
 
 				/* Dispatch on the ID. */
 				switch (buf[cp+2]) 
 				{
 					case SF_READ_PART:
-						telnet.trace.trace_ds("ReadPartition");
+						telnet.Trace.trace_ds("ReadPartition");
 						rv_this = sf_read_part(CloneBytes(buf, cp, fieldlen), (int)fieldlen);
 						break;
 					case SF_ERASE_RESET:
-						telnet.trace.trace_ds("EraseReset");
+						telnet.Trace.trace_ds("EraseReset");
 						rv_this = sf_erase_reset(CloneBytes(buf, cp, fieldlen), (int)fieldlen);
 						break;
 					case SF_SET_REPLY_MODE:
-						telnet.trace.trace_ds("SetReplyMode");
+						telnet.Trace.trace_ds("SetReplyMode");
 						rv_this = sf_set_reply_mode(CloneBytes(buf, cp, fieldlen), (int)fieldlen);
 						break;
 					case SF_CREATE_PART:
-						telnet.trace.trace_ds("CreatePartition");
+						telnet.Trace.trace_ds("CreatePartition");
 						rv_this = sf_create_partition(CloneBytes(buf, cp, fieldlen), (int)fieldlen);
 						break;
 					case SF_OUTBOUND_DS:
-						telnet.trace.trace_ds("OutboundDS");
+						telnet.Trace.trace_ds("OutboundDS");
 						rv_this = sf_outbound_ds(CloneBytes(buf, cp, fieldlen), (int)fieldlen);
 						break;
 					default:
-						telnet.trace.trace_ds("unsupported ID 0x%02x\n", buf[cp+2]);
-						rv_this = pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds("unsupported ID 0x%02x\n", buf[cp+2]);
+						rv_this = PDS.BadCommand;
 						break;
 				}
 
@@ -165,7 +165,7 @@ namespace Open3270.TN3270
 					bad_cmd = true;
 				else
 				{
-					rv = (pds)(rv | rv_this);
+					rv = (PDS)(rv | rv_this);
 				}
 
 				/* Skip to the next field. */
@@ -173,15 +173,15 @@ namespace Open3270.TN3270
 				buflen -= fieldlen;
 			}
 			if (first)
-				telnet.trace.trace_ds(" (null)\n");
+				telnet.Trace.trace_ds(" (null)\n");
 
-			if (bad_cmd && rv==pds.PDS_OKAY_NO_OUTPUT)
-				return pds.PDS_BAD_CMD;
+			if (bad_cmd && rv==PDS.OkayNoOutput)
+				return PDS.BadCommand;
 			else
 				return rv;
 		}
 
-		pds sf_read_part(byte[] buf, int buflen)
+		PDS sf_read_part(byte[] buf, int buflen)
 		{
 			byte partition;
 			int i;
@@ -191,59 +191,59 @@ namespace Open3270.TN3270
 
 			if (buflen < 5) 
 			{
-				telnet.trace.trace_ds(" error: field length %d too small\n", buflen);
-				return pds.PDS_BAD_CMD;
+				telnet.Trace.trace_ds(" error: field length %d too small\n", buflen);
+				return PDS.BadCommand;
 			}
 
 			partition = buf[3];
-			telnet.trace.trace_ds("(0x%02x)", partition);
+			telnet.Trace.trace_ds("(0x%02x)", partition);
 
 			switch (buf[4]) 
 			{
 				case SF_RP_QUERY:
-					telnet.trace.trace_ds(" Query");
+					telnet.Trace.trace_ds(" Query");
 					if (partition != 0xff) 
 					{
-						telnet.trace.trace_ds(" error: illegal partition\n");
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds(" error: illegal partition\n");
+						return PDS.BadCommand;
 					}
-					telnet.trace.trace_ds("\n");
+					telnet.Trace.trace_ds("\n");
 					obptr = query_reply_start();
 					for (i = 0; i < NSR; i++)
 						do_query_reply(obptr, supported_replies[i]);
 					query_reply_end(obptr);
 					break;
 				case SF_RP_QLIST:
-					telnet.trace.trace_ds(" QueryList ");
+					telnet.Trace.trace_ds(" QueryList ");
 					if (partition != 0xff) 
 					{
-						telnet.trace.trace_ds("error: illegal partition\n");
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds("error: illegal partition\n");
+						return PDS.BadCommand;
 					}
 					if (buflen < 6) 
 					{
-						telnet.trace.trace_ds("error: missing request type\n");
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds("error: missing request type\n");
+						return PDS.BadCommand;
 					}
 					obptr = query_reply_start();
 				switch (buf[5]) 
 				{
 					case SF_RPQ_LIST:
-						telnet.trace.trace_ds("List(");
+						telnet.Trace.trace_ds("List(");
 						if (buflen < 7) 
 						{
-							telnet.trace.trace_ds(")\n");
+							telnet.Trace.trace_ds(")\n");
 							do_query_reply(obptr, see.QR_NULL);
 						} 
 						else 
 						{
 							for (i = 6; i < buflen; i++) 
 							{
-								telnet.trace.trace_ds("%s%s", comma,
+								telnet.Trace.trace_ds("%s%s", comma,
 									see.see_qcode(buf[i]));
 								comma = ",";
 							}
-							telnet.trace.trace_ds(")\n");
+							telnet.Trace.trace_ds(")\n");
 							for (i = 0; i < NSR; i++) 
 							{
 								int pos;
@@ -266,90 +266,90 @@ namespace Open3270.TN3270
 						}
 						break;
 					case SF_RPQ_EQUIV:
-						telnet.trace.trace_ds("Equivlent+List(");
+						telnet.Trace.trace_ds("Equivlent+List(");
 						for (i = 6; i < buflen; i++) 
 						{
-							telnet.trace.trace_ds("%s%s", comma, see.see_qcode(buf[i]));
+							telnet.Trace.trace_ds("%s%s", comma, see.see_qcode(buf[i]));
 							comma = ",";
 						}
-						telnet.trace.trace_ds(")\n");
+						telnet.Trace.trace_ds(")\n");
 						for (i = 0; i < NSR; i++)
 							do_query_reply(obptr, supported_replies[i]);
 						break;
 					case SF_RPQ_ALL:
-						telnet.trace.trace_ds("All\n");
+						telnet.Trace.trace_ds("All\n");
 						for (i = 0; i < NSR; i++)
 							do_query_reply(obptr, supported_replies[i]);
 						break;
 					default:
-						telnet.trace.trace_ds("unknown request type 0x%02x\n", buf[5]);
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds("unknown request type 0x%02x\n", buf[5]);
+						return PDS.BadCommand;
 				}
 					query_reply_end(obptr);
 					break;
-				case Ctlr.SNA_CMD_RMA:
-					telnet.trace.trace_ds(" ReadModifiedAll");
+				case ControllerConstant.SNA_CMD_RMA:
+					telnet.Trace.trace_ds(" ReadModifiedAll");
 					if (partition != 0x00) 
 					{
-						telnet.trace.trace_ds(" error: illegal partition\n");
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds(" error: illegal partition\n");
+						return PDS.BadCommand;
 					}
-					telnet.trace.trace_ds("\n");
-					telnet.tnctlr.ctlr_read_modified(AID.AID_QREPLY, true);
+					telnet.Trace.trace_ds("\n");
+					telnet.Controller.ProcessReadModifiedCommand(AID.QReply, true);
 					break;
-				case Ctlr.SNA_CMD_RB:
-					telnet.trace.trace_ds(" ReadBuffer");
+				case ControllerConstant.SNA_CMD_RB:
+					telnet.Trace.trace_ds(" ReadBuffer");
 					if (partition != 0x00) 
 					{
-						telnet.trace.trace_ds(" error: illegal partition\n");
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds(" error: illegal partition\n");
+						return PDS.BadCommand;
 					}
-					telnet.trace.trace_ds("\n");
-					telnet.tnctlr.ctlr_read_buffer(AID.AID_QREPLY);
+					telnet.Trace.trace_ds("\n");
+					telnet.Controller.ProcessReadBufferCommand(AID.QReply);
 					break;
-				case Ctlr.SNA_CMD_RM:
-					telnet.trace.trace_ds(" ReadModified");
+				case ControllerConstant.SNA_CMD_RM:
+					telnet.Trace.trace_ds(" ReadModified");
 					if (partition != 0x00) 
 					{
-						telnet.trace.trace_ds(" error: illegal partition\n");
-						return pds.PDS_BAD_CMD;
+						telnet.Trace.trace_ds(" error: illegal partition\n");
+						return PDS.BadCommand;
 					}
-					telnet.trace.trace_ds("\n");
-					telnet.tnctlr.ctlr_read_modified(AID.AID_QREPLY, false);
+					telnet.Trace.trace_ds("\n");
+					telnet.Controller.ProcessReadModifiedCommand(AID.QReply, false);
 					break;
 				default:
-					telnet.trace.trace_ds(" unknown type 0x%02x\n", buf[4]);
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(" unknown type 0x%02x\n", buf[4]);
+					return PDS.BadCommand;
 			}
-			return pds.PDS_OKAY_OUTPUT;
+			return PDS.OkayOutput;
 		}
 
-		pds sf_erase_reset(byte[] buf, int buflen)
+		PDS sf_erase_reset(byte[] buf, int buflen)
 		{
 			if (buflen != 4) 
 			{
-				telnet.trace.trace_ds(" error: wrong field length %d\n", buflen);
-				return pds.PDS_BAD_CMD;
+				telnet.Trace.trace_ds(" error: wrong field length %d\n", buflen);
+				return PDS.BadCommand;
 			}
 
 			switch (buf[3]) 
 			{
 				case SF_ER_DEFAULT:
-					telnet.trace.trace_ds(" Default\n");
-					telnet.tnctlr.ctlr_erase(false);
+					telnet.Trace.trace_ds(" Default\n");
+					telnet.Controller.Erase(false);
 					break;
 				case SF_ER_ALT:
-					telnet.trace.trace_ds(" Alternate\n");
-					telnet.tnctlr.ctlr_erase(true);
+					telnet.Trace.trace_ds(" Alternate\n");
+					telnet.Controller.Erase(true);
 					break;
 				default:
-					telnet.trace.trace_ds(" unknown type 0x%02x\n", buf[3]);
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(" unknown type 0x%02x\n", buf[3]);
+					return PDS.BadCommand;
 			}
-			return pds.PDS_OKAY_NO_OUTPUT;
+			return PDS.OkayNoOutput;
 		}
 
-		pds sf_set_reply_mode(byte[] buf, int buflen)
+		PDS sf_set_reply_mode(byte[] buf, int buflen)
 		{
 			byte partition;
 			int i;
@@ -357,46 +357,46 @@ namespace Open3270.TN3270
 
 			if (buflen < 5) 
 			{
-				telnet.trace.trace_ds(" error: wrong field length %d\n", buflen);
-				return pds.PDS_BAD_CMD;
+				telnet.Trace.trace_ds(" error: wrong field length %d\n", buflen);
+				return PDS.BadCommand;
 			}
 
 			partition = buf[3];
-			telnet.trace.trace_ds("(0x%02x)", partition);
+			telnet.Trace.trace_ds("(0x%02x)", partition);
 			if (partition != 0x00) 
 			{
-				telnet.trace.trace_ds(" error: illegal partition\n");
-				return pds.PDS_BAD_CMD;
+				telnet.Trace.trace_ds(" error: illegal partition\n");
+				return PDS.BadCommand;
 			}
 
 			switch (buf[4]) 
 			{
 				case SF_SRM_FIELD:
-					telnet.trace.trace_ds(" Field\n");
+					telnet.Trace.trace_ds(" Field\n");
 					break;
 				case SF_SRM_XFIELD:
-					telnet.trace.trace_ds(" ExtendedField\n");
+					telnet.Trace.trace_ds(" ExtendedField\n");
 					break;
 				case SF_SRM_CHAR:
-					telnet.trace.trace_ds(" Character");
+					telnet.Trace.trace_ds(" Character");
 					break;
 				default:
-					telnet.trace.trace_ds(" unknown mode 0x%02x\n", buf[4]);
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(" unknown mode 0x%02x\n", buf[4]);
+					return PDS.BadCommand;
 			}
 			reply_mode = buf[4];
 			if (buf[4] == SF_SRM_CHAR) 
 			{
-				telnet.tnctlr.crm_nattr = buflen - 5;
+				telnet.Controller.CrmnAttribute = buflen - 5;
 				for (i = 5; i < buflen; i++) 
 				{
-					telnet.tnctlr.crm_attr[i - 5] = buf[i];
-					telnet.trace.trace_ds("%s%s", comma, see.see_efa_only(buf[i]));
+					telnet.Controller.CrmAttributes[i - 5] = buf[i];
+					telnet.Trace.trace_ds("%s%s", comma, see.see_efa_only(buf[i]));
 					comma = ",";
 				}
-				telnet.trace.trace_ds("%s\n", (telnet.tnctlr.crm_nattr!=0) ? ")" : "");
+				telnet.Trace.trace_ds("%s\n", (telnet.Controller.CrmnAttribute!=0) ? ")" : "");
 			}
-			return pds.PDS_OKAY_NO_OUTPUT;
+			return PDS.OkayNoOutput;
 		}
 		string[] bit4 = new string[] 
 	{
@@ -406,7 +406,7 @@ namespace Open3270.TN3270
 		"1100", "1101", "1110", "1111"
 	};
 
-		pds sf_create_partition(byte[] buf, int buflen)
+		PDS sf_create_partition(byte[] buf, int buflen)
 		{
 			byte pid;
 			byte uom;		/* unit of measure */
@@ -428,15 +428,15 @@ namespace Open3270.TN3270
 
 			if (buflen > 3) 
 			{
-				telnet.trace.trace_ds("(");
+				telnet.Trace.trace_ds("(");
 
 				/* Partition. */
 				pid = buf[3];
-				telnet.trace.trace_ds("pid=0x%02x", pid);
+				telnet.Trace.trace_ds("pid=0x%02x", pid);
 				if (pid != 0x00) 
 				{
-					telnet.trace.trace_ds(") error: illegal partition\n");
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(") error: illegal partition\n");
+					return PDS.BadCommand;
 				}
 			} 
 			else
@@ -445,18 +445,18 @@ namespace Open3270.TN3270
 			if (buflen > 4) 
 			{
 				uom = (byte)((buf[4] & 0xf0) >> 4);
-				telnet.trace.trace_ds(",uom=B'%s'", bit4[uom]);
+				telnet.Trace.trace_ds(",uom=B'%s'", bit4[uom]);
 				if (uom != 0x0 && uom != 0x02) 
 				{
-					telnet.trace.trace_ds(") error: illegal units\n");
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(") error: illegal units\n");
+					return PDS.BadCommand;
 				}
 				am = (byte)(buf[4] & 0x0f);
-				telnet.trace.trace_ds(",am=B'%s'", bit4[am]);
+				telnet.Trace.trace_ds(",am=B'%s'", bit4[am]);
 				if (am > 0x2) 
 				{
-					telnet.trace.trace_ds(") error: illegal a-mode\n");
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(") error: illegal a-mode\n");
+					return PDS.BadCommand;
 				}
 			} 
 			else 
@@ -468,7 +468,7 @@ namespace Open3270.TN3270
 			if (buflen > 5) 
 			{
 				flags = buf[5];
-				telnet.trace.trace_ds(",flags=0x%02x", flags);
+				telnet.Trace.trace_ds(",flags=0x%02x", flags);
 			} 
 			else
 				flags = 0;
@@ -476,23 +476,23 @@ namespace Open3270.TN3270
 			if (buflen > 7) 
 			{
 				h = GET16(buf, 6);//GET16(h, &buf[6]);
-				telnet.trace.trace_ds(",h=%d", h);
+				telnet.Trace.trace_ds(",h=%d", h);
 			} 
 			else
-				h = telnet.tnctlr.maxROWS;
+				h = telnet.Controller.MaxRows;
 
 			if (buflen > 9) 
 			{
 				w = GET16(buf, 8);//GET16(w, &buf[8]);
-				telnet.trace.trace_ds(",w=%d", w);
+				telnet.Trace.trace_ds(",w=%d", w);
 			} 
 			else
-				w = telnet.tnctlr.maxCOLS;
+				w = telnet.Controller.MaxColumns;
 
 			if (buflen > 11) 
 			{
 				rv = GET16(buf,10);//GET16(rv, &buf[10]);
-				telnet.trace.trace_ds(",rv=%d", rv);
+				telnet.Trace.trace_ds(",rv=%d", rv);
 			} 
 			else
 				rv = 0;
@@ -500,7 +500,7 @@ namespace Open3270.TN3270
 			if (buflen > 13) 
 			{
 				cv = GET16(buf,12);//GET16(cv, &buf[12]);
-				telnet.trace.trace_ds(",cv=%d", cv);
+				telnet.Trace.trace_ds(",cv=%d", cv);
 			} 
 			else
 				cv = 0;
@@ -508,23 +508,23 @@ namespace Open3270.TN3270
 			if (buflen > 15) 
 			{
 				hv = GET16(buf, 14);//GET16(hv, &buf[14]);
-				telnet.trace.trace_ds(",hv=%d", hv);
+				telnet.Trace.trace_ds(",hv=%d", hv);
 			} 
 			else
-				hv = (h > telnet.tnctlr.maxROWS)? telnet.tnctlr.maxROWS: h;
+				hv = (h > telnet.Controller.MaxRows)? telnet.Controller.MaxRows: h;
 
 			if (buflen > 17) 
 			{
 				wv = GET16(buf, 16);//GET16(wv, &buf[16]);
-				telnet.trace.trace_ds(",wv=%d", wv);
+				telnet.Trace.trace_ds(",wv=%d", wv);
 			} 
 			else
-				wv = (w > telnet.tnctlr.maxCOLS)? telnet.tnctlr.maxCOLS: w;
+				wv = (w > telnet.Controller.MaxColumns)? telnet.Controller.MaxColumns: w;
 
 			if (buflen > 19) 
 			{
 				rw = GET16(buf,18);//GET16(rw, &buf[18]);
-				telnet.trace.trace_ds(",rw=%d", rw);
+				telnet.Trace.trace_ds(",rw=%d", rw);
 			} 
 			else
 				rw = 0;
@@ -532,7 +532,7 @@ namespace Open3270.TN3270
 			if (buflen > 21) 
 			{
 				cw = GET16(buf,20);//GET16(cw, &buf[20]);
-				telnet.trace.trace_ds(",cw=%d", cw);
+				telnet.Trace.trace_ds(",cw=%d", cw);
 			} 
 			else
 				cw = 0;
@@ -540,7 +540,7 @@ namespace Open3270.TN3270
 			if (buflen > 23) 
 			{
 				rs = GET16(buf,22);//GET16(rs, &buf[22]);
-				telnet.trace.trace_ds(",rs=%d", rs);
+				telnet.Trace.trace_ds(",rs=%d", rs);
 			} 
 			else
 				rs = (h > hv)? 1: 0;
@@ -548,7 +548,7 @@ namespace Open3270.TN3270
 			if (buflen > 27) 
 			{
 				pw = GET16(buf,26);//GET16(pw, &buf[26]);
-				telnet.trace.trace_ds(",pw=%d", pw);
+				telnet.Trace.trace_ds(",pw=%d", pw);
 			} 
 			else
 				pw = 7;//*char_width;
@@ -556,73 +556,73 @@ namespace Open3270.TN3270
 			if (buflen > 29) 
 			{
 				ph = GET16(buf, 28);//GET16(ph, &buf[28]);
-				telnet.trace.trace_ds(",ph=%d", ph);
+				telnet.Trace.trace_ds(",ph=%d", ph);
 			} 
 			else
 				ph = 7;//*char_height;
-			telnet.trace.trace_ds(")\n");
+			telnet.Trace.trace_ds(")\n");
 
-			telnet.tnctlr.cursor_move(0);
-			telnet.tnctlr.buffer_addr = 0;
+			telnet.Controller.SetCursorAddress(0);
+			telnet.Controller.BufferAddress = 0;
 
-			return pds.PDS_OKAY_NO_OUTPUT;
+			return PDS.OkayNoOutput;
 		}
 
-		pds sf_outbound_ds(byte[] buf, int buflen)
+		PDS sf_outbound_ds(byte[] buf, int buflen)
 		{
 			if (buflen < 5) 
 			{
-				telnet.trace.trace_ds(" error: field length %d too short\n", buflen);
-				return pds.PDS_BAD_CMD;
+				telnet.Trace.trace_ds(" error: field length %d too short\n", buflen);
+				return PDS.BadCommand;
 			}
 
-			telnet.trace.trace_ds("(0x%02x)", buf[3]);
+			telnet.Trace.trace_ds("(0x%02x)", buf[3]);
 			if (buf[3] != 0x00) 
 			{
-				telnet.trace.trace_ds(" error: illegal partition 0x%0x\n", buf[3]);
-				return pds.PDS_BAD_CMD;
+				telnet.Trace.trace_ds(" error: illegal partition 0x%0x\n", buf[3]);
+				return PDS.BadCommand;
 			}
 
 			switch (buf[4]) 
 			{
-				case Ctlr.SNA_CMD_W:
-					telnet.trace.trace_ds(" Write");
+				case ControllerConstant.SNA_CMD_W:
+					telnet.Trace.trace_ds(" Write");
 					if (buflen > 5)
-						telnet.tnctlr.ctlr_write(buf, 4, buflen-4, false);
+						telnet.Controller.ProcessWriteCommand(buf, 4, buflen-4, false);
 					else
-						telnet.trace.trace_ds("\n");
+						telnet.Trace.trace_ds("\n");
 					break;
-				case Ctlr.SNA_CMD_EW:
-					telnet.trace.trace_ds(" EraseWrite");
-					telnet.tnctlr.ctlr_erase(telnet.tnctlr.screen_alt);
+				case ControllerConstant.SNA_CMD_EW:
+					telnet.Trace.trace_ds(" EraseWrite");
+					telnet.Controller.Erase(telnet.Controller.ScreenAlt);
 					if (buflen > 5)
-						telnet.tnctlr.ctlr_write(buf, 4, buflen-4, true);
+						telnet.Controller.ProcessWriteCommand(buf, 4, buflen-4, true);
 					else
-						telnet.trace.trace_ds("\n");
+						telnet.Trace.trace_ds("\n");
 					break;
-				case Ctlr.SNA_CMD_EWA:
-					telnet.trace.trace_ds(" EraseWriteAlternate");
-					telnet.tnctlr.ctlr_erase(telnet.tnctlr.screen_alt);
+				case ControllerConstant.SNA_CMD_EWA:
+					telnet.Trace.trace_ds(" EraseWriteAlternate");
+					telnet.Controller.Erase(telnet.Controller.ScreenAlt);
 					if (buflen > 5)
-						telnet.tnctlr.ctlr_write(buf, 4, buflen-4, true);
+						telnet.Controller.ProcessWriteCommand(buf, 4, buflen-4, true);
 					else
-						telnet.trace.trace_ds("\n");
+						telnet.Trace.trace_ds("\n");
 					break;
-				case Ctlr.SNA_CMD_EAU:
-					telnet.trace.trace_ds(" EraseAllUnprotected\n");
-					telnet.tnctlr.ctlr_erase_all_unprotected();
+				case ControllerConstant.SNA_CMD_EAU:
+					telnet.Trace.trace_ds(" EraseAllUnprotected\n");
+					telnet.Controller.ProcessEraseAllUnprotectedCommand();
 					break;
 				default:
-					telnet.trace.trace_ds(" unknown type 0x%02x\n", buf[4]);
-					return pds.PDS_BAD_CMD;
+					telnet.Trace.trace_ds(" unknown type 0x%02x\n", buf[4]);
+					return PDS.BadCommand;
 			}
-			return pds.PDS_OKAY_NO_OUTPUT;
+			return PDS.OkayNoOutput;
 		}
 
 		NetBuffer query_reply_start()
 		{
 			NetBuffer obptr = new NetBuffer();
-			obptr.Add(AID.AID_SF);
+			obptr.Add(AID.SF);
 			qr_in_progress = true;
 			return obptr;
 		}
@@ -638,7 +638,7 @@ namespace Open3270.TN3270
 
 			if (qr_in_progress) 
 			{
-				telnet.trace.trace_ds("> StructuredField\n");
+				telnet.Trace.trace_ds("> StructuredField\n");
 				qr_in_progress = false;
 			}
 
@@ -649,7 +649,7 @@ namespace Open3270.TN3270
 			switch (code) 
 			{
 				case see.QR_CHARSETS:
-					telnet.trace.trace_ds("> QueryReply(CharacterSets)\n");
+					telnet.Trace.trace_ds("> QueryReply(CharacterSets)\n");
 					//space3270out(23);
 					obptr.Add(0x82);	/* flags: GE, CGCSGID present */
 					obptr.Add(0x00);	/* more flags */
@@ -670,7 +670,7 @@ namespace Open3270.TN3270
 					break;
 
 				case see.QR_IMP_PART:
-					telnet.trace.trace_ds("> QueryReply(ImplicitPartition)\n");
+					telnet.Trace.trace_ds("> QueryReply(ImplicitPartition)\n");
 //					space3270out(13);
 					obptr.Add(0x0);		/* reserved */
 					obptr.Add(0x0);
@@ -679,34 +679,34 @@ namespace Open3270.TN3270
 					obptr.Add(0x00);	/* reserved */
 					obptr.Add16(80);	/* implicit partition width */
 					obptr.Add16(24);	/* implicit partition height */
-					obptr.Add16(telnet.tnctlr.maxCOLS);	/* alternate height */
-					obptr.Add16(telnet.tnctlr.maxROWS);	/* alternate width */
+					obptr.Add16(telnet.Controller.MaxColumns);	/* alternate height */
+					obptr.Add16(telnet.Controller.MaxRows);	/* alternate width */
 					break;
 
 				case see.QR_NULL:
-					telnet.trace.trace_ds("> QueryReply(Null)\n");
+					telnet.Trace.trace_ds("> QueryReply(Null)\n");
 					break;
 
 				case see.QR_SUMMARY:
-					telnet.trace.trace_ds("> QueryReply(Summary(");
+					telnet.Trace.trace_ds("> QueryReply(Summary(");
 //					space3270out(NSR);
 					for (i = 0; i < NSR; i++) 
 					{
-						telnet.trace.trace_ds("%s%s", comma,
+						telnet.Trace.trace_ds("%s%s", comma,
 							see.see_qcode(supported_replies[i]));
 						comma = ",";
 						obptr.Add(supported_replies[i]);
 					}
-					telnet.trace.trace_ds("))\n");
+					telnet.Trace.trace_ds("))\n");
 					break;
 
 				case see.QR_USABLE_AREA:
-					telnet.trace.trace_ds("> QueryReply(UsableArea)\n");
+					telnet.Trace.trace_ds("> QueryReply(UsableArea)\n");
 //					space3270out(19);
 					obptr.Add(0x01);	/* 12/14-bit addressing */
 					obptr.Add(0x00);	/* no special character features */
-					obptr.Add16(telnet.tnctlr.maxCOLS);	/* usable width */
-					obptr.Add16(telnet.tnctlr.maxROWS);	/* usable height */
+					obptr.Add16(telnet.Controller.MaxColumns);	/* usable width */
+					obptr.Add16(telnet.Controller.MaxRows);	/* usable height */
 					obptr.Add(0x01);	/* units (mm) */
 					num = 100;
 					denom = 1;
@@ -728,20 +728,20 @@ namespace Open3270.TN3270
 					obptr.Add16((int)denom); /* Yr denominator */
 					obptr.Add(7);//*char_width);	/* AW */
 					obptr.Add(7);//*char_height);/* AH */
-					obptr.Add16(telnet.tnctlr.maxCOLS*telnet.tnctlr.maxROWS);	/* buffer, questionable */
+					obptr.Add16(telnet.Controller.MaxColumns*telnet.Controller.MaxRows);	/* buffer, questionable */
 					break;
 
 				case see.QR_COLOR:
-					telnet.trace.trace_ds("> QueryReply(Color)\n");
+					telnet.Trace.trace_ds("> QueryReply(Color)\n");
 //					space3270out(4 + 2*15);
 					obptr.Add(0x00);	/* no options */
-					obptr.Add(telnet.appres.color8? 8: 16); /* report on 8 or 16 colors */
+					obptr.Add(telnet.Appres.color8? 8: 16); /* report on 8 or 16 colors */
 					obptr.Add(0x00);	/* default color: */
 					obptr.Add(0xf0 + see.COLOR_GREEN);	/*  green */
-					for (i = 0xf1; i <= (telnet.appres.color8? 0xf8: 0xff); i++) 
+					for (i = 0xf1; i <= (telnet.Appres.color8? 0xf8: 0xff); i++) 
 					{
 						obptr.Add(i);
-						if (telnet.appres.m3279)
+						if (telnet.Appres.m3279)
 							obptr.Add(i);
 						else
 							obptr.Add(0x00);
@@ -749,7 +749,7 @@ namespace Open3270.TN3270
 					break;
 
 				case see.QR_HIGHLIGHTING:
-					telnet.trace.trace_ds("> QueryReply(Highlighting)\n");
+					telnet.Trace.trace_ds("> QueryReply(Highlighting)\n");
 //					space3270out(11);
 					obptr.Add(5);		/* report on 5 pairs */
 					obptr.Add(see.XAH_DEFAULT);	/* default: */
@@ -765,7 +765,7 @@ namespace Open3270.TN3270
 					break;
 
 				case see.QR_REPLY_MODES:
-					telnet.trace.trace_ds("> QueryReply(ReplyModes)\n");
+					telnet.Trace.trace_ds("> QueryReply(ReplyModes)\n");
 //					space3270out(3);
 					obptr.Add(SF_SRM_FIELD);
 					obptr.Add(SF_SRM_XFIELD);
@@ -773,10 +773,10 @@ namespace Open3270.TN3270
 					break;
 
 				case see.QR_ALPHA_PART:
-					telnet.trace.trace_ds("> QueryReply(AlphanumericPartitions)\n");
+					telnet.Trace.trace_ds("> QueryReply(AlphanumericPartitions)\n");
 //					space3270out(4);
 					obptr.Add(0);		/* 1 partition */
-					obptr.Add16(telnet.tnctlr.maxROWS*telnet.tnctlr.maxCOLS);	/* buffer space */
+					obptr.Add16(telnet.Controller.MaxRows*telnet.Controller.MaxColumns);	/* buffer space */
 					obptr.Add(0);		/* no special features */
 					break;
 
@@ -792,8 +792,8 @@ namespace Open3270.TN3270
 
 		void query_reply_end(NetBuffer obptr)
 		{
-			telnet.net_output(obptr);
-			telnet.keyboard.kybd_inhibit(true);
+			telnet.Output(obptr);
+			telnet.Keyboard.kybd_inhibit(true);
 		}
 
 		private byte[] CloneBytes(byte[] data, int start, int length)

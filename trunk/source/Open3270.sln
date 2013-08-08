@@ -1,21 +1,33 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.20623.1 VSUPREVIEW
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open3270Library", "WinFX3270Library\Open3270Library.csproj", "{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{B41A8260-36C0-4719-A248-78C92EE50FB5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TerminalDemo", "TerminalDemo\TerminalDemo.csproj", "{347F533E-6248-48F9-B9A4-4686729823E2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E582422F-6081-48BE-892D-AAA75999EDC0}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\3270\Library.one = Docs\3270\Library.one
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 3
+		SccNumberOfProjects = 4
 		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
 		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs01
-		SccProjectUniqueName0 = Sample\\Sample.csproj
-		SccProjectName0 = Sample
-		SccLocalPath0 = Sample
-		SccProjectUniqueName1 = WinFX3270Library\\Open3270Library.csproj
-		SccProjectName1 = WinFX3270Library
-		SccLocalPath1 = WinFX3270Library
-		SccLocalPath2 = .
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = Sample\\Sample.csproj
+		SccProjectName1 = Sample
+		SccLocalPath1 = Sample
+		SccProjectUniqueName2 = WinFX3270Library\\Open3270Library.csproj
+		SccProjectName2 = WinFX3270Library
+		SccLocalPath2 = WinFX3270Library
+		SccProjectUniqueName3 = TerminalDemo\\TerminalDemo.csproj
+		SccProjectName3 = TerminalDemo
+		SccLocalPath3 = TerminalDemo
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +58,16 @@ Global
 		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Win32.ActiveCfg = Release|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

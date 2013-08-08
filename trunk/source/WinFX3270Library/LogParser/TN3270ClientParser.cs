@@ -147,21 +147,21 @@ namespace Open3270.TN3270
 					if (datapos==0)
 						Console.WriteLine(see.see_aid(v));
 					if (datapos==2)
-						Console.WriteLine(Ctlr.DECODE_BADDR(data[1],data[2]));
+						Console.WriteLine(Util.DecodeBaddress(data[1], data[2]));
 
-					if (datapos==3 && data[3] != Ctlr.ORDER_SBA)
+					if (datapos == 3 && data[3] != ControllerConstant.ORDER_SBA)
 						throw new ApplicationException("ni");
 					else
 						Console.WriteLine("SBA");
 
 					if (datapos==5)
 					{
-						int baddr = Ctlr.DECODE_BADDR(data[4],data[5]);
+						int baddr = Util.DecodeBaddress(data[4],data[5]);
 						Console.WriteLine(BA_TO_COL(baddr)+", "+BA_TO_ROW(baddr));
 					}
 
 					if (datapos>5)
-						Console.WriteLine(see.see_ebc(Tables.cg2ebc[data[datapos]]));
+						Console.WriteLine(see.see_ebc(Tables.Cg2Ebc[data[datapos]]));
 
 
 					datapos++;

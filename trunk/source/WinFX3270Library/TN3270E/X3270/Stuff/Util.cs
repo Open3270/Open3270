@@ -68,6 +68,34 @@ namespace Open3270.TN3270
 			}
 			return p;
 		}
-	
+
+
+		public static int DecodeBaddress(byte c1, byte c2)
+		{
+			if ((c1 & 0xC0) == 0x00)
+			{
+				return (int)(((c1 & 0x3F) << 8) | c2);
+			}
+			else
+			{
+				return (int)(((c1 & 0x3F) << 6) | (c2 & 0x3F));
+			}
+		}
+
+
+		public static void EncodeBaddress(NetBuffer ptr, int addr)
+		{
+			if ((addr) > 0xfff)
+			{
+				ptr.Add(((addr) >> 8) & 0x3F);
+				ptr.Add((addr) & 0xFF);
+			}
+			else
+			{
+				ptr.Add(ControllerConstant.CodeTable[((addr) >> 6) & 0x3F]);
+				ptr.Add(ControllerConstant.CodeTable[(addr) & 0x3F]);
+			}
+		}
+
 	}
 }

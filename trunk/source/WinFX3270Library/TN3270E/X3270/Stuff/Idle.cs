@@ -28,7 +28,7 @@ namespace Open3270.TN3270
 	/// <summary>
 	/// Summary description for Idle.
 	/// </summary>
-	internal class Idle
+	internal class Idle:IDisposable
 	{
 		System.Threading.Timer idle_id = null;
 		Telnet telnet;
@@ -64,10 +64,15 @@ namespace Open3270.TN3270
 		void idle_init()
 		{
 			/* Register for state changes. */
-			telnet.register_schange(STCALLBACK.ST_3270_MODE, new SChangeDelegate(idle_in3270));
+			this.telnet.Connected3270 += telnet_Connected3270;
 
 			/* Seed the random number generator (we seem to be the only user). */
 			rand = new Random();
+		}
+
+		void telnet_Connected3270(object sender, Connected3270EventArgs e)
+		{
+			this.idle_in3270(e.Is3270);
 		}
 
 		/* Process a timeout value. */
@@ -101,7 +106,7 @@ namespace Open3270.TN3270
 			{
 				if (idle_ticking) 
 				{
-					telnet.tnctlr.RemoveTimeOut(idle_id);
+					telnet.Controller.RemoveTimeOut(idle_id);
 					idle_ticking = false;
 				}
 				idle_was_in3270 = false;
@@ -115,7 +120,7 @@ namespace Open3270.TN3270
 		{
 			lock (telnet)
 			{
-				telnet.trace.trace_event("Idle timeout\n");
+				telnet.Trace.trace_event("Idle timeout\n");
 				//Console.WriteLine("PUSH MACRO ignored (BUGBUG)");
 				//push_macro(idle_command, false);
 				reset_idle_timer();
@@ -134,7 +139,7 @@ namespace Open3270.TN3270
 
 				if (idle_ticking) 
 				{
-					telnet.tnctlr.RemoveTimeOut(idle_id);
+					telnet.Controller.RemoveTimeOut(idle_id);
 					idle_ticking = false;
 				}
 				idle_ms_now = idle_ms;
@@ -146,12 +151,21 @@ namespace Open3270.TN3270
 					else
 						idle_ms_now -= rand.Next(idle_ms / 10);
 				}
-				telnet.trace.trace_event("Setting idle timeout to "+idle_ms_now);
-				idle_id = telnet.tnctlr.AddTimeout(idle_ms_now, new System.Threading.TimerCallback(idle_timeout));
+				telnet.Trace.trace_event("Setting idle timeout to "+idle_ms_now);
+				idle_id = telnet.Controller.AddTimeout(idle_ms_now, new System.Threading.TimerCallback(idle_timeout));
 				idle_ticking = true;
 			}
 		}
 
 
+
+		public void Dispose()
+		{
+			if (this.telnet != null)
+			{
+				this.telnet.Connected3270 -= telnet_Connected3270;
+			}
+			
+		}
 	}
 }

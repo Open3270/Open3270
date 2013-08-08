@@ -50,17 +50,16 @@ namespace Open3270.Library
 		private AsyncCallback callbackProc ;
 		private Socket mSocket ;
 		Byte[] m_byBuff = new Byte[32767];
-		//
+
 		// Code for message builder
-		//
 		byte[] currentBuffer = null;
 		int currentBufferIndex;
 		MessageHeader currentMessageHeader;
 		State mState;
-		//
 
 		public event ClientSocketNotify OnNotify;
 		public event ClientDataNotify OnData;
+
 		public void info()
 		{
 			Audit.WriteLine("CLRVersion = "+Environment.Version);
@@ -69,23 +68,11 @@ namespace Open3270.Library
 		}
 		public ClientSocket()
 		{
-			// Workaround for bug in IE hosted controls that means they take 100 seconds
-			// to connect to TCP/IP.  
-			//
-			System.Configuration.ConfigurationSettings.GetConfig("DNS");  
-			//
 			Audit.WriteLine("Client socket created.");
 			info();
 		}
 		public ClientSocket(Socket sock)
 		{
-			// Workaround for bug in Intenet Explorer version 6.0
-            // hosted controls that means they take 100 seconds
-			// to connect to TCP/IP.  
-			//
-			// (probably not needed here since we're already connected, but just in case)
-			System.Configuration.ConfigurationSettings.GetConfig("DNS");  
-			//
 			mSocket = sock;
 			info();
 		}

@@ -42,12 +42,12 @@ namespace Open3270.TN3270
 			TN3270API api = new TN3270API();
  
 			telnet = new Telnet(api, this, config);
-			telnet.trace.optionTraceAnsi = true;
-			telnet.trace.optionTraceDS = true;
-			telnet.trace.optionTraceDSN = true;
-			telnet.trace.optionTraceEvent = true;
-			telnet.trace.optionTraceNetworkData = true;
-			telnet.telnetDataEvent += new TelnetDataDelegate(telnet_telnetDataEvent);
+			telnet.Trace.optionTraceAnsi = true;
+			telnet.Trace.optionTraceDS = true;
+			telnet.Trace.optionTraceDSN = true;
+			telnet.Trace.optionTraceEvent = true;
+			telnet.Trace.optionTraceNetworkData = true;
+			telnet.telnetDataEventOccurred += new TelnetDataDelegate(telnet_telnetDataEvent);
 
 			telnet.Connect(null,null,0);
 		}
@@ -61,7 +61,7 @@ namespace Open3270.TN3270
 			get
 			{
 				string text = "";
-				text+= "kybdinhibit = "+telnet.keyboard.kybdlock;
+				text+= "kybdinhibit = "+telnet.Keyboard.kybdlock;
 				return text;
 			}
 		}

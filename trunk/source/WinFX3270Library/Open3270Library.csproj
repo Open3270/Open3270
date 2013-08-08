@@ -148,9 +148,11 @@
     <Compile Include="LogParser\TN3270HostParser.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\EventArgs.cs" />
     <Compile Include="TN3270E\TN3270API.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\Enums.cs" />
     <Compile Include="TN3270E\X3270\Events.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -175,12 +177,14 @@
     <Compile Include="TN3270E\X3270\Stuff\CG.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Ctlr.cs">
+    <Compile Include="TN3270E\X3270\Stuff\ControllerConstants.cs" />
+    <Compile Include="TN3270E\X3270\Stuff\Controller.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\ExtendedAttribute.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\FA.cs" />
     <Compile Include="TN3270E\X3270\Stuff\Idle.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -208,6 +212,7 @@
     <Compile Include="TN3270E\X3270\Telnet.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\TelnetConstants.cs" />
     <Compile Include="TN3270E\X3270\TNTrace.cs">
       <SubType>Code</SubType>
     </Compile>

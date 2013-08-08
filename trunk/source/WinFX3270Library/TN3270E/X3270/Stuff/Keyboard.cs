@@ -31,16 +31,17 @@ namespace Open3270.TN3270
 	/// <summary>
 	/// Summary description for Keyboard.
 	/// </summary>
-	internal class Keyboard
+	internal class Keyboard:IDisposable
 	{
 		Telnet telnet;
 		TNTrace trace;
 		Actions action;
 		internal Keyboard(Telnet telnet)
 		{
-			this.action = telnet.action;
+
+			this.action = telnet.Action;
 			this.telnet = telnet;
-			this.trace = telnet.trace;
+			this.trace = telnet.Trace;
 			PF_SZ = pf_xlate.Length;
 			PA_SZ = pa_xlate.Length;
 
@@ -92,13 +93,13 @@ namespace Open3270.TN3270
 
 		/* Statics */
 		private byte[] pf_xlate = new byte[] { 
-												 AID.AID_PF1,  AID.AID_PF2,  AID.AID_PF3,  AID.AID_PF4,  AID.AID_PF5,  AID.AID_PF6,
-												 AID.AID_PF7,  AID.AID_PF8,  AID.AID_PF9,  AID.AID_PF10, AID.AID_PF11, AID.AID_PF12,
-												 AID.AID_PF13, AID.AID_PF14, AID.AID_PF15, AID.AID_PF16, AID.AID_PF17, AID.AID_PF18,
-												 AID.AID_PF19, AID.AID_PF20, AID.AID_PF21, AID.AID_PF22, AID.AID_PF23, AID.AID_PF24
+												 AID.F1,  AID.F2,  AID.F3,  AID.F4,  AID.F5,  AID.F6,
+												 AID.F7,  AID.F8,  AID.F9,  AID.F10, AID.F11, AID.F12,
+												 AID.F13, AID.F14, AID.F15, AID.F16, AID.F17, AID.F18,
+												 AID.F19, AID.F20, AID.F21, AID.F22, AID.F23, AID.F24
 											 };
 		private byte[] pa_xlate = new byte[]  { 
-												  AID.AID_PA1, AID.AID_PA2, AID.AID_PA3
+												  AID.PA1, AID.PA2, AID.PA3
 											  };
 		int PF_SZ;// = pf_xlate.Length;
 		int PA_SZ;// = pa_xlate.Length;
@@ -118,7 +119,7 @@ namespace Open3270.TN3270
 		}
 
 
-        byte FROM_HEX(char c)
+		byte FROM_HEX(char c)
 		{
 			const string dx1 = "0123456789abcdef";
 			const string dx2 = "0123456789ABCDEF";
@@ -174,9 +175,9 @@ namespace Open3270.TN3270
 			//struct ta *ta;
 
 			/* If no connection, forget it. */
-			if (!telnet.CONNECTED) 
+			if (!telnet.IsConnected) 
 			{
-				telnet.trace.trace_event("  dropped (not connected)\n");
+				telnet.Trace.trace_event("  dropped (not connected)\n");
 				return;
 			}
 
@@ -184,7 +185,7 @@ namespace Open3270.TN3270
 			if ((kybdlock & KL_OERR_MASK)!=0) 
 			{
 				//ring_bell();
-				telnet.trace.trace_event("  dropped (operator error)\n");
+				telnet.Trace.trace_event("  dropped (operator error)\n");
 				return;
 			}
 
@@ -192,21 +193,21 @@ namespace Open3270.TN3270
 			if ((kybdlock & KL_SCROLLED) !=0)
 			{
 				//ring_bell();
-				telnet.trace.trace_event("  dropped (scrolled)\n");
+				telnet.Trace.trace_event("  dropped (scrolled)\n");
 				return;
 			}
 
 			/* If typeahead disabled, complain and drop it. */
-			if (!telnet.appres.typeahead) 
+			if (!telnet.Appres.typeahead) 
 			{
-				telnet.trace.trace_event("  dropped (no typeahead)\n");
+				telnet.Trace.trace_event("  dropped (no typeahead)\n");
 				return;
 			}
 
 			ta_queue.Enqueue(new TAItem(fn, args));
 			//	status_typeahead(true);
 
-			telnet.trace.trace_event("  action queued (kybdlock 0x"+kybdlock+")\n");
+			telnet.Trace.trace_event("  action queued (kybdlock 0x"+kybdlock+")\n");
 		}
 
 		/*
@@ -249,7 +250,7 @@ namespace Open3270.TN3270
 			// hack for mfw/FDI USA
 			bool skiptounprotected = telnet.Config.AlwaysSkipToUnprotected;
 
-			int baddr = telnet.tnctlr.cursor_addr;
+			int baddr = telnet.Controller.CursorAddress;
 			if (skiptounprotected)
 			{
 				//
@@ -261,14 +262,14 @@ namespace Open3270.TN3270
 				do
 				{
 					ok = true;
-					fa = telnet.tnctlr.get_field_attribute(baddr);
+					fa = telnet.Controller.GetFieldAttribute(baddr);
 					if (fa==-1)
 						break;
-					if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]) || (fa>=0 && telnet.tnctlr.FA_IS_PROTECTED(telnet.tnctlr.screen_buf[fa]))) 
+					if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]) || (fa>=0 && FA.IsProtected(telnet.Controller.ScreenBuffer[fa]))) 
 					{
 						ok = false;
-						telnet.tnctlr.INC_BA(ref baddr);
-						if (baddr == telnet.tnctlr.cursor_addr)
+						telnet.Controller.IncrementAddress(ref baddr);
+						if (baddr == telnet.Controller.CursorAddress)
 						{
 							Console.WriteLine("**BUGBUG** Screen has no unprotected field!");
 							return;
@@ -276,11 +277,11 @@ namespace Open3270.TN3270
 					}
 				}
 				while (!ok);
-				if (baddr != telnet.tnctlr.cursor_addr)
+				if (baddr != telnet.Controller.CursorAddress)
 				{
 					Console.WriteLine("Moved cursor to "+baddr+" to skip protected fields");
-					telnet.tnctlr.cursor_move(baddr);
-					Console.WriteLine("cursor position "+telnet.tnctlr.BA_TO_COL(baddr)+", "+telnet.tnctlr.BA_TO_ROW(baddr));
+					telnet.Controller.SetCursorAddress(baddr);
+					Console.WriteLine("cursor position "+telnet.Controller.AddressToColumn(baddr)+", "+telnet.Controller.AddresstoRow(baddr));
 					Console.WriteLine("text : "+text);
 				}
 			}
@@ -342,7 +343,7 @@ namespace Open3270.TN3270
 		{
 			if ((kybdlock & KL_DEFERRED_UNLOCK)!=0)
 			{
-				telnet.tnctlr.RemoveTimeOut(unlock_id);
+				telnet.Controller.RemoveTimeOut(unlock_id);
 			}
 			kybdlock_clr(-1, "kybd_connect");
 
@@ -365,7 +366,7 @@ namespace Open3270.TN3270
 		public void kybd_in3270(bool in3270)
 		{
 			if ((kybdlock & KL_DEFERRED_UNLOCK)!=0)
-				telnet.tnctlr.RemoveTimeOut(unlock_id);
+				telnet.Controller.RemoveTimeOut(unlock_id);
 			kybdlock_clr(-1, "kybd_connect");
 		}
 
@@ -376,8 +377,18 @@ namespace Open3270.TN3270
 
 		{
 			/* interest in connect and disconnect events. */
-			telnet.register_schange(STCALLBACK.ST_CONNECT, new SChangeDelegate(kybd_connect));
-			telnet.register_schange(STCALLBACK.ST_3270_MODE, new SChangeDelegate(kybd_in3270));
+			this.telnet.PrimaryConnectionChanged += telnet_PrimaryConnectionChanged;
+			this.telnet.Connected3270 += telnet_Connected3270;
+		}
+
+		void telnet_Connected3270(object sender, Connected3270EventArgs e)
+		{
+			this.kybd_in3270(e.Is3270);
+		}
+
+		void telnet_PrimaryConnectionChanged(object sender, PrimaryConnectionChangedArgs e)
+		{
+			this.kybd_connect(e.Success);
 		}
 
 		/*
@@ -403,8 +414,8 @@ namespace Open3270.TN3270
 		 */
 		public void operator_error(int baddr, int error_type)
 		{
-			Console.WriteLine("cursor@"+baddr+" - ROW="+telnet.tnctlr.BA_TO_ROW(baddr)+" COL="+telnet.tnctlr.BA_TO_COL(baddr));
-			telnet.events.popup_an_error("Keyboard locked");
+			Console.WriteLine("cursor@"+baddr+" - ROW="+telnet.Controller.AddresstoRow(baddr)+" COL="+telnet.Controller.AddressToColumn(baddr));
+			telnet.Events.popup_an_error("Keyboard locked");
 			Console.WriteLine("WARNING--operator_error error_type="+error_type);
 			//
 			//flush_ta();
@@ -424,27 +435,27 @@ namespace Open3270.TN3270
 			}
 		}
 
-
+ 
 		/*
 		 * Handle an AID (Attention IDentifier) key.  This is the common stuff that
 		 * gets executed for all AID keys (PFs, PAs, Clear and etc).
 		 */
 		public void key_AID(byte AID_code)
 		{
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
 				int i;
 
-				if (AID_code == AID.AID_ENTER) 
+				if (AID_code == AID.Enter) 
 				{
-					telnet.net_sendc('\r');
+					telnet.SendChar('\r');
 					return;
 				}
 				for (i = 0; i < PF_SZ; i++)
 				{
 					if (AID_code == pf_xlate[i]) 
 					{
-						telnet.ansi.ansi_send_pf(i+1);
+						telnet.Ansi.ansi_send_pf(i+1);
 						return;
 					}
 				}
@@ -452,29 +463,29 @@ namespace Open3270.TN3270
 				{
 					if (AID_code == pa_xlate[i]) 
 					{
-						telnet.ansi.ansi_send_pa(i+1);
+						telnet.Ansi.ansi_send_pa(i+1);
 						return;
 					}
 				}
 				return;
 			}
-			if (telnet.IN_SSCP) 
+			if (telnet.IsSscp) 
 			{
 				if ((kybdlock & Keyboard.KL_OIA_MINUS)!=0)
 					return;
-				if (AID_code != AID.AID_ENTER && AID_code != AID.AID_CLEAR) 
+				if (AID_code != AID.Enter && AID_code != AID.Clear) 
 				{
 					//			status_minus();
 					kybdlock_set(Keyboard.KL_OIA_MINUS, "key_AID");
 					return;
 				}
 			}
-			if (telnet.IN_SSCP && AID_code == AID.AID_ENTER) 
+			if (telnet.IsSscp && AID_code == AID.Enter) 
 			{
 				/* Act as if the host had written our input. */
-				telnet.tnctlr.buffer_addr = telnet.tnctlr.cursor_addr;
+				telnet.Controller.BufferAddress = telnet.Controller.CursorAddress;
 			}
-			if (!telnet.IN_SSCP || AID_code != AID.AID_CLEAR) 
+			if (!telnet.IsSscp || AID_code != AID.Clear) 
 			{
 				//		status_twait();
 				//		mcursor_waiting();
@@ -484,9 +495,9 @@ namespace Open3270.TN3270
 			}
 			//
 			//Console.WriteLine("BUGBUG - reset_idle_timer");
-		    telnet.idle.reset_idle_timer();
-			telnet.tnctlr.aid = AID_code;
-			telnet.tnctlr.ctlr_read_modified(telnet.tnctlr.aid, false);
+			telnet.Idle.reset_idle_timer();
+			telnet.Controller.AttentionID = AID_code;
+			telnet.Controller.ProcessReadModifiedCommand(telnet.Controller.AttentionID, false);
 			//Console.WriteLine("ticking-start...");
 			//telnet.tnctlr.ticking_start(false);
 			//if (!telnet.IN_SSCP) 
@@ -502,7 +513,7 @@ namespace Open3270.TN3270
 			k = (int)args[0];
 			if (k < 1 || k > PF_SZ) 
 			{
-				telnet.events.popup_an_error("PF_action: Invalid argument '"+args[0]+"'");
+				telnet.Events.popup_an_error("PF_action: Invalid argument '"+args[0]+"'");
 				return false;
 			}
 			if ((kybdlock & KL_OIA_MINUS)!=0)
@@ -521,7 +532,7 @@ namespace Open3270.TN3270
 			k = (int)args[0];
 			if (k < 1 || k > PA_SZ) 
 			{
-				telnet.events.popup_an_error("PA_action: Invalid argument '"+args[0]+"'");
+				telnet.Events.popup_an_error("PA_action: Invalid argument '"+args[0]+"'");
 				return false;
 			}
 			if ((kybdlock & KL_OIA_MINUS)!=0)
@@ -539,9 +550,9 @@ namespace Open3270.TN3270
 		 */
 		public bool Attn_action(params object[] args)
 		{
-			if (!telnet.IN_3270)
+			if (!telnet.Is3270)
 				return false;
-			telnet.net_interrupt();
+			telnet.Interrupt();
 			return true;
 		}
 
@@ -553,9 +564,9 @@ namespace Open3270.TN3270
 		 */
 		public bool Interrupt_action(params object[] args)
 		{
-			if (!telnet.IN_3270)
+			if (!telnet.Is3270)
 				return false;
-			telnet.net_interrupt();
+			telnet.Interrupt();
 			return true;
 		}
 
@@ -577,10 +588,10 @@ namespace Open3270.TN3270
 				pasting = true;
 				cgcode &= ~PASTE_WFLAG;
 			}
-			telnet.trace.trace_event(" %s -> Key(%s\"%s\")\n",
+			telnet.Trace.trace_event(" %s -> Key(%s\"%s\")\n",
 				"nop",/*ia_name[(int) ia_cause],*/
 				with_ge ? "GE " : "",
-				Util.ctl_see((byte) Tables.cg2asc[cgcode]));
+				Util.ctl_see((byte) Tables.Cg2Ascii[cgcode]));
 			return key_Character(cgcode, with_ge, pasting);
 		}
 
@@ -607,54 +618,54 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(key_Character_wrapper, code, CN);
 				return false;*/
 			}
-			baddr = telnet.tnctlr.cursor_addr;
-			fa = telnet.tnctlr.get_field_attribute(baddr);
-			byte favalue = telnet.tnctlr.fake_fa;
+			baddr = telnet.Controller.CursorAddress;
+			fa = telnet.Controller.GetFieldAttribute(baddr);
+			byte favalue = telnet.Controller.FakeFA;
 			if (fa != -1)
-				favalue = telnet.tnctlr.screen_buf[fa];
-			if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]) || telnet.tnctlr.FA_IS_PROTECTED(favalue)) 
+				favalue = telnet.Controller.ScreenBuffer[fa];
+			if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]) || FA.IsProtected(favalue)) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
 			}
-			if (telnet.appres.numeric_lock && telnet.tnctlr.FA_IS_NUMERIC(favalue) &&
+			if (telnet.Appres.numeric_lock && FA.IsNumeric(favalue) &&
 				!((cgcode >= CG.CG_0 && cgcode <= CG.CG_9) ||
 				cgcode == CG.CG_minus || cgcode == CG.CG_period)) 
 			{
 				operator_error(baddr, KL_OERR_NUMERIC);
 				return false;
 			}
-			if (reverse || (insert && telnet.tnctlr.screen_buf[baddr]!=0)) 
+			if (reverse || (insert && telnet.Controller.ScreenBuffer[baddr]!=0)) 
 			{
 				int last_blank = -1;
 
 				/* Find next null, next fa, or last blank */
 				end_baddr = baddr;
-				if (telnet.tnctlr.screen_buf[end_baddr] == CG.CG_space)
+				if (telnet.Controller.ScreenBuffer[end_baddr] == CG.CG_space)
 					last_blank = end_baddr;
 				do 
 				{
-					telnet.tnctlr.INC_BA(ref end_baddr);
-					if (telnet.tnctlr.screen_buf[end_baddr] == CG.CG_space)
+					telnet.Controller.IncrementAddress(ref end_baddr);
+					if (telnet.Controller.ScreenBuffer[end_baddr] == CG.CG_space)
 						last_blank = end_baddr;
-					if (telnet.tnctlr.screen_buf[end_baddr] == CG.CG_null
-						||  telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[end_baddr]))
+					if (telnet.Controller.ScreenBuffer[end_baddr] == CG.CG_null
+						||  FA.IsFA(telnet.Controller.ScreenBuffer[end_baddr]))
 						break;
 				} while (end_baddr != baddr);
 
 				/* Pretend a trailing blank is a null, if desired. */
-				if (telnet.appres.toggled(Appres.BLANK_FILL) && last_blank != -1) 
+				if (telnet.Appres.toggled(Appres.BLANK_FILL) && last_blank != -1) 
 				{
-					telnet.tnctlr.INC_BA(ref last_blank);
+					telnet.Controller.IncrementAddress(ref last_blank);
 					if (last_blank == end_baddr) 
 					{
-						telnet.tnctlr.DEC_BA(ref end_baddr);
-						telnet.tnctlr.ctlr_add(end_baddr, CG.CG_null, 0);
+						telnet.Controller.DecrementAddress(ref end_baddr);
+						telnet.Controller.AddCharacter(end_baddr, CG.CG_null, 0);
 					}
 				}
 
 				/* Check for field overflow. */
-				if (telnet.tnctlr.screen_buf[end_baddr] != CG.CG_null) 
+				if (telnet.Controller.ScreenBuffer[end_baddr] != CG.CG_null) 
 				{
 					if (insert) 
 					{
@@ -672,33 +683,33 @@ namespace Open3270.TN3270
 					if (end_baddr > baddr) 
 					{
 						/* At least one byte to copy, no wrap. */
-						telnet.tnctlr.ctlr_bcopy(baddr, baddr+1, end_baddr - baddr,
+						telnet.Controller.CopyBlock(baddr, baddr+1, end_baddr - baddr,
 							false);
 					}
 					else if (end_baddr < baddr) 
 					{
 						/* At least one byte to copy, wraps to top. */
-						telnet.tnctlr.ctlr_bcopy(0, 1, end_baddr, false);
-						telnet.tnctlr.ctlr_add(0, telnet.tnctlr.screen_buf[(telnet.tnctlr.ROWS * telnet.tnctlr.COLS) - 1], 0);
-						telnet.tnctlr.ctlr_bcopy(baddr, baddr+1,
-							((telnet.tnctlr.ROWS * telnet.tnctlr.COLS) - 1) - baddr, false);
+						telnet.Controller.CopyBlock(0, 1, end_baddr, false);
+						telnet.Controller.AddCharacter(0, telnet.Controller.ScreenBuffer[(telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1], 0);
+						telnet.Controller.CopyBlock(baddr, baddr+1,
+							((telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1) - baddr, false);
 					}
 				}
 
 			}
 
 			/* Replace leading nulls with blanks, if desired. */
-			if (telnet.tnctlr.formatted && telnet.appres.toggled(Appres.BLANK_FILL)) 
+			if (telnet.Controller.Formatted && telnet.Appres.toggled(Appres.BLANK_FILL)) 
 			{
 				int		baddr_sof = fa;//fa - telnet.tnctlr.screen_buf;
 				int baddr_fill = baddr;
 
-				telnet.tnctlr.DEC_BA(ref baddr_fill);
+				telnet.Controller.DecrementAddress(ref baddr_fill);
 				while (baddr_fill != baddr_sof) 
 				{
 
 					/* Check for backward line wrap. */
-					if ((baddr_fill % telnet.tnctlr.COLS) == telnet.tnctlr.COLS - 1) 
+					if ((baddr_fill % telnet.Controller.ColumnCount) == telnet.Controller.ColumnCount - 1) 
 					{
 						bool aborted = true;
 						int baddr_scan = baddr_fill;
@@ -709,22 +720,22 @@ namespace Open3270.TN3270
 						 */
 						while (baddr_scan != baddr_sof) 
 						{
-							if (telnet.tnctlr.screen_buf[baddr_scan] != CG.CG_null) 
+							if (telnet.Controller.ScreenBuffer[baddr_scan] != CG.CG_null) 
 							{
 								aborted = false;
 								break;
 							}
-							if (0==(baddr_scan % telnet.tnctlr.COLS))
+							if (0==(baddr_scan % telnet.Controller.ColumnCount))
 								break;
-							telnet.tnctlr.DEC_BA(ref baddr_scan);
+							telnet.Controller.DecrementAddress(ref baddr_scan);
 						}
 						if (aborted)
 							break;
 					}
 
-					if (telnet.tnctlr.screen_buf[baddr_fill] == CG.CG_null)
-						telnet.tnctlr.ctlr_add(baddr_fill, CG.CG_space, 0);
-					telnet.tnctlr.DEC_BA(ref baddr_fill);
+					if (telnet.Controller.ScreenBuffer[baddr_fill] == CG.CG_null)
+						telnet.Controller.AddCharacter(baddr_fill, CG.CG_space, 0);
+					telnet.Controller.DecrementAddress(ref baddr_fill);
 				}
 			}
 
@@ -733,16 +744,16 @@ namespace Open3270.TN3270
 			{
 				do 
 				{
-					telnet.tnctlr.INC_BA(ref baddr);
-				} while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]));
+					telnet.Controller.IncrementAddress(ref baddr);
+				} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
 			} 
 			else 
 			{
-				telnet.tnctlr.ctlr_add(baddr, (byte)cgcode, (byte)(with_ge ? ExtendedAttribute.CS_GE : (byte)0));
-				telnet.tnctlr.ctlr_add_fg(baddr, 0);
-				telnet.tnctlr.ctlr_add_gr(baddr, 0);
+				telnet.Controller.AddCharacter(baddr, (byte)cgcode, (byte)(with_ge ? ExtendedAttribute.CS_GE : (byte)0));
+				telnet.Controller.SetForegroundColor(baddr, 0);
+				telnet.Controller.ctlr_add_gr(baddr, 0);
 				if (!reverse)
-					telnet.tnctlr.INC_BA(ref baddr);
+					telnet.Controller.IncrementAddress(ref baddr);
 			}
 
 			/*
@@ -752,19 +763,19 @@ namespace Open3270.TN3270
 			 */
 			if (pasting || (cgcode != CG.CG_dup)) 
 			{
-				while (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+				while (FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 				{
-					if (telnet.tnctlr.FA_IS_SKIP(telnet.tnctlr.screen_buf[baddr]))
-						baddr = telnet.tnctlr.next_unprotected(baddr);
+					if (FA.IsSkip(telnet.Controller.ScreenBuffer[baddr]))
+						baddr = telnet.Controller.GetNextUnprotectedField(baddr);
 					else
 					{
-						telnet.tnctlr.INC_BA(ref baddr);
+						telnet.Controller.IncrementAddress(ref baddr);
 					}
 				}
-				telnet.tnctlr.cursor_move(baddr);
+				telnet.Controller.SetCursorAddress(baddr);
 			}
 
-			telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa);
+			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa);
 			return true;
 		}
 
@@ -830,19 +841,19 @@ namespace Open3270.TN3270
 					//break;
 			}
 
-			trace.trace_event(" %s -> Key(\"%s\")\n", telnet.action.ia_name[(int) cause], Util.ctl_see(c));
-			if (telnet.IN_3270) 
+			trace.trace_event(" %s -> Key(\"%s\")\n", telnet.Action.ia_name[(int) cause], Util.ctl_see(c));
+			if (telnet.Is3270) 
 			{
 				if (c < ' ') 
 				{
 					trace.trace_event("  dropped (control char)\n");
 					return;
 				}
-				key_Character(Tables.asc2cg[c], keytype == enum_keytype.KT_GE, false);
+				key_Character(Tables.Ascii2Cg[c], keytype == enum_keytype.KT_GE, false);
 			}
-			else if (telnet.IN_ANSI) 
+			else if (telnet.IsAnsi) 
 			{
-				telnet.net_sendc((char) c);
+				telnet.SendChar((char) c);
 			}
 			else 
 			{
@@ -850,14 +861,14 @@ namespace Open3270.TN3270
 			}
 		}
 
-
+ 
 		/*
 		 * Simple toggles.
 		 */
 
 		public bool MonoCase_action(params object[] args)
 		{
-			telnet.appres.do_toggle(Appres.MONOCASE);
+			telnet.Appres.do_toggle(Appres.MONOCASE);
 			return true;
 		}
 
@@ -871,7 +882,7 @@ namespace Open3270.TN3270
 		}
 
 
-
+ 
 		/*
 		 * Tab forward to next field.
 		 */
@@ -882,16 +893,16 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Tab_action),args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_sendc('\t');
+				telnet.SendChar('\t');
 				return true;
 			}
-			telnet.tnctlr.cursor_move(telnet.tnctlr.next_unprotected(telnet.tnctlr.cursor_addr));
+			telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.CursorAddress));
 			return true;
 		}
 
-
+ 
 		/*
 		 * Tab backward to previous field.
 		 */
@@ -900,7 +911,7 @@ namespace Open3270.TN3270
 			int	baddr, nbaddr;
 			int		sbaddr;
 
-			if (!telnet.IN_3270)
+			if (!telnet.Is3270)
 				return false;
 	
 			if (kybdlock!=0) 
@@ -908,28 +919,28 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(BackTab_action), args);
 				return true;
 			}
-			baddr = telnet.tnctlr.cursor_addr;
-			telnet.tnctlr.DEC_BA(ref baddr);
-			if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]))	/* at bof */
-				telnet.tnctlr.DEC_BA(ref baddr);
+			baddr = telnet.Controller.CursorAddress;
+			telnet.Controller.DecrementAddress(ref baddr);
+			if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))	/* at bof */
+				telnet.Controller.DecrementAddress(ref baddr);
 			sbaddr = baddr;
 			while (true) 
 			{
 				nbaddr = baddr;
-				telnet.tnctlr.INC_BA(ref nbaddr);
-				if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])
-					&&  !telnet.tnctlr.FA_IS_PROTECTED(telnet.tnctlr.screen_buf[baddr])
-					&&  !telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[nbaddr]))
+				telnet.Controller.IncrementAddress(ref nbaddr);
+				if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr])
+					&&  !FA.IsProtected(telnet.Controller.ScreenBuffer[baddr])
+					&&  !FA.IsFA(telnet.Controller.ScreenBuffer[nbaddr]))
 					break;
-				telnet.tnctlr.DEC_BA(ref baddr);
+				telnet.Controller.DecrementAddress(ref baddr);
 				if (baddr == sbaddr) 
 				{
-					telnet.tnctlr.cursor_move(0);
+					telnet.Controller.SetCursorAddress(0);
 					return true;
 				}
 			}
-			telnet.tnctlr.INC_BA(ref baddr);
-			telnet.tnctlr.cursor_move(baddr);
+			telnet.Controller.IncrementAddress(ref baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
@@ -946,17 +957,17 @@ namespace Open3270.TN3270
 				//
 				// Only actually process the event if the keyboard is currently unlocked...
 				//
-				if ((telnet.keyboard.kybdlock | Keyboard.KL_DEFERRED_UNLOCK)==Keyboard.KL_DEFERRED_UNLOCK)
+				if ((telnet.Keyboard.kybdlock | Keyboard.KL_DEFERRED_UNLOCK)==Keyboard.KL_DEFERRED_UNLOCK)
 				{
 
-					telnet.trace.WriteLine("--debug--defer_unlock");
+					telnet.Trace.WriteLine("--debug--defer_unlock");
 					kybdlock_clr(KL_DEFERRED_UNLOCK, "defer_unlock");
 					//status_reset();
-					if (telnet.CONNECTED)
-						telnet.tnctlr.ps_process();
+					if (telnet.IsConnected)
+						telnet.Controller.ProcessPendingInput();
 				}
 				else
-					telnet.trace.WriteLine("--debug--defer_unlock ignored");
+					telnet.Trace.WriteLine("--debug--defer_unlock ignored");
 
 			}
 		}
@@ -991,7 +1002,7 @@ namespace Open3270.TN3270
 			insert_mode(false);
 
 			/* Otherwise, if not connect, reset is a no-op. */
-			if (!telnet.CONNECTED)
+			if (!telnet.IsConnected)
 				return;
 
 			/*
@@ -999,7 +1010,7 @@ namespace Open3270.TN3270
 			 * keyboard now, or want to defer further into the future.
 			 */
 			if ((kybdlock & Keyboard.KL_DEFERRED_UNLOCK)!=0)
-				telnet.tnctlr.RemoveTimeOut(unlock_id);
+				telnet.Controller.RemoveTimeOut(unlock_id);
 
 			/*
 			 * If explicit (from the keyboard), unlock the keyboard now.
@@ -1011,12 +1022,12 @@ namespace Open3270.TN3270
 			} 
 			else if ((kybdlock & (KL_DEFERRED_UNLOCK | KL_OIA_TWAIT | KL_OIA_LOCKED | KL_AWAITING_FIRST))!=0) 
 			{
-				telnet.trace.WriteLine("Clear lock in 1010/55");
+				telnet.Trace.WriteLine("Clear lock in 1010/55");
 				kybdlock_clr(~KL_DEFERRED_UNLOCK, "do_reset");
 				kybdlock_set(KL_DEFERRED_UNLOCK, "do_reset");
 				lock (telnet)
 				{
-					unlock_id = telnet.tnctlr.AddTimeout(UNLOCK_MS, new TimerCallback(defer_unlock));
+					unlock_id = telnet.Controller.AddTimeout(UNLOCK_MS, new TimerCallback(defer_unlock));
 				}
 			}
 
@@ -1043,17 +1054,17 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Home_action),args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.ansi.ansi_send_home();
+				telnet.Ansi.ansi_send_home();
 				return true;
 			}
-			if (!telnet.tnctlr.formatted) 
+			if (!telnet.Controller.Formatted) 
 			{
-				telnet.tnctlr.cursor_move(0);
+				telnet.Controller.SetCursorAddress(0);
 				return true;
 			}
-			telnet.tnctlr.cursor_move(telnet.tnctlr.next_unprotected(telnet.tnctlr.ROWS*telnet.tnctlr.COLS-1));
+			telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.RowCount*telnet.Controller.ColumnCount-1));
 			return true;
 		}
 
@@ -1065,9 +1076,9 @@ namespace Open3270.TN3270
 		{
 			int	baddr;
 
-			baddr = telnet.tnctlr.cursor_addr;
-			telnet.tnctlr.DEC_BA(ref baddr);
-			telnet.tnctlr.cursor_move(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			telnet.Controller.DecrementAddress(ref baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 		}
 
 		public bool Left_action(params object[] args)
@@ -1077,9 +1088,9 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Left_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.ansi.ansi_send_left();
+				telnet.Ansi.ansi_send_left();
 				return true;
 			}
 			if (!flipped)
@@ -1088,14 +1099,14 @@ namespace Open3270.TN3270
 			{
 				int	baddr;
 
-				baddr = telnet.tnctlr.cursor_addr;
-				telnet.tnctlr.INC_BA(ref baddr);
-				telnet.tnctlr.cursor_move(baddr);
+				baddr = telnet.Controller.CursorAddress;
+				telnet.Controller.IncrementAddress(ref baddr);
+				telnet.Controller.SetCursorAddress(baddr);
 			}
 			return true;
 		}
 
-
+ 
 		/*
 		 * Delete char key.
 		 * Returns "true" if succeeds, "false" otherwise.
@@ -1104,47 +1115,47 @@ namespace Open3270.TN3270
 		{
 			int	baddr, end_baddr;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
-			if (telnet.tnctlr.FA_IS_PROTECTED(fa) || telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+				fa = telnet.Controller.ScreenBuffer[fa_index];
+			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
 			}
 			/* find next fa */
-			if (telnet.tnctlr.formatted) 
+			if (telnet.Controller.Formatted) 
 			{
 				end_baddr = baddr;
 				do 
 				{
-					telnet.tnctlr.INC_BA(ref end_baddr);
-					if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[end_baddr]))
+					telnet.Controller.IncrementAddress(ref end_baddr);
+					if (FA.IsFA(telnet.Controller.ScreenBuffer[end_baddr]))
 						break;
 				} while (end_baddr != baddr);
-				telnet.tnctlr.DEC_BA(ref end_baddr);
+				telnet.Controller.DecrementAddress(ref end_baddr);
 			} 
 			else 
 			{
-				if ((baddr % telnet.tnctlr.COLS) == telnet.tnctlr.COLS - 1)
+				if ((baddr % telnet.Controller.ColumnCount) == telnet.Controller.ColumnCount - 1)
 					return true;
-				end_baddr = baddr + (telnet.tnctlr.COLS - (baddr % telnet.tnctlr.COLS)) - 1;
+				end_baddr = baddr + (telnet.Controller.ColumnCount - (baddr % telnet.Controller.ColumnCount)) - 1;
 			}
 			if (end_baddr > baddr) 
 			{
-				telnet.tnctlr.ctlr_bcopy(baddr+1, baddr, end_baddr - baddr, false);
+				telnet.Controller.CopyBlock(baddr+1, baddr, end_baddr - baddr, false);
 			} 
 			else if (end_baddr != baddr) 
 			{
-				telnet.tnctlr.ctlr_bcopy(baddr+1, baddr, ((telnet.tnctlr.ROWS * telnet.tnctlr.COLS) - 1) - baddr, false);
-				telnet.tnctlr.ctlr_add((telnet.tnctlr.ROWS * telnet.tnctlr.COLS) - 1, telnet.tnctlr.screen_buf[0], 0);
-				telnet.tnctlr.ctlr_bcopy(1, 0, end_baddr, false);
+				telnet.Controller.CopyBlock(baddr+1, baddr, ((telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1) - baddr, false);
+				telnet.Controller.AddCharacter((telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1, telnet.Controller.ScreenBuffer[0], 0);
+				telnet.Controller.CopyBlock(1, 0, end_baddr, false);
 			}
-			telnet.tnctlr.ctlr_add(end_baddr, CG.CG_null, 0);
-			telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa_index);
+			telnet.Controller.AddCharacter(end_baddr, CG.CG_null, 0);
+			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
 			return true;
 		}
 
@@ -1155,25 +1166,25 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Delete_action),args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_sendc(0x7f);
+				telnet.SendByte(0x7f);
 				return true;
 			}
 			if (!do_delete())
 				return false;
 			if (reverse) 
 			{
-				int baddr = telnet.tnctlr.cursor_addr;
+				int baddr = telnet.Controller.CursorAddress;
 
-				telnet.tnctlr.DEC_BA(ref baddr);
-				if (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]))
-					telnet.tnctlr.cursor_move(baddr);
+				telnet.Controller.DecrementAddress(ref baddr);
+				if (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
+					telnet.Controller.SetCursorAddress(baddr);
 			}
 			return true;
 		}
 
-
+ 
 		/*
 		 * Backspace.
 		 */
@@ -1184,9 +1195,9 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(BackSpace_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_send_erase();
+				telnet.SendErase();
 				return true;
 			}
 			if (reverse)
@@ -1197,21 +1208,21 @@ namespace Open3270.TN3270
 			{
 				int	baddr;
 
-				baddr = telnet.tnctlr.cursor_addr;
-				telnet.tnctlr.DEC_BA(ref baddr);
-				telnet.tnctlr.cursor_move(baddr);
+				baddr = telnet.Controller.CursorAddress;
+				telnet.Controller.DecrementAddress(ref baddr);
+				telnet.Controller.SetCursorAddress(baddr);
 			}
 			return true;
 		}
 
-
+ 
 		/*
 		 * Destructive backspace, like Unix "erase".
 		 */
 		public bool Erase_action(params object[] args)
 		{
 			int	baddr;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 			int fa_index;
 	
 			if (kybdlock!=0) 
@@ -1219,16 +1230,16 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Erase_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_send_erase();
+				telnet.SendErase();
 				return true;
 			}
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
-			if (fa_index == baddr || telnet.tnctlr.FA_IS_PROTECTED(fa)) 
+				fa = telnet.Controller.ScreenBuffer[fa_index];
+			if (fa_index == baddr || FA.IsProtected(fa)) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
@@ -1240,7 +1251,7 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor right 1 position.
 		 */
@@ -1253,23 +1264,23 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Right_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.ansi.ansi_send_right();
+				telnet.Ansi.ansi_send_right();
 				return true;
 			}
 			if (!flipped) 
 			{
-				baddr = telnet.tnctlr.cursor_addr;
-				telnet.tnctlr.INC_BA(ref baddr);
-				telnet.tnctlr.cursor_move(baddr);
+				baddr = telnet.Controller.CursorAddress;
+				telnet.Controller.IncrementAddress(ref baddr);
+				telnet.Controller.SetCursorAddress(baddr);
 			} 
 			else
 				do_left();
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor left 2 positions.
 		 */
@@ -1282,16 +1293,16 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Left2_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			baddr = telnet.tnctlr.cursor_addr;
-			telnet.tnctlr.DEC_BA(ref baddr);
-			telnet.tnctlr.DEC_BA(ref baddr);
-			telnet.tnctlr.cursor_move(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			telnet.Controller.DecrementAddress(ref baddr);
+			telnet.Controller.DecrementAddress(ref baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor to previous word.
 		 */
@@ -1308,24 +1319,24 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(PreviousWord_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			if (!telnet.tnctlr.formatted)
+			if (!telnet.Controller.Formatted)
 				return false;
 
-			baddr = telnet.tnctlr.cursor_addr;
-			prot = telnet.tnctlr.FA_IS_PROTECTED_AT(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			prot = FA.IsProtectedAt(telnet.Controller.ScreenBuffer, baddr);
 
 			/* Skip to before this word, if in one now. */
 			if (!prot) 
 			{
-				c = telnet.tnctlr.screen_buf[baddr];
-				while (!telnet.tnctlr.IS_FA(c) && c != CG.CG_space && c != CG.CG_null) 
+				c = telnet.Controller.ScreenBuffer[baddr];
+				while (!FA.IsFA(c) && c != CG.CG_space && c != CG.CG_null) 
 				{
-					telnet.tnctlr.DEC_BA(ref baddr);
-					if (baddr == telnet.tnctlr.cursor_addr)
+					telnet.Controller.DecrementAddress(ref baddr);
+					if (baddr == telnet.Controller.CursorAddress)
 						return true;
-					c = telnet.tnctlr.screen_buf[baddr];
+					c = telnet.Controller.ScreenBuffer[baddr];
 				}
 			}
 			baddr0 = baddr;
@@ -1333,16 +1344,16 @@ namespace Open3270.TN3270
 			/* Find the end of the preceding word. */
 			do 
 			{
-				c = telnet.tnctlr.screen_buf[baddr];
-				if (telnet.tnctlr.IS_FA(c)) 
+				c = telnet.Controller.ScreenBuffer[baddr];
+				if (FA.IsFA(c)) 
 				{
-					telnet.tnctlr.DEC_BA(ref baddr);
-					prot = telnet.tnctlr.FA_IS_PROTECTED_AT(baddr);
+					telnet.Controller.DecrementAddress(ref baddr);
+					prot = FA.IsProtectedAt(telnet.Controller.ScreenBuffer, baddr);
 					continue;
 				}
 				if (!prot && c != CG.CG_space && c != CG.CG_null)
 					break;
-				telnet.tnctlr.DEC_BA(ref baddr);
+				telnet.Controller.DecrementAddress(ref baddr);
 			} while (baddr != baddr0);
 
 			if (baddr == baddr0)
@@ -1351,19 +1362,19 @@ namespace Open3270.TN3270
 			/* Go it its front. */
 			for (;;) 
 			{
-				telnet.tnctlr.DEC_BA(ref baddr);
-				c = telnet.tnctlr.screen_buf[baddr];
-				if (telnet.tnctlr.IS_FA(c) || c == CG.CG_space || c == CG.CG_null) 
+				telnet.Controller.DecrementAddress(ref baddr);
+				c = telnet.Controller.ScreenBuffer[baddr];
+				if (FA.IsFA(c) || c == CG.CG_space || c == CG.CG_null) 
 				{
 					break;
 				}
 			}
-			telnet.tnctlr.INC_BA(ref baddr);
-			telnet.tnctlr.cursor_move(baddr);
+			telnet.Controller.IncrementAddress(ref baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor right 2 positions.
 		 */
@@ -1376,16 +1387,16 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Right2_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			baddr = telnet.tnctlr.cursor_addr;
-			telnet.tnctlr.INC_BA(ref baddr);
-			telnet.tnctlr.INC_BA(ref baddr);
-			telnet.tnctlr.cursor_move(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			telnet.Controller.IncrementAddress(ref baddr);
+			telnet.Controller.IncrementAddress(ref baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
-
+ 
 		/* Find the next unprotected word, or -1 */
 		int nu_word(int baddr)
 		{
@@ -1393,16 +1404,16 @@ namespace Open3270.TN3270
 			byte c;
 			bool prot;
 
-			prot = telnet.tnctlr.FA_IS_PROTECTED_AT(baddr);
+			prot = FA.IsProtectedAt(telnet.Controller.ScreenBuffer, baddr);
 
 			do 
 			{
-				c = telnet.tnctlr.screen_buf[baddr];
-				if (telnet.tnctlr.IS_FA(c))
-					prot = telnet.tnctlr.FA_IS_PROTECTED(c);
+				c = telnet.Controller.ScreenBuffer[baddr];
+				if (FA.IsFA(c))
+					prot = FA.IsProtected(c);
 				else if (!prot && c != CG.CG_space && c != CG.CG_null)
 					return baddr;
-				telnet.tnctlr.INC_BA(ref baddr);
+				telnet.Controller.IncrementAddress(ref baddr);
 			} while (baddr != baddr0);
 
 			return -1;
@@ -1417,8 +1428,8 @@ namespace Open3270.TN3270
 
 			do 
 			{
-				c = telnet.tnctlr.screen_buf[baddr];
-				if (telnet.tnctlr.IS_FA(c))
+				c = telnet.Controller.ScreenBuffer[baddr];
+				if (FA.IsFA(c))
 					return -1;
 				if (in_word) 
 				{
@@ -1430,7 +1441,7 @@ namespace Open3270.TN3270
 					if (c != CG.CG_space && c != CG.CG_null)
 						return baddr;
 				}
-				telnet.tnctlr.INC_BA(ref baddr);
+				telnet.Controller.IncrementAddress(ref baddr);
 			} while (baddr != baddr0);
 
 			return -1;
@@ -1450,63 +1461,63 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(NextWord_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			if (!telnet.tnctlr.formatted)
+			if (!telnet.Controller.Formatted)
 				return false;
 
 			/* If not in an unprotected field, go to the next unprotected word. */
-			if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[telnet.tnctlr.cursor_addr]) ||
-				telnet.tnctlr.FA_IS_PROTECTED_AT(telnet.tnctlr.cursor_addr)) 
+			if (FA.IsFA(telnet.Controller.ScreenBuffer[telnet.Controller.CursorAddress]) ||
+				FA.IsProtectedAt(telnet.Controller.ScreenBuffer, telnet.Controller.CursorAddress)) 
 			{
-				baddr = nu_word(telnet.tnctlr.cursor_addr);
+				baddr = nu_word(telnet.Controller.CursorAddress);
 				if (baddr != -1)
-					telnet.tnctlr.cursor_move(baddr);
+					telnet.Controller.SetCursorAddress(baddr);
 				return true;
 			}
 
 			/* If there's another word in this field, go to it. */
-			baddr = nt_word(telnet.tnctlr.cursor_addr);
+			baddr = nt_word(telnet.Controller.CursorAddress);
 			if (baddr != -1) 
 			{
-				telnet.tnctlr.cursor_move(baddr);
+				telnet.Controller.SetCursorAddress(baddr);
 				return true;
 			}
 
 			/* If in a word, go to just after its end. */
-			c = telnet.tnctlr.screen_buf[telnet.tnctlr.cursor_addr];
+			c = telnet.Controller.ScreenBuffer[telnet.Controller.CursorAddress];
 			if (c != CG.CG_space && c != CG.CG_null) 
 			{
-				baddr = telnet.tnctlr.cursor_addr;
+				baddr = telnet.Controller.CursorAddress;
 				do 
 				{
-					c = telnet.tnctlr.screen_buf[baddr];
+					c = telnet.Controller.ScreenBuffer[baddr];
 					if (c == CG.CG_space || c == CG.CG_null) 
 					{
-						telnet.tnctlr.cursor_move(baddr);
+						telnet.Controller.SetCursorAddress(baddr);
 						return true;
 					} 
-					else if (telnet.tnctlr.IS_FA(c)) 
+					else if (FA.IsFA(c)) 
 					{
 						baddr = nu_word(baddr);
 						if (baddr != -1)
-							telnet.tnctlr.cursor_move(baddr);
+							telnet.Controller.SetCursorAddress(baddr);
 						return true;
 					}
-					telnet.tnctlr.INC_BA(ref baddr);
-				} while (baddr != telnet.tnctlr.cursor_addr);
+					telnet.Controller.IncrementAddress(ref baddr);
+				} while (baddr != telnet.Controller.CursorAddress);
 			}
 				/* Otherwise, go to the next unprotected word. */
 			else 
 			{
-				baddr = nu_word(telnet.tnctlr.cursor_addr);
+				baddr = nu_word(telnet.Controller.CursorAddress);
 				if (baddr != -1)
-					telnet.tnctlr.cursor_move(baddr);
+					telnet.Controller.SetCursorAddress(baddr);
 			}
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor up 1 position.
 		 */
@@ -1519,19 +1530,19 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Up_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.ansi.ansi_send_up();
+				telnet.Ansi.ansi_send_up();
 				return true;
 			}
-			baddr = telnet.tnctlr.cursor_addr - telnet.tnctlr.COLS;
+			baddr = telnet.Controller.CursorAddress - telnet.Controller.ColumnCount;
 			if (baddr < 0)
-				baddr = (telnet.tnctlr.cursor_addr + (telnet.tnctlr.ROWS * telnet.tnctlr.COLS)) - telnet.tnctlr.COLS;
-			telnet.tnctlr.cursor_move(baddr);
+				baddr = (telnet.Controller.CursorAddress + (telnet.Controller.RowCount * telnet.Controller.ColumnCount)) - telnet.Controller.ColumnCount;
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor down 1 position.
 		 */
@@ -1544,17 +1555,17 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Down_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.ansi.ansi_send_down();
+				telnet.Ansi.ansi_send_down();
 				return true;
 			}
-			baddr = (telnet.tnctlr.cursor_addr + telnet.tnctlr.COLS) % (telnet.tnctlr.COLS * telnet.tnctlr.ROWS);
-			telnet.tnctlr.cursor_move(baddr);
+			baddr = (telnet.Controller.CursorAddress + telnet.Controller.ColumnCount) % (telnet.Controller.ColumnCount * telnet.Controller.RowCount);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor to first field on next line or any lines after that.
 		 */
@@ -1562,7 +1573,7 @@ namespace Open3270.TN3270
 		{
 			int	baddr;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 	
 
 			if (kybdlock!=0) 
@@ -1570,25 +1581,25 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Newline_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_sendc('\n');
+				telnet.SendChar('\n');
 				return false;
 			}
-			baddr = (telnet.tnctlr.cursor_addr + telnet.tnctlr.COLS) % (telnet.tnctlr.COLS * telnet.tnctlr.ROWS);	/* down */
-			baddr = (baddr / telnet.tnctlr.COLS) * telnet.tnctlr.COLS;			/* 1st col */
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = (telnet.Controller.CursorAddress + telnet.Controller.ColumnCount) % (telnet.Controller.ColumnCount * telnet.Controller.RowCount);	/* down */
+			baddr = (baddr / telnet.Controller.ColumnCount) * telnet.Controller.ColumnCount;			/* 1st col */
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
+				fa = telnet.Controller.ScreenBuffer[fa_index];
 			//
-			if (fa_index != baddr && !telnet.tnctlr.FA_IS_PROTECTED(fa))
-				telnet.tnctlr.cursor_move(baddr);
+			if (fa_index != baddr && !FA.IsProtected(fa))
+				telnet.Controller.SetCursorAddress(baddr);
 			else
-				telnet.tnctlr.cursor_move(telnet.tnctlr.next_unprotected(baddr));
+				telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(baddr));
 			return true;
 		}
 
-
+ 
 		/*
 		 * DUP key
 		 */
@@ -1599,14 +1610,14 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Dup_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
 			if (key_Character(CG.CG_dup, false, false))
-				telnet.tnctlr.cursor_move(telnet.tnctlr.next_unprotected(telnet.tnctlr.cursor_addr));
+				telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.CursorAddress));
 			return true;
 		}
 
-
+ 
 		/*
 		 * FM key
 		 */
@@ -1617,13 +1628,13 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(FieldMark_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
 			key_Character(CG.CG_fm, false, false);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Vanilla AID keys.
 		 */
@@ -1634,18 +1645,18 @@ namespace Open3270.TN3270
 			else if (kybdlock!=0)
 				enq_ta(new ActionDelegate(Enter_action), args);
 			else
-				key_AID(AID.AID_ENTER);
+				key_AID(AID.Enter);
 			return true;
 		}
 
 
 		public bool SysReq_action(params object[] args)
 		{
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			if (telnet.IN_E) 
+			if (telnet.IsE) 
 			{
-				telnet.net_abort();
+				telnet.Abort();
 			} 
 			else
 			{
@@ -1654,12 +1665,12 @@ namespace Open3270.TN3270
 				else if (kybdlock!=0)
 					enq_ta(new ActionDelegate(SysReq_action), args);
 				else
-					key_AID(AID.AID_SYSREQ);
+					key_AID(AID.SysReq);
 			}
 			return true;
 		}
 
-
+ 
 		/*
 		 * Clear AID key
 		 */
@@ -1670,65 +1681,65 @@ namespace Open3270.TN3270
 			{
 				return false;
 			}
-			if (kybdlock!=0 && telnet.CONNECTED) 
+			if (kybdlock!=0 && telnet.IsConnected) 
 			{
 				enq_ta(new ActionDelegate(Clear_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.ansi.ansi_send_clear();
+				telnet.Ansi.ansi_send_clear();
 				return true;
 			}
-			telnet.tnctlr.buffer_addr = 0;
-			telnet.tnctlr.ctlr_clear(true);
-			telnet.tnctlr.cursor_move(0);
-			if (telnet.CONNECTED)
-				key_AID(AID.AID_CLEAR);
+			telnet.Controller.BufferAddress = 0;
+			telnet.Controller.Clear(true);
+			telnet.Controller.SetCursorAddress(0);
+			if (telnet.IsConnected)
+				key_AID(AID.Clear);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Cursor Select key (light pen simulator).
 		 */
 		void lightpen_select(int baddr)
 		{
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 			byte sel;
 			//, *sel;
 			int designator;
 
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
+				fa = telnet.Controller.ScreenBuffer[fa_index];
 			//
-			if (!telnet.tnctlr.FA_IS_SELECTABLE(fa)) 
+			if (!FA.IsSelectable(fa)) 
 			{
 				//ring_bell();
 				return;
 			}
-			sel = telnet.tnctlr.screen_buf[fa_index+1];
+			sel = telnet.Controller.ScreenBuffer[fa_index+1];
 			//sel = fa + 1;
 			designator = fa_index+1;//sel - screen_buf;
 			switch (sel) 
 			{
 				case CG.CG_greater:		/* > */
-					telnet.tnctlr.ctlr_add(designator, CG.CG_question, 0); /* change to ? */
-					telnet.tnctlr.mdt_clear(telnet.tnctlr.screen_buf, fa_index);
+					telnet.Controller.AddCharacter(designator, CG.CG_question, 0); /* change to ? */
+					telnet.Controller.MDTClear(telnet.Controller.ScreenBuffer, fa_index);
 					break;
 				case CG.CG_question:		/* ? */
-					telnet.tnctlr.ctlr_add(designator, CG.CG_greater, 0);	/* change to > */
-					telnet.tnctlr.mdt_clear(telnet.tnctlr.screen_buf, fa_index);
+					telnet.Controller.AddCharacter(designator, CG.CG_greater, 0);	/* change to > */
+					telnet.Controller.MDTClear(telnet.Controller.ScreenBuffer, fa_index);
 					break;
 				case CG.CG_space:		/* space */
 				case CG.CG_null:		/* null */
-					key_AID(AID.AID_SELECT);
+					key_AID(AID.SELECT);
 					break;
 				case CG.CG_ampersand:		/* & */
-					telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa_index);
-					key_AID(AID.AID_ENTER);
+					telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
+					key_AID(AID.Enter);
 					break;
 				default:
 					//ring_bell();
@@ -1749,14 +1760,14 @@ namespace Open3270.TN3270
 				return true;
 			}
 
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			lightpen_select(telnet.tnctlr.cursor_addr);
+			lightpen_select(telnet.Controller.CursorAddress);
 			return true;
 		}
 
 
-
+ 
 		/*
 		 * Erase End Of Field Key.
 		 */
@@ -1764,7 +1775,7 @@ namespace Open3270.TN3270
 		{
 			int	baddr;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 
 	
 			if (kybdlock!=0) 
@@ -1772,45 +1783,45 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(EraseEOF_action), args);
 				return false;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index!=-1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
-			if (telnet.tnctlr.FA_IS_PROTECTED(fa) || telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+				fa = telnet.Controller.ScreenBuffer[fa_index];
+			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
 			}
-			if (telnet.tnctlr.formatted) 
+			if (telnet.Controller.Formatted) 
 			{	/* erase to next field attribute */
 				do 
 				{
-					telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
-					telnet.tnctlr.INC_BA(ref baddr);
-				} while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]));
-				telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa_index);
+					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+					telnet.Controller.IncrementAddress(ref baddr);
+				} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
+				telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
 			} 
 			else 
 			{	/* erase to end of screen */
 				do 
 				{
-					telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
-					telnet.tnctlr.INC_BA(ref baddr);
+					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+					telnet.Controller.IncrementAddress(ref baddr);
 				} while (baddr != 0);
 			}
 			return true;
 		}
 
-
+ 
 		/*
 		 * Erase all Input Key.
 		 */
 		public bool EraseInput_action(params object[] args)
 		{
 			int	baddr, sbaddr;
-			byte	fa = telnet.tnctlr.fake_fa;
+			byte	fa = telnet.Controller.FakeFA;
 //			int fa_index;
 			Boolean		f;
 
@@ -1820,61 +1831,61 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(EraseInput_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			if (telnet.tnctlr.formatted) 
+			if (telnet.Controller.Formatted) 
 			{
 				/* find first field attribute */
 				baddr = 0;
 				do 
 				{
-					if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]))
+					if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
 						break;
-					telnet.tnctlr.INC_BA(ref baddr);
+					telnet.Controller.IncrementAddress(ref baddr);
 				} while (baddr != 0);
 				sbaddr = baddr;
 				f = false;
 				do 
 				{
-					fa = telnet.tnctlr.screen_buf[baddr];
-					if (!telnet.tnctlr.FA_IS_PROTECTED(fa)) 
+					fa = telnet.Controller.ScreenBuffer[baddr];
+					if (!FA.IsProtected(fa)) 
 					{
-						telnet.tnctlr.mdt_clear(telnet.tnctlr.screen_buf, baddr);
+						telnet.Controller.MDTClear(telnet.Controller.ScreenBuffer, baddr);
 						do 
 						{
-							telnet.tnctlr.INC_BA(ref baddr);
+							telnet.Controller.IncrementAddress(ref baddr);
 							if (!f) 
 							{
-								telnet.tnctlr.cursor_move(baddr);
+								telnet.Controller.SetCursorAddress(baddr);
 								f = true;
 							}
-							if (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+							if (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 							{
-								telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
+								telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
 							}
-						}		while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]));
+						}		while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
 					} 
 					else 
 					{	/* skip protected */
 						do 
 						{
-							telnet.tnctlr.INC_BA(ref baddr);
-						} while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]));
+							telnet.Controller.IncrementAddress(ref baddr);
+						} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
 					}
 				} while (baddr != sbaddr);
 				if (!f)
-					telnet.tnctlr.cursor_move(0);
+					telnet.Controller.SetCursorAddress(0);
 			} 
 			else 
 			{
-				telnet.tnctlr.ctlr_clear(true);
-				telnet.tnctlr.cursor_move(0);
+				telnet.Controller.Clear(true);
+				telnet.Controller.SetCursorAddress(0);
 			}
 			return true;
 		}
 
 
-
+ 
 		/*
 		 * Delete word key.  Backspaces the cursor until it hits the front of a word,
 		 * deletes characters until it hits a blank or null, and deletes all of these
@@ -1886,7 +1897,7 @@ namespace Open3270.TN3270
 		{
 			int	baddr, baddr2, front_baddr, back_baddr, end_baddr;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 	
 
 	
@@ -1895,21 +1906,21 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(DeleteWord_action), args);
 				return false;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_send_werase();
+				telnet.SendWErase();
 				return true;
 			}
-			if (!telnet.tnctlr.formatted)
+			if (!telnet.Controller.Formatted)
 				return true;
 
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
+				fa = telnet.Controller.ScreenBuffer[fa_index];
 
 			/* Make sure we're on a modifiable field. */
-			if (telnet.tnctlr.FA_IS_PROTECTED(fa) || telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
@@ -1917,72 +1928,72 @@ namespace Open3270.TN3270
 
 			/* Search backwards for a non-blank character. */
 			front_baddr = baddr;
-			while (telnet.tnctlr.screen_buf[front_baddr] == CG.CG_space ||
-				telnet.tnctlr.screen_buf[front_baddr] == CG.CG_null)
-				telnet.tnctlr.DEC_BA(ref front_baddr);
+			while (telnet.Controller.ScreenBuffer[front_baddr] == CG.CG_space ||
+				telnet.Controller.ScreenBuffer[front_baddr] == CG.CG_null)
+				telnet.Controller.DecrementAddress(ref front_baddr);
 
 			/* If we ran into the edge of the field without seeing any non-blanks,
 			   there isn't any word to delete; just move the cursor. */
-			if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[front_baddr])) 
+			if (FA.IsFA(telnet.Controller.ScreenBuffer[front_baddr])) 
 			{
-				telnet.tnctlr.cursor_move(front_baddr+1);
+				telnet.Controller.SetCursorAddress(front_baddr+1);
 				return true;
 			}
 
 			/* front_baddr is now pointing at a non-blank character.  Now search
 			   for the first blank to the left of that (or the edge of the field),
 			   leaving front_baddr pointing at the the beginning of the word. */
-			while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[front_baddr]) &&
-				telnet.tnctlr.screen_buf[front_baddr] != CG.CG_space &&
-				telnet.tnctlr.screen_buf[front_baddr] != CG.CG_null)
-				telnet.tnctlr.DEC_BA(ref front_baddr);
-			telnet.tnctlr.INC_BA(ref front_baddr);
+			while (!FA.IsFA(telnet.Controller.ScreenBuffer[front_baddr]) &&
+				telnet.Controller.ScreenBuffer[front_baddr] != CG.CG_space &&
+				telnet.Controller.ScreenBuffer[front_baddr] != CG.CG_null)
+				telnet.Controller.DecrementAddress(ref front_baddr);
+			telnet.Controller.IncrementAddress(ref front_baddr);
 
 			/* Find the end of the word, searching forward for the edge of the
 			   field or a non-blank. */
 			back_baddr = front_baddr;
-			while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[back_baddr]) &&
-				telnet.tnctlr.screen_buf[back_baddr] != CG.CG_space &&
-				telnet.tnctlr.screen_buf[back_baddr] != CG.CG_null)
-				telnet.tnctlr.INC_BA(ref back_baddr);
+			while (!FA.IsFA(telnet.Controller.ScreenBuffer[back_baddr]) &&
+				telnet.Controller.ScreenBuffer[back_baddr] != CG.CG_space &&
+				telnet.Controller.ScreenBuffer[back_baddr] != CG.CG_null)
+				telnet.Controller.IncrementAddress(ref back_baddr);
 
 			/* Find the start of the next word, leaving back_baddr pointing at it
 			   or at the end of the field. */
-			while (telnet.tnctlr.screen_buf[back_baddr] == CG.CG_space ||
-				telnet.tnctlr.screen_buf[back_baddr] == CG.CG_null)
-				telnet.tnctlr.INC_BA(ref back_baddr);
+			while (telnet.Controller.ScreenBuffer[back_baddr] == CG.CG_space ||
+				telnet.Controller.ScreenBuffer[back_baddr] == CG.CG_null)
+				telnet.Controller.IncrementAddress(ref back_baddr);
 
 			/* Find the end of the field, leaving end_baddr pointing at the field
 			   attribute of the start of the next field. */
 			end_baddr = back_baddr;
-			while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[end_baddr]))
-				telnet.tnctlr.INC_BA(ref end_baddr);
+			while (!FA.IsFA(telnet.Controller.ScreenBuffer[end_baddr]))
+				telnet.Controller.IncrementAddress(ref end_baddr);
 
 			/* Copy any text to the right of the word we are deleting. */
 			baddr = front_baddr;
 			baddr2 = back_baddr;
 			while (baddr2 != end_baddr) 
 			{
-				telnet.tnctlr.ctlr_add(baddr, telnet.tnctlr.screen_buf[baddr2], 0);
-				telnet.tnctlr.INC_BA(ref baddr);
-				telnet.tnctlr.INC_BA(ref baddr2);
+				telnet.Controller.AddCharacter(baddr, telnet.Controller.ScreenBuffer[baddr2], 0);
+				telnet.Controller.IncrementAddress(ref baddr);
+				telnet.Controller.IncrementAddress(ref baddr2);
 			}
 
 			/* Insert nulls to pad out the end of the field. */
 			while (baddr != end_baddr) 
 			{
-				telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
-				telnet.tnctlr.INC_BA(ref baddr);
+				telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+				telnet.Controller.IncrementAddress(ref baddr);
 			}
 
 			/* Set the MDT and move the cursor. */
-			telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa_index);
-			telnet.tnctlr.cursor_move(front_baddr);
+			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
+			telnet.Controller.SetCursorAddress(front_baddr);
 			return true;
 		}
 
 
-
+ 
 		/*
 		 * Delete field key.  Similar to EraseEOF, but it wipes out the entire field
 		 * rather than just to the right of the cursor, and it leaves the cursor at
@@ -1993,7 +2004,7 @@ namespace Open3270.TN3270
 		public bool DeleteField_action(params object[] args)
 		{
 			int	baddr;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 			int fa_index;
 
 	
@@ -2002,38 +2013,38 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(DeleteField_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_send_kill();
+				telnet.SendKill();
 				return true;
 			}
-			if (!telnet.tnctlr.formatted)
+			if (!telnet.Controller.Formatted)
 				return false;
 
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
-			if (telnet.tnctlr.FA_IS_PROTECTED(fa) || telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+				fa = telnet.Controller.ScreenBuffer[fa_index];
+			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
 			}
-			while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]))
-				telnet.tnctlr.DEC_BA(ref baddr);
-			telnet.tnctlr.INC_BA(ref baddr);
-			telnet.tnctlr.cursor_move(baddr);
-			while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+			while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
+				telnet.Controller.DecrementAddress(ref baddr);
+			telnet.Controller.IncrementAddress(ref baddr);
+			telnet.Controller.SetCursorAddress(baddr);
+			while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
-				telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
-				telnet.tnctlr.INC_BA(ref baddr);
+				telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+				telnet.Controller.IncrementAddress(ref baddr);
 			}
-			telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa_index);
+			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
 			return true;
 		}
 
 
-
+ 
 		/*
 		 * Set insert mode key.
 		 */
@@ -2045,13 +2056,13 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(Insert_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
 			insert_mode(true);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Toggle insert mode key.
 		 */
@@ -2063,7 +2074,7 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(ToggleInsert_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
 			if (insert)
 				insert_mode(false);
@@ -2072,7 +2083,7 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
+ 
 		/*
 		 * Toggle reverse mode key.
 		 */
@@ -2084,13 +2095,13 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(ToggleReverse_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
 			reverse_mode(!reverse);
 			return true;
 		}
 
-
+ 
 		/*
 		 * Move the cursor to the first blank after the last nonblank in the
 		 * field, or if the field is full, to the last character in the field.
@@ -2099,7 +2110,7 @@ namespace Open3270.TN3270
 		{
 			int	baddr;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 			byte c;
 			int	last_nonblank = -1;
 
@@ -2109,24 +2120,24 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(FieldEnd_action), args);
 				return true;
 			}
-			if (telnet.IN_ANSI)
+			if (telnet.IsAnsi)
 				return false;
-			if (!telnet.tnctlr.formatted)
+			if (!telnet.Controller.Formatted)
 				return false;
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
+				fa = telnet.Controller.ScreenBuffer[fa_index];
 			//
-			if (fa_index == telnet.tnctlr.screen_buf[baddr] || telnet.tnctlr.FA_IS_PROTECTED(fa))
+			if (fa_index == telnet.Controller.ScreenBuffer[baddr] || FA.IsProtected(fa))
 				return false;
 
 			baddr = fa_index;
 			while (true) 
 			{
-				telnet.tnctlr.INC_BA(ref baddr);
-				c = telnet.tnctlr.screen_buf[baddr];
-				if (telnet.tnctlr.IS_FA(c))
+				telnet.Controller.IncrementAddress(ref baddr);
+				c = telnet.Controller.ScreenBuffer[baddr];
+				if (FA.IsFA(c))
 					break;
 				if (c != CG.CG_null && c != CG.CG_space)
 					last_nonblank = baddr;
@@ -2135,16 +2146,16 @@ namespace Open3270.TN3270
 			if (last_nonblank == -1) 
 			{
 				baddr = fa_index;// - telnet.tnctlr.screen_buf;
-				telnet.tnctlr.INC_BA(ref baddr);
+				telnet.Controller.IncrementAddress(ref baddr);
 			} 
 			else 
 			{
 				baddr = last_nonblank;
-				telnet.tnctlr.INC_BA(ref baddr);
-				if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]))
+				telnet.Controller.IncrementAddress(ref baddr);
+				if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
 					baddr = last_nonblank;
 			}
-			telnet.tnctlr.cursor_move(baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
@@ -2170,7 +2181,7 @@ namespace Open3270.TN3270
 				case 2:		/* probably a macro call */
 					row = (int)args[0];
 					col = (int)args[1];
-					if (!telnet.IN_3270) 
+					if (!telnet.Is3270) 
 					{
 						row--;
 						col--;
@@ -2179,18 +2190,18 @@ namespace Open3270.TN3270
 						row = 0;
 					if (col < 0)
 						col = 0;
-					baddr = ((row * telnet.tnctlr.COLS) + col) % (telnet.tnctlr.ROWS * telnet.tnctlr.COLS);
+					baddr = ((row * telnet.Controller.ColumnCount) + col) % (telnet.Controller.RowCount * telnet.Controller.ColumnCount);
 //					printf("--MoveCursor baddr=%d\n", baddr);
-					telnet.tnctlr.cursor_move(baddr);
+					telnet.Controller.SetCursorAddress(baddr);
 					break;
 				default:		/* couln't say */
-					telnet.events.popup_an_error("MoveCursor_action requires 0 or 2 arguments");
+					telnet.Events.popup_an_error("MoveCursor_action requires 0 or 2 arguments");
 					break;
 			}
 			return true;
 		}
 
-
+ 
 
 
 		/*
@@ -2210,12 +2221,12 @@ namespace Open3270.TN3270
 				k = MyStringToKeysym(s, out keytype);
 				if (k == NoSymbol) 
 				{
-					telnet.events.popup_an_error("Key_action: Nonexistent or invalid KeySym: "+s);
+					telnet.Events.popup_an_error("Key_action: Nonexistent or invalid KeySym: "+s);
 					continue;
 				}
 				if ((k & ~0xff) !=0)
 				{
-					telnet.events.popup_an_error("Key_action: Invalid KeySym: "+s);
+					telnet.Events.popup_an_error("Key_action: Invalid KeySym: "+s);
 					continue;
 				}
 				key_ACharacter((byte)(k & 0xff), keytype, iaction.IA_KEY);
@@ -2240,9 +2251,9 @@ namespace Open3270.TN3270
 
 			/* Set a pending string. */
 			ps_set(s, false);
-			bool ok = !telnet.events.IsError();
+			bool ok = !telnet.Events.IsError();
 			if (!ok && telnet.Config.ThrowExceptionOnLockedScreen)
-				throw new ApplicationException(telnet.events.GetErrorAsText());
+				throw new ApplicationException(telnet.Events.GetErrorAsText());
 			else
 				return ok;
 			//return true;
@@ -2279,7 +2290,7 @@ namespace Open3270.TN3270
 		 */
 		public bool CircumNot_action(params object[] args)
 		{
-			if (telnet.IN_3270 && composing == enum_composing.NONE)
+			if (telnet.Is3270 && composing == enum_composing.NONE)
 				key_ACharacter(0xac, enum_keytype.KT_STD, iaction.IA_KEY);
 			else
 				key_ACharacter((byte)'^', enum_keytype.KT_STD, iaction.IA_KEY);
@@ -2291,7 +2302,7 @@ namespace Open3270.TN3270
 		{
 			if (n < 1 || n > PA_SZ) 
 			{
-				telnet.events.popup_an_error("Unknown PA key %d", n);
+				telnet.Events.popup_an_error("Unknown PA key %d", n);
 				return;
 			}
 			if (kybdlock!=0) 
@@ -2307,7 +2318,7 @@ namespace Open3270.TN3270
 		{
 			if (n < 1 || n > PF_SZ) 
 			{
-				telnet.events.popup_an_error("Unknown PF key %d", n);
+				telnet.Events.popup_an_error("Unknown PF key %d", n);
 				return;
 			}
 			if (kybdlock!=0) 
@@ -2324,7 +2335,7 @@ namespace Open3270.TN3270
 		 */
 		void kybd_scroll_lock(bool lockflag)
 		{
-			if (!telnet.IN_3270)
+			if (!telnet.Is3270)
 				return;
 			if (lockflag)
 				kybdlock_set(KL_SCROLLED, "kybd_scroll_lock");
@@ -2341,31 +2352,31 @@ namespace Open3270.TN3270
 			bool ever = false;
 			int baddr, b0 = 0;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 	
 
-			baddr = telnet.tnctlr.cursor_addr;
-			while (telnet.tnctlr.BA_TO_COL(baddr) < lmargin) 
+			baddr = telnet.Controller.CursorAddress;
+			while (telnet.Controller.AddressToColumn(baddr) < lmargin) 
 			{
-				baddr = telnet.tnctlr.ROWCOL_TO_BA(telnet.tnctlr.BA_TO_ROW(baddr), lmargin);
+				baddr = telnet.Controller.RowColumnToByteAddress(telnet.Controller.AddresstoRow(baddr), lmargin);
 				if (!ever) 
 				{
 					b0 = baddr;
 					ever = true;
 				}
-				fa_index = telnet.tnctlr.get_field_attribute(baddr);
+				fa_index = telnet.Controller.GetFieldAttribute(baddr);
 				if (fa_index != -1)
-					fa = telnet.tnctlr.screen_buf[fa_index];
+					fa = telnet.Controller.ScreenBuffer[fa_index];
 
-				if (fa_index == baddr || telnet.tnctlr.FA_IS_PROTECTED(fa)) 
+				if (fa_index == baddr || FA.IsProtected(fa)) 
 				{
-					baddr = telnet.tnctlr.next_unprotected(baddr);
+					baddr = telnet.Controller.GetNextUnprotectedField(baddr);
 					if (baddr <= b0)
 						return false;
 				}
 			}
 
-			telnet.tnctlr.cursor_move(baddr);
+			telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
@@ -2405,8 +2416,8 @@ namespace Open3270.TN3270
 			int literal = 0;
 			int nc = 0;
 			iaction ia = pasting ? iaction.IA_PASTE : iaction.IA_STRING;
-			int orig_addr = telnet.tnctlr.cursor_addr;
-			int orig_col = telnet.tnctlr.BA_TO_COL(telnet.tnctlr.cursor_addr);
+			int orig_addr = telnet.Controller.CursorAddress;
+			int orig_col = telnet.Controller.AddressToColumn(telnet.Controller.CursorAddress);
 			int len = s.Length;
 
 			/*
@@ -2422,22 +2433,22 @@ namespace Open3270.TN3270
 				 */
 				if (kybdlock!=0) 
 				{
-					telnet.trace.trace_event("  keyboard locked, string dropped. kybdlock="+kybdlock+"\n");
+					telnet.Trace.trace_event("  keyboard locked, string dropped. kybdlock="+kybdlock+"\n");
 					if (telnet.Config.ThrowExceptionOnLockedScreen)
 						throw new ApplicationException("Keyboard locked typing data onto screen - data was lost.  Turn of configuration option 'ThrowExceptionOnLockedScreen' to ignore this exception.");
 					return 0;
 				}
 
-				if (pasting && telnet.IN_3270) 
+				if (pasting && telnet.Is3270) 
 				{
 
 					/* Check for cursor wrap to top of screen. */
-					if (telnet.tnctlr.cursor_addr < orig_addr)
+					if (telnet.Controller.CursorAddress < orig_addr)
 						return len-1;		/* wrapped */
 
 					/* Jump cursor over left margin. */
-					if (telnet.appres.toggled(Appres.MARGINED_PASTE) &&
-						telnet.tnctlr.BA_TO_COL(telnet.tnctlr.cursor_addr) < orig_col) 
+					if (telnet.Appres.toggled(Appres.MARGINED_PASTE) &&
+						telnet.Controller.AddressToColumn(telnet.Controller.CursorAddress) < orig_col) 
 					{
 						if (!remargin(orig_col))
 							return len-1;
@@ -2461,7 +2472,7 @@ namespace Open3270.TN3270
 							else 
 							{
 								action.action_internal(new ActionDelegate(Clear_action), ia);
-								if (telnet.IN_3270)
+								if (telnet.Is3270)
 									return len-1;
 								else
 									break;
@@ -2473,7 +2484,7 @@ namespace Open3270.TN3270
 							else 
 							{
 								action.action_internal(new ActionDelegate(Enter_action), ia);
-								if (telnet.IN_3270)
+								if (telnet.Is3270)
 									return len-1;
 							}
 							break;
@@ -2517,7 +2528,7 @@ namespace Open3270.TN3270
 					switch ((char)c) 
 					{
 						case 'a':
-							telnet.events.popup_an_error("String_action: Bell not supported");
+							telnet.Events.popup_an_error("String_action: Bell not supported");
 							state = EIState.BASE;
 							break;
 						case 'b':
@@ -2527,14 +2538,14 @@ namespace Open3270.TN3270
 						case 'f':
 							action.action_internal(new ActionDelegate(Clear_action), ia);
 							state = EIState.BASE;
-							if (telnet.IN_3270)
+							if (telnet.Is3270)
 								return len-1;
 							else
 								break;
 						case 'n':
 							action.action_internal(new ActionDelegate(Enter_action), ia);
 							state = EIState.BASE;
-							if (telnet.IN_3270)
+							if (telnet.Is3270)
 								return len-1;
 							else
 								break;
@@ -2554,7 +2565,7 @@ namespace Open3270.TN3270
 							state = EIState.BASE;
 							break;
 						case 'v':
-							telnet.events.popup_an_error("String_action: Vertical tab not supported");
+							telnet.Events.popup_an_error("String_action: Vertical tab not supported");
 							state = EIState.BASE;
 							break;
 						case 'x':
@@ -2595,7 +2606,7 @@ namespace Open3270.TN3270
 							state = EIState.BACKPF;
 							break;
 						default:
-							telnet.events.popup_an_error("String_action: Unknown character after \\p");
+							telnet.Events.popup_an_error("String_action: Unknown character after \\p");
 							state = EIState.BASE;
 							break;
 					}
@@ -2608,13 +2619,13 @@ namespace Open3270.TN3270
 						} 
 						else if (nc==0) 
 						{
-							telnet.events.popup_an_error("String_action: Unknown character after \\pf");
+							telnet.Events.popup_an_error("String_action: Unknown character after \\pf");
 							state = EIState.BASE;
 						} 
 						else 
 						{
 							do_pf(literal);
-							if (telnet.IN_3270)
+							if (telnet.Is3270)
 								return len-1;
 							state = EIState.BASE;
 							continue;
@@ -2628,13 +2639,13 @@ namespace Open3270.TN3270
 						} 
 						else if (nc==0) 
 						{
-							telnet.events.popup_an_error("String_action: Unknown character after \\pa");
+							telnet.Events.popup_an_error("String_action: Unknown character after \\pa");
 							state = EIState.BASE;
 						} 
 						else 
 						{
 							do_pa(literal);
-							if (telnet.IN_3270)
+							if (telnet.Is3270)
 								return len-1;
 							state = EIState.BASE;
 							continue;
@@ -2650,7 +2661,7 @@ namespace Open3270.TN3270
 						} 
 						else 
 						{
-							telnet.events.popup_an_error("String_action: Missing hex digits after \\x");
+							telnet.Events.popup_an_error("String_action: Missing hex digits after \\x");
 							state = EIState.BASE;
 							continue;
 						}
@@ -2728,7 +2739,7 @@ namespace Open3270.TN3270
 			}
 
 			if (state != EIState.BASE)
-				telnet.events.popup_an_error("String_action: Missing data after \\");
+				telnet.Events.popup_an_error("String_action: Missing data after \\");
 
 			return len;
 		}
@@ -2754,7 +2765,7 @@ namespace Open3270.TN3270
 			/* Validate the string. */
 			if ((s.Length % 2)!=0) 
 			{
-				telnet.events.popup_an_error("HexString_action: Odd number of characters in specification");
+				telnet.Events.popup_an_error("HexString_action: Odd number of characters in specification");
 				return;
 			}
 			int index;
@@ -2771,32 +2782,32 @@ namespace Open3270.TN3270
 				{
 					if (escaped) 
 					{
-						telnet.events.popup_an_error("HexString_action: Double \\E");
+						telnet.Events.popup_an_error("HexString_action: Double \\E");
 
 						return;
 					}
-					if (!telnet.IN_3270) 
+					if (!telnet.Is3270) 
 					{
-						telnet.events.popup_an_error("HexString_action: \\E in ANSI mode");
+						telnet.Events.popup_an_error("HexString_action: \\E in ANSI mode");
 						return;
 					}
 					escaped = true;
 				} 
 				else 
 				{
-					telnet.events.popup_an_error("HexString_action: Illegal character in specification");
+					telnet.Events.popup_an_error("HexString_action: Illegal character in specification");
 					return;
 				}
 				index += 2;
 			}
 			if (escaped) 
 			{
-				telnet.events.popup_an_error("HexString_action: Nothing follows \\E");
+				telnet.Events.popup_an_error("HexString_action: Nothing follows \\E");
 				return;
 			}
 
 			/* Allocate a temporary buffer. */
-			if (!telnet.IN_3270 && nbytes!=0)
+			if (!telnet.Is3270 && nbytes!=0)
 			{
 				xbuf = new byte[nbytes];
 				tbuf = 0;
@@ -2813,8 +2824,8 @@ namespace Open3270.TN3270
 					byte c;
 
 					c = (byte)((FROM_HEX(s[index]) * 16) + FROM_HEX(s[index+1]));
-					if (telnet.IN_3270)
-						key_Character(Tables.ebc2cg[c], escaped, true);
+					if (telnet.Is3270)
+						key_Character(Tables.Ebc2Cg[c], escaped, true);
 					else
 						xbuf[tbuf++] = (byte)c;
 					escaped = false;
@@ -2825,9 +2836,9 @@ namespace Open3270.TN3270
 				}
 				index += 2;
 			}
-			if (!telnet.IN_3270 && nbytes!=0) 
+			if (!telnet.Is3270 && nbytes!=0) 
 			{
-				telnet.net_hexansi_out(xbuf, nbytes);
+				telnet.SendHexAnsiOut(xbuf, nbytes);
 			}
 		}
  
@@ -2839,7 +2850,7 @@ namespace Open3270.TN3270
 		 */
 		int MyStringToKeysym(string s,  out enum_keytype keytypep)
 		{
-            throw new ApplicationException("MyStringToKeysym not implemented");
+			throw new ApplicationException("MyStringToKeysym not implemented");
 		}
 		/*
 		 * FieldExit for the 5250-like emulation.
@@ -2852,13 +2863,13 @@ namespace Open3270.TN3270
 		{
 			int baddr;
 			int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 	
 
 	
-			if (telnet.IN_ANSI) 
+			if (telnet.IsAnsi) 
 			{
-				telnet.net_sendc('\n');
+				telnet.SendChar('\n');
 				return true;
 			}
 			if (kybdlock!=0) 
@@ -2866,32 +2877,32 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(FieldExit_action), args);
 				return true;
 			}
-			baddr = telnet.tnctlr.cursor_addr;
-			fa_index = telnet.tnctlr.get_field_attribute(baddr);
+			baddr = telnet.Controller.CursorAddress;
+			fa_index = telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index!=-1)
-				fa = telnet.tnctlr.screen_buf[fa_index];
+				fa = telnet.Controller.ScreenBuffer[fa_index];
 
-			if (telnet.tnctlr.FA_IS_PROTECTED(fa) || telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr])) 
+			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
 				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
 			}
-			if (telnet.tnctlr.formatted) 
+			if (telnet.Controller.Formatted) 
 			{        /* erase to next field attribute */
 				do 
 				{
-					telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
-					telnet.tnctlr.INC_BA(ref baddr);
-				} while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]));
-				telnet.tnctlr.mdt_set(telnet.tnctlr.screen_buf, fa_index);
-				telnet.tnctlr.cursor_move(telnet.tnctlr.next_unprotected(telnet.tnctlr.cursor_addr));
+					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+					telnet.Controller.IncrementAddress(ref baddr);
+				} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
+				telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
+				telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.CursorAddress));
 			} 
 			else 
 			{        /* erase to end of screen */
 				do 
 				{
-					telnet.tnctlr.ctlr_add(baddr, CG.CG_null, 0);
-					telnet.tnctlr.INC_BA(ref baddr);
+					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+					telnet.Controller.IncrementAddress(ref baddr);
 				} while (baddr != 0);
 			}
 			return true;
@@ -2901,26 +2912,26 @@ namespace Open3270.TN3270
 		{
 			//int baddr;
 			//int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 
 			int fieldpos = 0;
 			int index = 0;
 			int end;
 			do
 			{
-				int newfield = telnet.tnctlr.next_unprotected(fieldpos);
+				int newfield = telnet.Controller.GetNextUnprotectedField(fieldpos);
 				if (newfield<=fieldpos) break;
 				end = newfield;
-				while (!telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[end])) 
+				while (!FA.IsFA(telnet.Controller.ScreenBuffer[end])) 
 				{
-					telnet.tnctlr.INC_BA(ref end);
+					telnet.Controller.IncrementAddress(ref end);
 					if (end==0) 
 					{
-						end=(telnet.tnctlr.COLS*telnet.tnctlr.ROWS)-1;
+						end=(telnet.Controller.ColumnCount*telnet.Controller.RowCount)-1;
 						break;
 					}
 				}
-				telnet.action.action_output("data: field["+index+"] at "+newfield+" to "+end+" (x="+telnet.tnctlr.BA_TO_COL(newfield)+", y="+telnet.tnctlr.BA_TO_ROW(newfield)+", len="+(end-newfield+1)+")\n");
+				telnet.Action.action_output("data: field["+index+"] at "+newfield+" to "+end+" (x="+telnet.Controller.AddressToColumn(newfield)+", y="+telnet.Controller.AddresstoRow(newfield)+", len="+(end-newfield+1)+")\n");
 				
 				index++;
 				fieldpos = newfield;
@@ -2936,9 +2947,9 @@ namespace Open3270.TN3270
 			//byte fa = telnet.tnctlr.fake_fa;
 
 	
-			if (!telnet.tnctlr.formatted)
+			if (!telnet.Controller.Formatted)
 			{
-				telnet.events.popup_an_error("FieldGet: Screen is not formatted");
+				telnet.Events.popup_an_error("FieldGet: Screen is not formatted");
 				return false;
 			}
 			int fieldnumber = (int)args[0];
@@ -2947,31 +2958,31 @@ namespace Open3270.TN3270
 			int index = 0;
 			do
 			{
-				int newfield = telnet.tnctlr.next_unprotected(fieldpos);
+				int newfield = telnet.Controller.GetNextUnprotectedField(fieldpos);
 				if (newfield<=fieldpos) break;
 
 				if (fieldnumber==index)
 				{
-					byte fa = telnet.tnctlr.fake_fa;
+					byte fa = telnet.Controller.FakeFA;
 					int fa_index;
 					int start, baddr;
 					int len = 0;
 
-					fa_index = telnet.tnctlr.get_field_attribute(newfield);
+					fa_index = telnet.Controller.GetFieldAttribute(newfield);
 					if (fa_index!=-1)
-						fa = telnet.tnctlr.screen_buf[fa_index];
+						fa = telnet.Controller.ScreenBuffer[fa_index];
 					start = fa_index;
-					telnet.tnctlr.INC_BA(ref start);
+					telnet.Controller.IncrementAddress(ref start);
 					baddr = start;
 					do 
 					{
-						if (telnet.tnctlr.IS_FA(telnet.tnctlr.screen_buf[baddr]))
+						if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
 							break;
 						len++;
-						telnet.tnctlr.INC_BA(ref baddr);
+						telnet.Controller.IncrementAddress(ref baddr);
 					} while (baddr != start);
 
-					telnet.tnctlr.dump_range(start, len, true, telnet.tnctlr.screen_buf, telnet.tnctlr.ROWS, telnet.tnctlr.COLS);
+					telnet.Controller.DumpRange(start, len, true, telnet.Controller.ScreenBuffer, telnet.Controller.RowCount, telnet.Controller.ColumnCount);
 
 					return true;
 				}
@@ -2979,7 +2990,7 @@ namespace Open3270.TN3270
 				fieldpos = newfield;
 			}
 			while (true);
-			telnet.events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
+			telnet.Events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
 			return true;
 		}
 
@@ -2987,11 +2998,11 @@ namespace Open3270.TN3270
 		{
 			//int baddr;
 			//int fa_index;
-			byte fa = telnet.tnctlr.fake_fa;
+			byte fa = telnet.Controller.FakeFA;
 	
-			if (!telnet.tnctlr.formatted) 
+			if (!telnet.Controller.Formatted) 
 			{
-				telnet.events.popup_an_error("FieldSet: Screen is not formatted");
+				telnet.Events.popup_an_error("FieldSet: Screen is not formatted");
 				return false;
 			}
 			int fieldnumber = (int)args[0];
@@ -3001,12 +3012,12 @@ namespace Open3270.TN3270
 			int index = 0;
 			do
 			{
-				int newfield = telnet.tnctlr.next_unprotected(fieldpos);
+				int newfield = telnet.Controller.GetNextUnprotectedField(fieldpos);
 				if (newfield<=fieldpos) break;
 
 				if (fieldnumber==index)
 				{
-					telnet.tnctlr.cursor_addr = newfield;
+					telnet.Controller.CursorAddress = newfield;
 					DeleteField_action(null, null, null, 0);
 					ps_set(fielddata, false);
 
@@ -3016,8 +3027,22 @@ namespace Open3270.TN3270
 				fieldpos = newfield;
 			}
 			while (true);
-			telnet.events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
+			telnet.Events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
 			return true;
+		}
+
+		public Actions Actions
+		{
+			set
+			{
+				this.action = value;
+			}
+		}
+
+		public void Dispose()
+		{
+			this.telnet.PrimaryConnectionChanged -= telnet_PrimaryConnectionChanged;
+			this.telnet.Connected3270 -= telnet_Connected3270;
 		}
 	}
 }

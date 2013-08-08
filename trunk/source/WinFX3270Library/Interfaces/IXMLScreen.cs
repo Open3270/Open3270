@@ -21,6 +21,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 #endregion
+using Open3270.TN3270;
 using System;
 using System.IO;
 
@@ -113,6 +114,6 @@ namespace Open3270
 		/// </summary>
 		Guid ScreenGuid { get; }
 
-		
+		XMLScreenField[] Fields { get; }
 	}
 }

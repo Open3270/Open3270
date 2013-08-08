@@ -58,6 +58,8 @@ namespace Open3270
 		private bool   _AlwaysRefreshWhenWaiting = false;
 		private bool   _SubmitAllKeyboardCommands = false;
 		private bool   _RefuseTN3270E = false;
+		private bool useSSL = false;
+
 
 		internal void Dump(IAudit sout)
 		{
@@ -111,6 +113,13 @@ namespace Open3270
 			set { _termType = value; }
 
 		}
+
+		public bool UseSSL
+		{
+			get { return useSSL; }
+			set { useSSL = value; }
+		}
+
 		/// <summary>
 		/// Is the internal screen identification engine turned on? Default false.
 		/// </summary>

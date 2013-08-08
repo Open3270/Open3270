@@ -232,8 +232,8 @@ namespace Open3270.TN3270
 	case FCORDER_EO:
 	return "EO";
 }
-	if (Tables.ebc2asc[ch]!=0)
-	return ""+System.Convert.ToChar(Tables.ebc2asc[ch]);
+	if (Tables.Ebc2Ascii[ch]!=0)
+	return ""+System.Convert.ToChar(Tables.Ebc2Ascii[ch]);
 	else
 	return ""+System.Convert.ToChar(ch);
 }

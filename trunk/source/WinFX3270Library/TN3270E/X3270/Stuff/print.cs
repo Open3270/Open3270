@@ -29,7 +29,7 @@ namespace Open3270.TN3270
 	/// <summary>
 	/// Summary description for print.
 	/// </summary>
-	internal class Print
+	internal class Print:IDisposable
 	{
 		Telnet telnet;
 		internal Print(Telnet telnet)
@@ -48,28 +48,28 @@ namespace Open3270.TN3270
 			int ns = 0;
 			int nr = 0;
 			bool any = false;
-			byte fa = telnet.tnctlr.fake_fa;
-			int fa_index = telnet.tnctlr.get_field_attribute(0);
+			byte fa = telnet.Controller.FakeFA;
+			int fa_index = telnet.Controller.GetFieldAttribute(0);
 			if (fa_index != -1)
-				fa  = telnet.tnctlr.screen_buf[fa_index];
+				fa  = telnet.Controller.ScreenBuffer[fa_index];
 
-			for (i = 0; i < telnet.tnctlr.ROWS*telnet.tnctlr.COLS; i++) 
+			for (i = 0; i < telnet.Controller.RowCount*telnet.Controller.ColumnCount; i++) 
 			{
-				if (i!=0 && (i % telnet.tnctlr.COLS)==0) 
+				if (i!=0 && (i % telnet.Controller.ColumnCount)==0) 
 				{
 					nr++;
 					ns = 0;
 				}
-				e = telnet.tnctlr.screen_buf[i];
-				if (telnet.tnctlr.IS_FA(e)) 
+				e = telnet.Controller.ScreenBuffer[i];
+				if (FA.IsFA(e)) 
 				{
 					c = (byte)' ';
-					fa = telnet.tnctlr.screen_buf[i];
+					fa = telnet.Controller.ScreenBuffer[i];
 				}
-				if (telnet.tnctlr.FA_IS_ZERO(fa))
+				if (FA.IsZero(fa))
 					c = (byte)' ';
 				else
-					c = Tables.cg2asc[e];
+					c = Tables.Cg2Ascii[e];
 				if (c == (byte)' ')
 					ns++;
 				else 
@@ -103,17 +103,22 @@ namespace Open3270.TN3270
 		/* Print the contents of the screen as text. */
 		public bool PrintText_action(params object[] args)
 		{
-			bool secure = telnet.appres.secure;
+			bool secure = telnet.Appres.secure;
 
 			if (args.Length != 1)
 			{
-				telnet.events.popup_an_error("PrintText_action: requires streamwriter parameter");
+				telnet.Events.popup_an_error("PrintText_action: requires streamwriter parameter");
 				return false;
 			}
 			StreamWriter f = (StreamWriter)args[0];
 			//	secure = True;
 			fprint_screen(f, true);
 			return true;
+		}
+
+		public void Dispose()
+		{
+			
 		}
 	}
 }

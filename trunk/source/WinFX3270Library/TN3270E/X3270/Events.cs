@@ -96,18 +96,18 @@ namespace Open3270.TN3270
 			//Console.WriteLine("Run Script "+where);
 			lock (telnet)
 			{
-				if ((telnet.keyboard.kybdlock | Keyboard.KL_DEFERRED_UNLOCK)==Keyboard.KL_DEFERRED_UNLOCK)
+				if ((telnet.Keyboard.kybdlock | Keyboard.KL_DEFERRED_UNLOCK)==Keyboard.KL_DEFERRED_UNLOCK)
 				{
-					telnet.keyboard.kybdlock_clr(Keyboard.KL_DEFERRED_UNLOCK, "defer_unlock");
-					if (telnet.CONNECTED)
-						telnet.tnctlr.ps_process();
+					telnet.Keyboard.kybdlock_clr(Keyboard.KL_DEFERRED_UNLOCK, "defer_unlock");
+					if (telnet.IsConnected)
+						telnet.Controller.ProcessPendingInput();
 				}
 			}
 																									 
 																									
 			
-			if (telnet.mAPI != null)
-				telnet.mAPI.RunScript(where);
+			if (telnet.TelnetApi != null)
+				telnet.TelnetApi.RunScript(where);
 			
 		}
 	}

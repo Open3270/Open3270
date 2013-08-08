@@ -152,7 +152,7 @@ namespace Open3270
                             currentConnection.Disconnect();
 
                             if (apiOnDisconnectDelegate != null)
-                                currentConnection.OnDisconnect -= apiOnDisconnectDelegate;
+                                currentConnection.Disconnected -= apiOnDisconnectDelegate;
 
                             currentConnection.Dispose();
                         }
@@ -311,6 +311,21 @@ namespace Open3270
 			else
 				return ok;
 		}
+
+        /// <summary>
+        /// Wait until the keyboard unlocks, up until timeoutms
+        /// </summary>
+        /// <param name="timeoutms"></param>
+        public void WaitTillKeyboardUnlocked(int timeoutms)
+        {
+            DateTime dttm = DateTime.Now.AddMilliseconds(timeoutms);
+
+            while (KeyboardLocked != 0 && DateTime.Now < dttm)
+            {
+                Thread.Sleep(10); // Wait 1/100th of a second
+            }
+        }
+
 		/// <summary>
 		/// Refresh the current screen.  If timeout > 0, it will wait for 
 		/// this number of milliseconds.
@@ -492,6 +507,12 @@ namespace Open3270
             DisposeOfCurrentScreenXML();
 			_currentScreenXML = null;
 		}
+		public void SetField(FieldInfo field, string text)
+		{
+			//this.currentConnection.ExecuteAction()
+		}
+
+
 		/// <summary>
 		/// Set the cursor position on the screen
 		/// </summary>
@@ -512,7 +533,7 @@ namespace Open3270
 			get
 			{
 				if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
-				return this.currentConnection.keyboardLock;
+				return this.currentConnection.KeyboardLock;
 			}
 		}
 		/// <summary>
@@ -523,7 +544,7 @@ namespace Open3270
 			get
 			{
 				if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
-				return this.currentConnection.cursorX;
+				return this.currentConnection.CursorX;
 			}
 		}
 		/// <summary>
@@ -534,7 +555,7 @@ namespace Open3270
 			get
 			{
 				if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
-				return this.currentConnection.cursorY;
+				return this.currentConnection.CursorY;
 			}
 		}
 		/// <summary>
@@ -554,7 +575,7 @@ namespace Open3270
             get { return _localIP; }
         }
 
-        /// <summary>
+		/// <summary>
         /// Connects to host using a local IP endpoint
         /// <remarks>
         /// Added by CFCJR on Feb/29/2008
@@ -586,9 +607,10 @@ namespace Open3270
 		public void Connect(string host, int port, string lu)
 		{
 			if (currentConnection != null)
+			{
 				currentConnection.Disconnect();
-			//
-			//
+			}
+
 			try
 			{
 				
@@ -597,9 +619,9 @@ namespace Open3270
 				currentConnection = null;
 				currentConnection = new TN3270API();
 				currentConnection.Debug = mDebug;
-				currentConnection.RunScriptEvent += new RunScriptDelegate(currentConnection_RunScriptEvent);
+				currentConnection.RunScriptRequested += new RunScriptDelegate(currentConnection_RunScriptEvent);
                 apiOnDisconnectDelegate = new OnDisconnectDelegate(currentConnection_OnDisconnect);
-                currentConnection.OnDisconnect += apiOnDisconnectDelegate;
+                currentConnection.Disconnected += apiOnDisconnectDelegate;
 				//
 				// Debug out our current state
 				//
@@ -608,7 +630,7 @@ namespace Open3270
                     sout.WriteLine("Open3270 emulator version " + Assembly.GetAssembly(typeof(Open3270.TNEmulator)).GetName().Version);
                     sout.WriteLine("(c) 2004-2006 Mike Warriner (mikewarriner@gmail.com). All rights reserved");
                     sout.WriteLine("");
-                    //
+                    
                     if (mFirstTime)
 					{
 						mFirstTime = false;
@@ -625,35 +647,38 @@ namespace Open3270
 				else
 				{
 				}
-                //
+
                 currentConnection.UseSSL = this.mUseSSL;
-				//
+
+				//this.mConnectionConfiguration.HostName = "lugate-sec.cdc.schwab.com";
+				
                 /// Modified CFCJR Feb/29/2008 to support local IP endpoint
                 if ( ! string.IsNullOrEmpty(_localIP) )
                 {
                     currentConnection.Connect(this.sout, _localIP, host, port, this.mConnectionConfiguration);
                 }
                 else
-                {
-				currentConnection.Connect(this.sout, host, port, lu, this.mConnectionConfiguration);
-                }
-				//
-				//
-				//
+				{
+					currentConnection.Connect(this.sout, host, port, lu, this.mConnectionConfiguration);
+				}
+
 				currentConnection.WaitForConnect(-1);
                 DisposeOfCurrentScreenXML();
-				_currentScreenXML = null; // force refresh // GetScreenAsXML();
+				_currentScreenXML = null; 
+				// Force refresh 
+				// GetScreenAsXML();
 			}
 			catch (Exception)
 			{
 				currentConnection = null;
 				throw;
 			}
-			// these don't close the connection
+
+			// These don't close the connection
 			try
 			{
 				this.mScreenName = "Start";
-				Refresh(true, 40000);
+				Refresh(true, 10000);
 				if (sout != null && Debug==true) sout.WriteLine("Debug::Connected");
 				//mScreenProcessor.Update_Screen(currentScreenXML, true);
 
@@ -693,7 +718,7 @@ namespace Open3270
 		{
             DisposeOfCurrentScreenXML();
 
-            if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection", null);
+			if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
 			if (currentConnection.ExecuteAction(false, "DumpXML"))
 			{
 				//
@@ -737,7 +762,7 @@ namespace Open3270
 				}
 				}
 				//
-                if (timeoutMS == 0)
+				if (timeoutMS==0)
                 {
                     if (Audit != null)
                         Audit.WriteLine("WaitForText('" + text + "') Not found");

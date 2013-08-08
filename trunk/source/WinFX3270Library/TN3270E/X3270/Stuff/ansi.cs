@@ -37,7 +37,7 @@ namespace Open3270.TN3270
 	/// <summary>
 	/// Summary description for ansi.
 	/// </summary>
-    internal class Ansi
+    internal class Ansi:IDisposable
     {
         Telnet telnet;
         internal Ansi(Telnet telnet)
@@ -401,7 +401,7 @@ namespace Open3270.TN3270
         {
             int i;
 
-            saved_cursor = telnet.tnctlr.cursor_addr;
+            saved_cursor = telnet.Controller.CursorAddress;
             saved_cset = cset;
             for (i = 0; i < 4; i++)
                 saved_csd[i] = csd[i];
@@ -421,7 +421,7 @@ namespace Open3270.TN3270
             fg = saved_fg;
             bg = saved_bg;
             gr = saved_gr;
-            telnet.tnctlr.cursor_move(saved_cursor);
+            telnet.Controller.SetCursorAddress(saved_cursor);
             held_wrap = false;
             return enum_state.DATA;
         }
@@ -430,10 +430,10 @@ namespace Open3270.TN3270
         {
             int nc;
 
-            telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - (telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS));
-            nc = telnet.tnctlr.cursor_addr + telnet.tnctlr.COLS;
-            if (nc < scroll_bottom * telnet.tnctlr.COLS)
-                telnet.tnctlr.cursor_move(nc);
+            telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - (telnet.Controller.CursorAddress % telnet.Controller.ColumnCount));
+            nc = telnet.Controller.CursorAddress + telnet.Controller.ColumnCount;
+            if (nc < scroll_bottom * telnet.Controller.ColumnCount)
+                telnet.Controller.SetCursorAddress(nc);
             else
                 ansi_scroll();
             held_wrap = false;
@@ -446,11 +446,11 @@ namespace Open3270.TN3270
 
             if (nn < 1)
                 nn = 1;
-            rr = telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS;
+            rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;
             if (rr - nn < 0)
-                telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS);
+                telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress % telnet.Controller.ColumnCount);
             else
-                telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - (nn * telnet.tnctlr.COLS));
+                telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - (nn * telnet.Controller.ColumnCount));
             held_wrap = false;
             return enum_state.DATA;
         }
@@ -498,18 +498,18 @@ namespace Open3270.TN3270
             saved_altbuffer = false;
             scroll_top = 1;
 
-            scroll_bottom = telnet.tnctlr.ROWS;
-            tabs = new byte[(telnet.tnctlr.COLS + 7) / 8];
+            scroll_bottom = telnet.Controller.RowCount;
+            tabs = new byte[(telnet.Controller.ColumnCount + 7) / 8];
             //Replace(tabs, (byte *)Malloc((telnet.tnctlr.COLS+7)/8));
-            for (i = 0; i < (telnet.tnctlr.COLS + 7) / 8; i++)
+            for (i = 0; i < (telnet.Controller.ColumnCount + 7) / 8; i++)
                 tabs[i] = 0x01;
             held_wrap = false;
             if (!ansi_reset__first)
             {
-                telnet.tnctlr.ctlr_altbuffer(true);
-                telnet.tnctlr.ctlr_aclear(0, telnet.tnctlr.ROWS * telnet.tnctlr.COLS, true);
-                telnet.tnctlr.ctlr_altbuffer(false);
-                telnet.tnctlr.ctlr_clear(false);
+                telnet.Controller.SwapAltBuffers(true);
+                telnet.Controller.EraseRegion(0, telnet.Controller.RowCount * telnet.Controller.ColumnCount, true);
+                telnet.Controller.SwapAltBuffers(false);
+                telnet.Controller.Clear(false);
                 //screen_80();
             }
             ansi_reset__first = false;
@@ -518,8 +518,8 @@ namespace Open3270.TN3270
 
         enum_state ansi_insert_chars(int nn, int ig2)
         {
-            int cc = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;	/* current col */
-            int mc = telnet.tnctlr.COLS - cc;		/* max chars that can be inserted */
+            int cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;	/* current col */
+            int mc = telnet.Controller.ColumnCount - cc;		/* max chars that can be inserted */
             int ns;				/* chars that are shifting */
 
             if (nn < 1)
@@ -530,10 +530,10 @@ namespace Open3270.TN3270
             /* Move the surviving chars right */
             ns = mc - nn;
             if (ns != 0)
-                telnet.tnctlr.ctlr_bcopy(telnet.tnctlr.cursor_addr, telnet.tnctlr.cursor_addr + nn, ns, true);
+                telnet.Controller.CopyBlock(telnet.Controller.CursorAddress, telnet.Controller.CursorAddress + nn, ns, true);
 
             /* Clear the middle of the line */
-            telnet.tnctlr.ctlr_aclear(telnet.tnctlr.cursor_addr, nn, true);
+            telnet.Controller.EraseRegion(telnet.Controller.CursorAddress, nn, true);
             return enum_state.DATA;
         }
 
@@ -543,11 +543,11 @@ namespace Open3270.TN3270
 
             if (nn < 1)
                 nn = 1;
-            rr = telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS;
-            if (rr + nn >= telnet.tnctlr.ROWS)
-                telnet.tnctlr.cursor_move((telnet.tnctlr.ROWS - 1) * telnet.tnctlr.COLS + (telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS));
+            rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;
+            if (rr + nn >= telnet.Controller.RowCount)
+                telnet.Controller.SetCursorAddress((telnet.Controller.RowCount - 1) * telnet.Controller.ColumnCount + (telnet.Controller.CursorAddress % telnet.Controller.ColumnCount));
             else
-                telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr + (nn * telnet.tnctlr.COLS));
+                telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress + (nn * telnet.Controller.ColumnCount));
             held_wrap = false;
             return enum_state.DATA;
         }
@@ -558,12 +558,12 @@ namespace Open3270.TN3270
 
             if (nn < 1)
                 nn = 1;
-            cc = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;
-            if (cc == telnet.tnctlr.COLS - 1)
+            cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
+            if (cc == telnet.Controller.ColumnCount - 1)
                 return enum_state.DATA;
-            if (cc + nn >= telnet.tnctlr.COLS)
-                nn = telnet.tnctlr.COLS - 1 - cc;
-            telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr + nn);
+            if (cc + nn >= telnet.Controller.ColumnCount)
+                nn = telnet.Controller.ColumnCount - 1 - cc;
+            telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress + nn);
             held_wrap = false;
             return enum_state.DATA;
         }
@@ -579,22 +579,22 @@ namespace Open3270.TN3270
             }
             if (nn < 1)
                 nn = 1;
-            cc = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;
+            cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
             if (cc == 0)
                 return enum_state.DATA;
             if (nn > cc)
                 nn = cc;
-            telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - nn);
+            telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - nn);
             return enum_state.DATA;
         }
 
         enum_state ansi_cursor_motion(int n1, int n2)
         {
             if (n1 < 1) n1 = 1;
-            if (n1 > telnet.tnctlr.ROWS) n1 = telnet.tnctlr.ROWS;
+            if (n1 > telnet.Controller.RowCount) n1 = telnet.Controller.RowCount;
             if (n2 < 1) n2 = 1;
-            if (n2 > telnet.tnctlr.COLS) n2 = telnet.tnctlr.COLS;
-            telnet.tnctlr.cursor_move((n1 - 1) * telnet.tnctlr.COLS + (n2 - 1));
+            if (n2 > telnet.Controller.ColumnCount) n2 = telnet.Controller.ColumnCount;
+            telnet.Controller.SetCursorAddress((n1 - 1) * telnet.Controller.ColumnCount + (n2 - 1));
             held_wrap = false;
             return enum_state.DATA;
         }
@@ -604,17 +604,17 @@ namespace Open3270.TN3270
             switch (nn)
             {
                 case 0:	/* below */
-                    telnet.tnctlr.ctlr_aclear(telnet.tnctlr.cursor_addr, (telnet.tnctlr.ROWS * telnet.tnctlr.COLS) - telnet.tnctlr.cursor_addr, true);
+                    telnet.Controller.EraseRegion(telnet.Controller.CursorAddress, (telnet.Controller.RowCount * telnet.Controller.ColumnCount) - telnet.Controller.CursorAddress, true);
                     break;
                 case 1:	/* above */
-                    telnet.tnctlr.ctlr_aclear(0, telnet.tnctlr.cursor_addr + 1, true);
+                    telnet.Controller.EraseRegion(0, telnet.Controller.CursorAddress + 1, true);
                     break;
                 case 2:	/* all (without moving cursor) */
-                    if (telnet.tnctlr.cursor_addr == 0 && !telnet.tnctlr.is_altbuffer)
+                    if (telnet.Controller.CursorAddress == 0 && !telnet.Controller.IsAltBuffer)
                     {
                         //scroll_save(telnet.tnctlr.ROWS, true);
                     }
-                    telnet.tnctlr.ctlr_aclear(0, telnet.tnctlr.ROWS * telnet.tnctlr.COLS, true);
+                    telnet.Controller.EraseRegion(0, telnet.Controller.RowCount * telnet.Controller.ColumnCount, true);
                     break;
             }
             return enum_state.DATA;
@@ -622,18 +622,18 @@ namespace Open3270.TN3270
 
         enum_state ansi_erase_in_line(int nn, int ig2)
         {
-            int nc = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;
+            int nc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
 
             switch (nn)
             {
                 case 0:	/* to right */
-                    telnet.tnctlr.ctlr_aclear(telnet.tnctlr.cursor_addr, telnet.tnctlr.COLS - nc, true);
+                    telnet.Controller.EraseRegion(telnet.Controller.CursorAddress, telnet.Controller.ColumnCount - nc, true);
                     break;
                 case 1:	/* to left */
-                    telnet.tnctlr.ctlr_aclear(telnet.tnctlr.cursor_addr - nc, nc + 1, true);
+                    telnet.Controller.EraseRegion(telnet.Controller.CursorAddress - nc, nc + 1, true);
                     break;
                 case 2:	/* all */
-                    telnet.tnctlr.ctlr_aclear(telnet.tnctlr.cursor_addr - nc, telnet.tnctlr.COLS, true);
+                    telnet.Controller.EraseRegion(telnet.Controller.CursorAddress - nc, telnet.Controller.ColumnCount, true);
                     break;
             }
             return enum_state.DATA;
@@ -641,7 +641,7 @@ namespace Open3270.TN3270
 
         enum_state ansi_insert_lines(int nn, int ig2)
         {
-            int rr = telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS;	/* current row */
+            int rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;	/* current row */
             int mr = scroll_bottom - rr;	/* rows left at and below this one */
             int ns;				/* rows that are shifting */
 
@@ -657,16 +657,16 @@ namespace Open3270.TN3270
             /* Move the victims down */
             ns = mr - nn;
             if (ns != 0)
-                telnet.tnctlr.ctlr_bcopy(rr * telnet.tnctlr.COLS, (rr + nn) * telnet.tnctlr.COLS, ns * telnet.tnctlr.COLS, true);
+                telnet.Controller.CopyBlock(rr * telnet.Controller.ColumnCount, (rr + nn) * telnet.Controller.ColumnCount, ns * telnet.Controller.ColumnCount, true);
 
             /* Clear the middle of the screen */
-            telnet.tnctlr.ctlr_aclear(rr * telnet.tnctlr.COLS, nn * telnet.tnctlr.COLS, true);
+            telnet.Controller.EraseRegion(rr * telnet.Controller.ColumnCount, nn * telnet.Controller.ColumnCount, true);
             return enum_state.DATA;
         }
 
         enum_state ansi_delete_lines(int nn, int ig2)
         {
-            int rr = telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS;	/* current row */
+            int rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;	/* current row */
             int mr = scroll_bottom - rr;	/* max rows that can be deleted */
             int ns;				/* rows that are shifting */
 
@@ -682,17 +682,17 @@ namespace Open3270.TN3270
             /* Move the surviving rows up */
             ns = mr - nn;
             if (ns != 0)
-                telnet.tnctlr.ctlr_bcopy((rr + nn) * telnet.tnctlr.COLS, rr * telnet.tnctlr.COLS, ns * telnet.tnctlr.COLS, true);
+                telnet.Controller.CopyBlock((rr + nn) * telnet.Controller.ColumnCount, rr * telnet.Controller.ColumnCount, ns * telnet.Controller.ColumnCount, true);
 
             /* Clear the rest of the screen */
-            telnet.tnctlr.ctlr_aclear((rr + ns) * telnet.tnctlr.COLS, nn * telnet.tnctlr.COLS, true);
+            telnet.Controller.EraseRegion((rr + ns) * telnet.Controller.ColumnCount, nn * telnet.Controller.ColumnCount, true);
             return enum_state.DATA;
         }
 
         enum_state ansi_delete_chars(int nn, int ig2)
         {
-            int cc = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;	/* current col */
-            int mc = telnet.tnctlr.COLS - cc;		/* max chars that can be deleted */
+            int cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;	/* current col */
+            int mc = telnet.Controller.ColumnCount - cc;		/* max chars that can be deleted */
             int ns;				/* chars that are shifting */
 
             if (nn < 1)
@@ -703,10 +703,10 @@ namespace Open3270.TN3270
             /* Move the surviving chars left */
             ns = mc - nn;
             if (ns != 0)
-                telnet.tnctlr.ctlr_bcopy(telnet.tnctlr.cursor_addr + nn, telnet.tnctlr.cursor_addr, ns, true);
+                telnet.Controller.CopyBlock(telnet.Controller.CursorAddress + nn, telnet.Controller.CursorAddress, ns, true);
 
             /* Clear the end of the line */
-            telnet.tnctlr.ctlr_aclear(telnet.tnctlr.cursor_addr + ns, nn, true);
+            telnet.Controller.EraseRegion(telnet.Controller.CursorAddress + ns, nn, true);
             return enum_state.DATA;
         }
 
@@ -801,7 +801,7 @@ namespace Open3270.TN3270
 
         enum_state ansi_newpage(int ig1, int ig2)
         {
-            telnet.tnctlr.ctlr_clear(false);
+            telnet.Controller.Clear(false);
             return enum_state.DATA;
         }
 
@@ -814,21 +814,21 @@ namespace Open3270.TN3270
             }
             if (rev_wraparound_mode)
             {
-                if (telnet.tnctlr.cursor_addr > (scroll_top - 1) * telnet.tnctlr.COLS)
-                    telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - 1);
+                if (telnet.Controller.CursorAddress > (scroll_top - 1) * telnet.Controller.ColumnCount)
+                    telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - 1);
             }
             else
             {
-                if ((telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS) != 0)
-                    telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - 1);
+                if ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) != 0)
+                    telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - 1);
             }
             return enum_state.DATA;
         }
 
         enum_state ansi_cr(int ig1, int ig2)
         {
-            if ((telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS) != 0)
-                telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - (telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS));
+            if ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) != 0)
+                telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - (telnet.Controller.CursorAddress % telnet.Controller.ColumnCount));
             if (auto_newline_mode)
                 ansi_lf(0, 0);
             held_wrap = false;
@@ -837,20 +837,20 @@ namespace Open3270.TN3270
 
         enum_state ansi_lf(int ig1, int ig2)
         {
-            int nc = telnet.tnctlr.cursor_addr + telnet.tnctlr.COLS;
+            int nc = telnet.Controller.CursorAddress + telnet.Controller.ColumnCount;
 
             held_wrap = false;
 
             /* If we're below the scrolling region, don't scroll. */
-            if ((telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS) >= scroll_bottom)
+            if ((telnet.Controller.CursorAddress / telnet.Controller.ColumnCount) >= scroll_bottom)
             {
-                if (nc < telnet.tnctlr.ROWS * telnet.tnctlr.COLS)
-                    telnet.tnctlr.cursor_move(nc);
+                if (nc < telnet.Controller.RowCount * telnet.Controller.ColumnCount)
+                    telnet.Controller.SetCursorAddress(nc);
                 return enum_state.DATA;
             }
 
-            if (nc < scroll_bottom * telnet.tnctlr.COLS)
-                telnet.tnctlr.cursor_move(nc);
+            if (nc < scroll_bottom * telnet.Controller.ColumnCount)
+                telnet.Controller.SetCursorAddress(nc);
             else
                 ansi_scroll();
             return enum_state.DATA;
@@ -858,16 +858,16 @@ namespace Open3270.TN3270
 
         enum_state ansi_htab(int ig1, int ig2)
         {
-            int col = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;
+            int col = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
             int i;
 
             held_wrap = false;
-            if (col == telnet.tnctlr.COLS - 1)
+            if (col == telnet.Controller.ColumnCount - 1)
                 return enum_state.DATA;
-            for (i = col + 1; i < telnet.tnctlr.COLS - 1; i++)
+            for (i = col + 1; i < telnet.Controller.ColumnCount - 1; i++)
                 if ((tabs[i / 8] & 1 << (i % 8)) != 0)
                     break;
-            telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr - col + i);
+            telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - col + i);
             return enum_state.DATA;
         }
 
@@ -882,17 +882,17 @@ namespace Open3270.TN3270
         }
         private void PWRAP(ref int nc)
         {
-            nc = telnet.tnctlr.cursor_addr + 1;
-            if (nc < scroll_bottom * telnet.tnctlr.COLS)
-                telnet.tnctlr.cursor_move(nc);
+            nc = telnet.Controller.CursorAddress + 1;
+            if (nc < scroll_bottom * telnet.Controller.ColumnCount)
+                telnet.Controller.SetCursorAddress(nc);
             else
             {
-                if (telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS >= scroll_bottom)
-                    telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS * telnet.tnctlr.COLS);
+                if (telnet.Controller.CursorAddress / telnet.Controller.ColumnCount >= scroll_bottom)
+                    telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress / telnet.Controller.ColumnCount * telnet.Controller.ColumnCount);
                 else
                 {
                     ansi_scroll();
-                    telnet.tnctlr.cursor_move(nc - telnet.tnctlr.COLS);
+                    telnet.Controller.SetCursorAddress(nc - telnet.Controller.ColumnCount);
                 }
             }
         }
@@ -914,25 +914,25 @@ namespace Open3270.TN3270
             {
                 case CSD_LD:	/* line drawing "0" */
                     if (ansi_ch >= 0x5f && ansi_ch <= 0x7e)
-                        telnet.tnctlr.ctlr_add(telnet.tnctlr.cursor_addr, (byte)(ansi_ch - 0x5f),
+                        telnet.Controller.AddCharacter(telnet.Controller.CursorAddress, (byte)(ansi_ch - 0x5f),
                             2);
                     else
-                        telnet.tnctlr.ctlr_add(telnet.tnctlr.cursor_addr, Tables.asc2cg[ansi_ch], 0);
+                        telnet.Controller.AddCharacter(telnet.Controller.CursorAddress, Tables.Ascii2Cg[ansi_ch], 0);
                     break;
                 case CSD_UK:	/* UK "A" */
                     if (ansi_ch == '#')
-                        telnet.tnctlr.ctlr_add(telnet.tnctlr.cursor_addr, 0x1e, 2);
+                        telnet.Controller.AddCharacter(telnet.Controller.CursorAddress, 0x1e, 2);
                     else
-                        telnet.tnctlr.ctlr_add(telnet.tnctlr.cursor_addr, Tables.asc2cg[ansi_ch], 0);
+                        telnet.Controller.AddCharacter(telnet.Controller.CursorAddress, Tables.Ascii2Cg[ansi_ch], 0);
                     break;
                 case CSD_US:	/* US "B" */
-                    telnet.tnctlr.ctlr_add(telnet.tnctlr.cursor_addr, Tables.asc2cg[ansi_ch], 0);
+                    telnet.Controller.AddCharacter(telnet.Controller.CursorAddress, Tables.Ascii2Cg[ansi_ch], 0);
                     break;
             }
             once_cset = -1;
-            telnet.tnctlr.ctlr_add_gr(telnet.tnctlr.cursor_addr, gr);
-            telnet.tnctlr.ctlr_add_fg(telnet.tnctlr.cursor_addr, fg);
-            telnet.tnctlr.ctlr_add_bg(telnet.tnctlr.cursor_addr, bg);
+            telnet.Controller.ctlr_add_gr(telnet.Controller.CursorAddress, gr);
+            telnet.Controller.SetForegroundColor(telnet.Controller.CursorAddress, fg);
+            telnet.Controller.SetBackgroundColor(telnet.Controller.CursorAddress, bg);
             if (wraparound_mode)
             {
                 /*
@@ -948,7 +948,7 @@ namespace Open3270.TN3270
                  * In my opinion, very strange, but among other things, 'vi'
                  * depends on it!
                  */
-                if (0 == ((telnet.tnctlr.cursor_addr + 1) % telnet.tnctlr.COLS))
+                if (0 == ((telnet.Controller.CursorAddress + 1) % telnet.Controller.ColumnCount))
                 {
                     held_wrap = true;
                 }
@@ -959,8 +959,8 @@ namespace Open3270.TN3270
             }
             else
             {
-                if ((telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS) != (telnet.tnctlr.COLS - 1))
-                    telnet.tnctlr.cursor_move(telnet.tnctlr.cursor_addr + 1);
+                if ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) != (telnet.Controller.ColumnCount - 1))
+                    telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress + 1);
             }
             return enum_state.DATA;
         }
@@ -981,7 +981,7 @@ namespace Open3270.TN3270
 
         enum_state ansi_reverse_index(int ig1, int ig2)
         {
-            int rr = telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS;	/* current row */
+            int rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;	/* current row */
             int np = (scroll_top - 1) - rr;	/* number of rows in the scrolling
 					   region, above this line */
             int ns;				/* number of rows to scroll */
@@ -1020,7 +1020,7 @@ namespace Open3270.TN3270
         enum_state ansi_send_attributes(int nn, int ig2)
         {
             if (nn == 0)
-                telnet.net_sends("\033[?1;2c");
+                telnet.SendString("\033[?1;2c");
             return enum_state.DATA;
         }
 
@@ -1064,11 +1064,11 @@ namespace Open3270.TN3270
             switch (nn)
             {
                 case 5:
-                    telnet.net_sends("\033[0n");
+                    telnet.SendString("\033[0n");
                     break;
                 case 6:
-                    ansi_status_cpr = "\033[" + ((telnet.tnctlr.cursor_addr / telnet.tnctlr.COLS) + 1) + ";" + ((telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS) + 1) + "R";
-                    telnet.net_sends(ansi_status_cpr);
+                    ansi_status_cpr = "\033[" + ((telnet.Controller.CursorAddress / telnet.Controller.ColumnCount) + 1) + ";" + ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) + 1) + "R";
+                    telnet.SendString(ansi_status_cpr);
                     break;
             }
             return enum_state.DATA;
@@ -1157,7 +1157,7 @@ namespace Open3270.TN3270
                         rev_wraparound_mode = true;
                         break;
                     case 47:	/* alt buffer */
-                        telnet.tnctlr.ctlr_altbuffer(true);
+                        telnet.Controller.SwapAltBuffers(true);
                         break;
                 }
             return enum_state.DATA;
@@ -1190,7 +1190,7 @@ namespace Open3270.TN3270
                         rev_wraparound_mode = false;
                         break;
                     case 47:	/* alt buffer */
-                        telnet.tnctlr.ctlr_altbuffer(false);
+                        telnet.Controller.SwapAltBuffers(false);
                         break;
                 }
             return enum_state.DATA;
@@ -1219,7 +1219,7 @@ namespace Open3270.TN3270
                         saved_rev_wraparound_mode = rev_wraparound_mode;
                         break;
                     case 47:	/* alt buffer */
-                        saved_altbuffer = telnet.tnctlr.is_altbuffer;
+                        saved_altbuffer = telnet.Controller.IsAltBuffer;
                         break;
                 }
             return enum_state.DATA;
@@ -1251,7 +1251,7 @@ namespace Open3270.TN3270
                         rev_wraparound_mode = saved_rev_wraparound_mode;
                         break;
                     case 47:	/* alt buffer */
-                        telnet.tnctlr.ctlr_altbuffer(saved_altbuffer);
+                        telnet.Controller.SwapAltBuffers(saved_altbuffer);
                         break;
                 }
             return enum_state.DATA;
@@ -1261,18 +1261,18 @@ namespace Open3270.TN3270
         {
             if (top < 1)
                 top = 1;
-            if (bottom > telnet.tnctlr.ROWS)
-                bottom = telnet.tnctlr.ROWS;
-            if (top <= bottom && (top > 1 || bottom < telnet.tnctlr.ROWS))
+            if (bottom > telnet.Controller.RowCount)
+                bottom = telnet.Controller.RowCount;
+            if (top <= bottom && (top > 1 || bottom < telnet.Controller.RowCount))
             {
                 scroll_top = top;
                 scroll_bottom = bottom;
-                telnet.tnctlr.cursor_move(0);
+                telnet.Controller.SetCursorAddress(0);
             }
             else
             {
                 scroll_top = 1;
-                scroll_bottom = telnet.tnctlr.ROWS;
+                scroll_bottom = telnet.Controller.RowCount;
             }
             return enum_state.DATA;
         }
@@ -1307,7 +1307,7 @@ namespace Open3270.TN3270
 
         enum_state ansi_htab_set(int ig1, int ig2)
         {
-            int col = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;
+            int col = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
 
             tabs[col / 8] = (byte)(tabs[col / 8] | 1 << (col % 8));
             return enum_state.DATA;
@@ -1320,11 +1320,11 @@ namespace Open3270.TN3270
             switch (nn)
             {
                 case 0:
-                    col = telnet.tnctlr.cursor_addr % telnet.tnctlr.COLS;
+                    col = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
                     tabs[col / 8] = (byte)(tabs[col / 8] & ~(1 << (col % 8)));
                     break;
                 case 3:
-                    for (i = 0; i < (telnet.tnctlr.COLS + 7) / 8; i++)
+                    for (i = 0; i < (telnet.Controller.ColumnCount + 7) / 8; i++)
                         tabs[i] = 0;
                     break;
             }
@@ -1339,21 +1339,21 @@ namespace Open3270.TN3270
             held_wrap = false;
 
             /* Save the top line */
-            if (scroll_top == 1 && scroll_bottom == telnet.tnctlr.ROWS)
+            if (scroll_top == 1 && scroll_bottom == telnet.Controller.RowCount)
             {
-                telnet.tnctlr.ctlr_scroll();
+                telnet.Controller.ScrollOne();
                 return;
             }
 
             /* Scroll all but the last line up */
             if (scroll_bottom > scroll_top)
-                telnet.tnctlr.ctlr_bcopy(scroll_top * telnet.tnctlr.COLS,
-                    (scroll_top - 1) * telnet.tnctlr.COLS,
-                    (scroll_bottom - scroll_top) * telnet.tnctlr.COLS,
+                telnet.Controller.CopyBlock(scroll_top * telnet.Controller.ColumnCount,
+                    (scroll_top - 1) * telnet.Controller.ColumnCount,
+                    (scroll_bottom - scroll_top) * telnet.Controller.ColumnCount,
                     true);
 
             /* Clear the last line */
-            telnet.tnctlr.ctlr_aclear((scroll_bottom - 1) * telnet.tnctlr.COLS, telnet.tnctlr.COLS, true);
+            telnet.Controller.EraseRegion((scroll_bottom - 1) * telnet.Controller.ColumnCount, telnet.Controller.ColumnCount, true);
         }
 
         /* Callback for when we enter ANSI mode. */
@@ -1367,8 +1367,13 @@ namespace Open3270.TN3270
          */
         public void ansi_init()
         {
-            telnet.register_schange(STCALLBACK.ST_3270_MODE, new SChangeDelegate(ansi_in3270));
+			this.telnet.Connected3270 += telnet_Connected3270;
         }
+
+		void telnet_Connected3270(object sender, Connected3270EventArgs e)
+		{
+			this.ansi_in3270(e.Is3270);
+		}
 
 
         public void ansi_process(byte c)
@@ -1377,9 +1382,9 @@ namespace Open3270.TN3270
             ansi_ch = (char)c;
 
 
-            if (telnet.appres.toggled(Appres.SCREEN_TRACE))
+            if (telnet.Appres.toggled(Appres.SCREEN_TRACE))
             {
-                telnet.trace.trace_char((char)c);
+                telnet.Trace.trace_char((char)c);
             }
 
             object s = st[(int)state];
@@ -1392,43 +1397,43 @@ namespace Open3270.TN3270
         public void ansi_send_up()
         {
             if (appl_cursor != 0)
-                telnet.net_sends("\033OA");
+                telnet.SendString("\033OA");
             else
-                telnet.net_sends("\033[A");
+                telnet.SendString("\033[A");
         }
 
         public void ansi_send_down()
         {
             if (appl_cursor != 0)
-                telnet.net_sends("\033OB");
+                telnet.SendString("\033OB");
             else
-                telnet.net_sends("\033[B");
+                telnet.SendString("\033[B");
         }
 
         public void ansi_send_right()
         {
             if (appl_cursor != 0)
-                telnet.net_sends("\033OC");
+                telnet.SendString("\033OC");
             else
-                telnet.net_sends("\033[C");
+                telnet.SendString("\033[C");
         }
 
         public void ansi_send_left()
         {
             if (appl_cursor != 0)
-                telnet.net_sends("\033OD");
+                telnet.SendString("\033OD");
             else
-                telnet.net_sends("\033[D");
+                telnet.SendString("\033[D");
         }
 
         public void ansi_send_home()
         {
-            telnet.net_sends("\033[H");
+            telnet.SendString("\033[H");
         }
 
         public void ansi_send_clear()
         {
-            telnet.net_sends("\033[2K");
+            telnet.SendString("\033[2K");
         }
 
         public void ansi_send_pf(int nn)
@@ -1440,5 +1445,10 @@ namespace Open3270.TN3270
         {
             throw new ApplicationException("ansi_send_pa not implemented");
         }
-    }
+
+		public void Dispose()
+		{
+			this.telnet.Connected3270 -= telnet_Connected3270;
+		}
+	}
 }

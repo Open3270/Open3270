@@ -1,183 +1,60 @@
-#region License
-/* 
- *
- * Open3270 - A C# implementation of the TN3270/TN3270E protocol
- *
- *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
- */
-#endregion
+
 using System;
 using System.Text;
 using Open3270.TN3270;
 using Open3270;
+using System.Collections.Generic;
 
 
 namespace Open3270.TN3270
 {
-	internal delegate void RunScriptDelegate(string where);
 
-	internal enum KeyboardOp
-	{
-		Reset,
-		AID,
-		ATTN,
-		Home
-
-	}
 	internal class TN3270API : IDisposable
 	{
-		public event RunScriptDelegate RunScriptEvent;
-		public event OnDisconnectDelegate OnDisconnect;
-		Telnet tn;
-		bool mDebug = false;
-        bool mUseSSL = false;
 
-        public bool UseSSL { get { return mUseSSL; } set { mUseSSL = value; } }
+		#region Events and Delegates
+
+		public event RunScriptDelegate RunScriptRequested;
+		public event OnDisconnectDelegate Disconnected;
+
+		#endregion Events
+
+
+
+
+		#region Fields
+
+		Telnet tn;
+
+		bool debug = false;
+		bool useSSL = false;
+		bool isDisposed = false;
+
+		string sourceIP = string.Empty;
+
+		#endregion Fields
+
+
+
+
+		#region Properties
+
+		public bool UseSSL
+		{
+			get { return useSSL; }
+			set { useSSL = value; }
+		}
+
 		internal TN3270API()
 		{
 			tn = null;
 		}
 
-        private string _sourceIP = string.Empty;
-
-
-        bool isDisposed = false;
-
-        ~TN3270API()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (isDisposed)
-                return;
-            isDisposed = true;
-
-            if (disposing)
-            {
-                Disconnect();
-                if ( tnDataDelegate != null )
-                    tn.telnetDataEvent -= tnDataDelegate;
-                tnDataDelegate = null;
-                OnDisconnect = null;
-                RunScriptEvent = null;
-                if (tn != null)
-                    tn.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Connects to host using a local IP
-        /// <remarks>
-        /// Added by CFCJR on Feb/29/2008
-        /// if a source IP is given then use it for the local IP
-        /// </remarks>
-        /// </summary>
-        /// <param name="audit">IAudit interface to post debug/tracing to</param>
-        /// <param name="localIP">ip to use for local end point</param>
-        /// <param name="host">host ip/name</param>
-        /// <param name="port">port to use</param>
-        /// <param name="config">configuration parameters</param>
-        /// <returns></returns>
-        public bool Connect(IAudit audit, string localIP, string host, int port, ConnectionConfig config)
-        {
-            _sourceIP = localIP;
-            return Connect(audit, host, port, string.Empty, config);
-        }
-
-        /// <summary>
-        /// Connects a Telnet object to the host using the parameters provided
-        /// </summary>
-        /// <param name="audit">IAudit interface to post debug/tracing to</param>
-        /// <param name="host">host ip/name</param>
-        /// <param name="port">port to use</param>
-        /// <param name="lu">lu to use or empty string for host negotiated</param>
-        /// <param name="config">configuration parameters</param>
-        /// <returns></returns>
-        /// 
-        TelnetDataDelegate tnDataDelegate;
-
-		public bool Connect(IAudit audit, string host, int port, string lu, ConnectionConfig config)
-		{
-			tn = new Telnet(this, audit, config);
-            tn.UseSSL = mUseSSL;
-			tn.trace.optionTraceAnsi = mDebug;
-			tn.trace.optionTraceDS = mDebug;
-			tn.trace.optionTraceDSN = mDebug;
-			tn.trace.optionTraceEvent = mDebug;
-			tn.trace.optionTraceNetworkData = mDebug;
-
-            tnDataDelegate = new TelnetDataDelegate(tn_telnetDataEvent); // CFC,Jr 8/2/2008
-            tn.telnetDataEvent += tnDataDelegate;
-                
-			if (lu==null || lu.Length==0)
-				tn.lus = null;
-			else
-			{
-				tn.lus = new System.Collections.ArrayList();
-				tn.lus.Add(lu);
-			}
-			
-            // Modified CFCJR Feb/29/2008 to allow for local IP endpoint
-            if (!string.IsNullOrEmpty(_sourceIP))
-            {
-                tn.Connect(this, host, port, _sourceIP);
-            }
-            else
-            {
-			tn.Connect(this, host, port);
-            }
-
-			if (!tn.WaitForConnect())
-			{
-				tn.Disconnect();
-				string text = tn.DisconnectReason;
-				tn = null;
-				throw new TNHostException("connect to "+host+" on port "+port+" failed", text, null);
-				//return false;
-			}
-			tn.trace.WriteLine("--connected");
-			return true;
-		}
-
-        /// <summary>
-        /// Disconnects the connected telnet object from the host
-        /// </summary>
-		public void Disconnect()
-		{
-			if (tn != null)
-			{
-				tn.Disconnect();
-				tn = null;
-			}
-		}
-
 		internal string DisconnectReason
 		{
-			get { if (this.tn != null) return this.tn.DisconnectReason; else return null;}
+			get { if (this.tn != null) return this.tn.DisconnectReason; else return null; }
 		}
+
 		public bool IsConnected
 		{
 			get
@@ -188,53 +65,223 @@ namespace Open3270.TN3270
 					return false;
 			}
 		}
+
 		internal bool ShowParseError
 		{
-			set { if (tn != null) tn.mShowParseError = value; }
+			set { if (tn != null) tn.ShowParseError = value; }
 		}
+
 		public bool Debug
 		{
-			set 
+			set
 			{
-				mDebug = value;
+				debug = value;
 			}
 		}
+
+
+		public int KeyboardLock
+		{
+			get
+			{
+				return tn.Keyboard.kybdlock;
+			}
+
+		}
+
+		public int CursorX
+		{
+			get
+			{
+				lock (tn)
+				{
+					return tn.Controller.CursorX;
+				}
+			}
+		}
+		public int CursorY
+		{
+			get
+			{
+				lock (tn)
+				{
+					return tn.Controller.CursorY;
+				}
+			}
+		}
+
+		#endregion Properties
+
+
+
+
+		#region Ctors, dtors, and clean-up
+
+		~TN3270API()
+		{
+			Dispose(false);
+		}
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!isDisposed)
+			{
+				isDisposed = true;
+				if (disposing)
+				{
+					this.Disconnect();
+					this.Disconnected = null;
+					this.RunScriptRequested = null;
+					if (tn != null)
+					{
+						tn.telnetDataEventOccurred -= this.tn_DataEventReceived;
+						tn.Dispose();
+					}
+				}
+			}
+		}
+
+		#endregion Ctors, dtors, and clean-up
+
+
+
+
+		#region Public Methods
+
+		/// <summary>
+		/// Connects to host using a local IP
+		/// If a source IP is given then use it for the local IP
+		/// </summary>
+		/// <param name="audit">IAudit interface to post debug/tracing to</param>
+		/// <param name="localIP">ip to use for local end point</param>
+		/// <param name="host">host ip/name</param>
+		/// <param name="port">port to use</param>
+		/// <param name="config">configuration parameters</param>
+		/// <returns></returns>
+		public bool Connect(IAudit audit, string localIP, string host, int port, ConnectionConfig config)
+		{
+			this.sourceIP = localIP;
+			return Connect(audit, host, port, string.Empty, config);
+		}
+
+
+		/// <summary>
+		/// Connects a Telnet object to the host using the parameters provided
+		/// </summary>
+		/// <param name="audit">IAudit interface to post debug/tracing to</param>
+		/// <param name="host">host ip/name</param>
+		/// <param name="port">port to use</param>
+		/// <param name="lu">lu to use or empty string for host negotiated</param>
+		/// <param name="config">configuration parameters</param>
+		/// <returns></returns>
+		/// 
+		public bool Connect(IAudit audit, string host, int port, string lu, ConnectionConfig config)
+		{
+			this.tn = new Telnet(this, audit, config);
+
+			this.tn.Trace.optionTraceAnsi = debug;
+			this.tn.Trace.optionTraceDS = debug;
+			this.tn.Trace.optionTraceDSN = debug;
+			this.tn.Trace.optionTraceEvent = debug;
+			this.tn.Trace.optionTraceNetworkData = debug;
+
+			this.tn.telnetDataEventOccurred += new TelnetDataDelegate(tn_DataEventReceived);
+
+			if (lu == null || lu.Length == 0)
+			{
+				this.tn.Lus = null;
+			}
+			else
+			{
+				this.tn.Lus = new List<string>();
+				this.tn.Lus.Add(lu);
+			}
+
+			if (!string.IsNullOrEmpty(sourceIP))
+			{
+				this.tn.Connect(this, host, port, sourceIP);
+			}
+			else
+			{
+				this.tn.Connect(this, host, port);
+			}
+
+			if (!tn.WaitForConnect())
+			{
+				this.tn.Disconnect();
+				string text = tn.DisconnectReason;
+				this.tn = null;
+				throw new TNHostException("connect to " + host + " on port " + port + " failed", text, null);
+			}
+			this.tn.Trace.WriteLine("--connected");
+
+			return true;
+		}
+
+
+		/// <summary>
+		/// Disconnects the connected telnet object from the host
+		/// </summary>
+		public void Disconnect()
+		{
+			if (this.tn != null)
+			{
+				this.tn.Disconnect();
+				this.tn = null;
+			}
+		}
+
+
 		public bool ExecuteAction(bool submit, string name, params object[] args)
 		{
-			lock (tn)
+			lock (this.tn)
 			{
-				return tn.action.Execute(submit, name, args);
+				return this.tn.Action.Execute(submit, name, args);
 			}
 		}
+
 
 		public bool KeyboardCommandCausesSubmit(string name, params object[] args)
 		{
-			return tn.action.KeyboardCommandCausesSubmit(name, args);
+			return this.tn.Action.KeyboardCommandCausesSubmit(name, args);
 		}
+
 
 		public bool WaitForConnect(int timeout)
 		{
-			bool ok = tn.WaitFor(sms_state.SS_CONNECT_WAIT, timeout);
-			if (ok)
+			bool success = this.tn.WaitFor(SmsState.ConnectWait, timeout);
+			if (success)
 			{
-				// check we actually connected
-				if (!tn.CONNECTED)
-					return false;
+				if (!tn.IsConnected)
+				{
+					success = false;
+				}
 			}
-			return ok;
+			return success;
 		}
+
+
 		public bool Wait(int timeout)
 		{
-			return tn.WaitFor(sms_state.SS_KBWAIT, timeout);
+			return this.tn.WaitFor(SmsState.KBWait, timeout);
 		}
+
+
 		public string GetStringData(int index)
 		{
 			lock (tn)
 			{
-
-				return tn.action.GetStringData(index);
+				return this.tn.Action.GetStringData(index);
 			}
 		}
+
+
 		public string GetAllStringData(bool crlf)
 		{
 			lock (tn)
@@ -243,170 +290,172 @@ namespace Open3270.TN3270
 				StringBuilder builder = new StringBuilder();
 				int index = 0;
 				string temp;
-				while ((temp=tn.action.GetStringData(index))!=null)
+				while ((temp = tn.Action.GetStringData(index)) != null)
 				{
 					builder.Append(temp);
 					if (crlf)
+					{
 						builder.Append("\n");
+					}
 					index++;
 				}
 				return builder.ToString();
 			}
 		}
+
+
 		public bool SendKeyOp(KeyboardOp op, string key)
 		{
+			bool success = false;
 			lock (tn)
 			{
-
-				// these can go to screen that is locked			
-				switch (op)
+				// These can go to a locked screen		
+				if (op == KeyboardOp.Reset)
 				{
-					case KeyboardOp.Reset:
-						//tn.tnctlr.do_reset();
-						return true;
-					default:
-						break;
-				}
-
-				if ((tn.keyboard.kybdlock & Keyboard.KL_OIA_MINUS)!=0)
-				{
-					return false;
-				}
-				else if (tn.keyboard.kybdlock !=0)
-				{
-					return false;
-					//enq_ta(Enter_action, CN, CN);
+					success = true;
 				}
 				else
 				{
-					// these need unlocked screen
-					switch (op)
+
+					if ((tn.Keyboard.kybdlock & Keyboard.KL_OIA_MINUS) != 0 ||
+						tn.Keyboard.kybdlock != 0)
 					{
-						case KeyboardOp.AID:
-							byte v = (byte)typeof(AID).GetField(key).GetValue(null);
-							tn.keyboard.key_AID(v);
-							return true;
-						case KeyboardOp.Home:
-
-							if (tn.IN_ANSI) 
-							{
-								Console.WriteLine("IN_ANSI Home key not supported");
-								//ansi_send_home();
-								return false;
-							}
-
-							if (!tn.tnctlr.formatted) 
-							{
-								tn.tnctlr.cursor_move(0);
-								return true;
-							}
-							tn.tnctlr.cursor_move(tn.tnctlr.next_unprotected(tn.tnctlr.ROWS*tn.tnctlr.COLS-1));
-							return true;
-						case KeyboardOp.ATTN:
-							tn.net_interrupt();
-							return true;
+						success = false;
 					}
-					throw new ApplicationException("Sorry, key '"+key+"'not known");
+					else
+					{
+						// These need unlocked screen
+						switch (op)
+						{
+							case KeyboardOp.AID:
+								{
+									byte v = (byte)typeof(AID).GetField(key).GetValue(null);
+									this.tn.Keyboard.key_AID(v);
+									success = true;
+									break;
+								}
+							case KeyboardOp.Home:
+								{
+									if (this.tn.IsAnsi)
+									{
+										Console.WriteLine("IN_ANSI Home key not supported");
+										//ansi_send_home();
+										return false;
+									}
+
+									if (!this.tn.Controller.Formatted)
+									{
+										this.tn.Controller.SetCursorAddress(0);
+										return true;
+									}
+									this.tn.Controller.SetCursorAddress(tn.Controller.GetNextUnprotectedField(tn.Controller.RowCount * tn.Controller.ColumnCount - 1));
+									success = true;
+									break;
+								}
+							case KeyboardOp.ATTN:
+								{
+									this.tn.Interrupt();
+									success = true;
+									break;
+								}
+							default:
+								{
+									throw new ApplicationException("Sorry, key '" + key + "'not known");
+								}
+						}
+
+					}
 				}
 			}
+			return success;
 		}
+
 
 		public bool SendText(string text, bool paste)
 		{
 			lock (tn)
 			{
-
-				bool ok = true;
+				bool success = true;
 				int i;
-				if (text==null)
-					return ok;
-				//
-				for (i=0; i<text.Length; i++)
+				if (text != null)
 				{
-					ok = tn.keyboard.key_Character(text[i], false, paste);
-					if (!ok)
-						break;
+					for (i = 0; i < text.Length; i++)
+					{
+						success = tn.Keyboard.key_Character(text[i], false, paste);
+						if (!success)
+						{
+							break;
+						}
+					}
 				}
-				return ok;
+				return success;
 			}
 		}
 
-        /// <summary>
-        /// This method has not been implemented yet
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="length"></param>
-        /// <returns></returns>
+
+		/// <summary>
+		/// This method has not been implemented yet
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="length"></param>
+		/// <returns></returns>
 		public string GetText(int x, int y, int length)
 		{
-			return null;
+			throw new NotSupportedException();
 		}
 
 		public bool MoveCursor(CursorOp op, int x, int y)
 		{
-			lock (tn)
+			lock (this.tn)
 			{
-
-				return tn.tnctlr.MoveCursor(op,x,y);
+				return this.tn.Controller.MoveCursor(op, x, y);
 			}
 		}
 
-		public int keyboardLock
-		{
-			get 
-			{
-				return tn.keyboard.kybdlock;
-			}
 
-		}
-		
-		public int cursorX
-		{
-			get
-			{
-				lock(tn)
-				{
-					return tn.tnctlr.cursorX;
-				}
-			}
-		}
-		public int cursorY
-		{
-			get
-			{
-				lock(tn)
-				{
-					return tn.tnctlr.cursorY;
-				}
-			}
-		}
-
-		private void tn_telnetDataEvent(object parentData, TNEvent eventType, string text)
-		{
-			
-			//Console.WriteLine("event = "+eventType+" text='"+text+"'");
-			if (eventType==TNEvent.Disconnect)
-			{
-				if (OnDisconnect != null)
-					OnDisconnect(null, "Client disconnected session");
-			}
-			if (eventType==TNEvent.DisconnectUnexpected)
-			{
-				if (OnDisconnect != null)
-					OnDisconnect(null, "Host disconnected session");
-			}
-		}
 		public void RunScript(string where)
 		{
-			if (this.RunScriptEvent!=null)
-				this.RunScriptEvent(where);
+			if (this.RunScriptRequested != null)
+			{
+				this.RunScriptRequested(where);
+			}
 		}
+
 
 		public string GetLastError()
 		{
-			return this.tn.events.GetErrorAsText();
+			return this.tn.Events.GetErrorAsText();
 		}
+
+		#endregion Public Methods
+
+
+
+
+		#region Eventhandlers and such
+
+		private void tn_DataEventReceived(object parentData, TNEvent eventType, string text)
+		{
+
+			//Console.WriteLine("event = "+eventType+" text='"+text+"'");
+			if (eventType == TNEvent.Disconnect)
+			{
+				if (Disconnected != null)
+				{
+					Disconnected(null, "Client disconnected session");
+				}
+			}
+			if (eventType == TNEvent.DisconnectUnexpected)
+			{
+				if (Disconnected != null)
+				{
+					Disconnected(null, "Host disconnected session");
+				}
+			}
+		}
+
+		#endregion Eventhandlers and such
 
 	}
 

@@ -187,7 +187,7 @@ namespace Open3270.TN3270Server
 						case '~': to[toIndex++] = ATTR_HIDDEN; break;
 						case '^': to[toIndex++] = ATTR_PASSWORD; break;
 						default:
-							to[toIndex++] = Open3270.TN3270.Tables.a_to_e_table[(byte)from[fromIndex]];
+							to[toIndex++] = Open3270.TN3270.Tables.A2E[(byte)from[fromIndex]];
 							break;
 					}
 				}
@@ -202,7 +202,7 @@ namespace Open3270.TN3270Server
 						case '~': to[toIndex++] = ATTR_3270_HIDDEN; break;
 						case '^': to[toIndex++] = ATTR_3270_PASSWORD; break;
 						default:
-							to[toIndex++] = Open3270.TN3270.Tables.a_to_e_table[(byte)from[fromIndex]];
+							to[toIndex++] = Open3270.TN3270.Tables.A2E[(byte)from[fromIndex]];
 							break;
 					}
 				}
@@ -631,7 +631,7 @@ namespace Open3270.TN3270Server
 					break;
       
 			}  // end of switch
-			return (Open3270.TN3270.Tables.a_to_e_table[AidKey]);
+			return (Open3270.TN3270.Tables.A2E[AidKey]);
 		}
 
 		//
@@ -789,7 +789,7 @@ namespace Open3270.TN3270Server
 			string text = "";
 			for (i=position; i<end; i++)
 			{
-				text += System.Convert.ToChar(Open3270.TN3270.Tables.e_to_a_table[mScreenBytes[i]]);
+				text += System.Convert.ToChar(Open3270.TN3270.Tables.E2A[mScreenBytes[i]]);
 
 			}
 			return text.TrimEnd();
@@ -813,7 +813,7 @@ namespace Open3270.TN3270Server
 						ch = text[i-position];
 					else
 						ch = ' ';
-					byte b = Open3270.TN3270.Tables.a_to_e_table[ch];
+					byte b = Open3270.TN3270.Tables.A2E[ch];
 					mScreenBytes[i] = b;
 				}
 			}
