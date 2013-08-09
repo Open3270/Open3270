@@ -39,6 +39,10 @@
 		<CommandBinding CanExecute="CanExecuteDumpFields"
 						Command="{x:Static local:MainWindow.DumpFields}"
 						Executed="ExecuteDumpFields" />
+
+		<CommandBinding CanExecute="CanExecuteOpenSettings"
+						Command="{x:Static local:MainWindow.OpenSettings}"
+						Executed="ExecuteOpenSettings" />
 		
 	</Window.CommandBindings>
 
@@ -105,6 +109,8 @@
 			<Button Content="Dump Fields" Margin="0,0,0,5"  HorizontalAlignment="Stretch"  VerticalAlignment="Bottom" Focusable="False"
 				Command="{x:Static local:MainWindow.DumpFields}"/>
 			
+			<Button Content="Settings"
+					Command="{x:Static local:MainWindow.OpenSettings}"/>
 		</StackPanel>
 
 		<TextBox FontFamily="Consolas" HorizontalAlignment="Stretch"  Margin="10,10,0,0" TextWrapping="Wrap" IsReadOnly="True" IsReadOnlyCaretVisible="True"  Text="{Binding ScreenText}" VerticalAlignment="Stretch" Background="Black" Foreground="Green" FontSize="10" />

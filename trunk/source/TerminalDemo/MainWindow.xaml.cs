@@ -128,6 +128,26 @@ namespace TerminalDemo
 		#endregion DumpFields Command
 
 
+		#region OpenSettings Command
+
+		public static RoutedUICommand OpenSettings = new RoutedUICommand();
+
+		void CanExecuteOpenSettings(object sender, CanExecuteRoutedEventArgs args)
+		{
+			args.CanExecute = true;
+		}
+
+
+		void ExecuteOpenSettings(object sender, ExecutedRoutedEventArgs args)
+		{
+			SettingsWindow settingsWindow = new SettingsWindow();
+			settingsWindow.ShowDialog();
+		}
+
+		#endregion OpenSettings Command
+
+		
+
 
 		private void Window_TextInput(object sender, TextCompositionEventArgs e)
 		{
