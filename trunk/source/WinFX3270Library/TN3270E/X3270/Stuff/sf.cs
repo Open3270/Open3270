@@ -793,7 +793,7 @@ namespace Open3270.TN3270
 		void query_reply_end(NetBuffer obptr)
 		{
 			telnet.Output(obptr);
-			telnet.Keyboard.kybd_inhibit(true);
+			telnet.Keyboard.ToggleEnterInhibitMode(true);
 		}
 
 		private byte[] CloneBytes(byte[] data, int start, int length)

@@ -388,9 +388,9 @@ namespace Open3270.TN3270
 				//Console.WriteLine("--ever_3270 is false, set fake_fa to 0xc4 - protected");
 				fakeFA = 0xC4;
 			}
-			if (!telnet.Is3270 || (telnet.IsSscp && ((telnet.Keyboard.kybdlock & Keyboard.KL_OIA_TWAIT) != 0)))
+			if (!telnet.Is3270 || (telnet.IsSscp && ((telnet.Keyboard.keyboardLock & KeyboardConstants.OiaTWait) != 0)))
 			{
-				telnet.Keyboard.kybdlock_clr(Keyboard.KL_OIA_TWAIT, "ctlr_connect");
+				telnet.Keyboard.KeyboardLockClear(KeyboardConstants.OiaTWait, "ctlr_connect");
 				//status_reset();
 			}
 
@@ -616,7 +616,7 @@ namespace Open3270.TN3270
 		/// <param name="alt"></param>
 		public void Erase(bool alt)
 		{
-			this.telnet.Keyboard.kybd_inhibit(false);
+			this.telnet.Keyboard.ToggleEnterInhibitMode(false);
 
 			Clear(true);
 
@@ -1336,7 +1336,7 @@ namespace Open3270.TN3270
 			byte fa;
 			bool f;
 
-			this.telnet.Keyboard.kybd_inhibit(false);
+			this.telnet.Keyboard.ToggleEnterInhibitMode(false);
 
 			this.OnAllChanged();
 
@@ -1393,7 +1393,7 @@ namespace Open3270.TN3270
 				Clear(true);
 			}
 			this.attentionID = AID.None;
-			this.telnet.Keyboard.do_reset(false);
+			this.telnet.Keyboard.ResetKeyboardLock(false);
 		}
 
 
@@ -1492,7 +1492,7 @@ namespace Open3270.TN3270
 
 			PDS rv = PDS.OkayNoOutput;
 
-			this.telnet.Keyboard.kybd_inhibit(false);
+			this.telnet.Keyboard.ToggleEnterInhibitMode(false);
 
 			if (buf.Length < 2)
 			{
@@ -2042,11 +2042,11 @@ namespace Open3270.TN3270
 			if (wccKeyboardRestore)
 			{
 				this.attentionID = AID.None;
-				this.telnet.Keyboard.do_reset(false);
+				this.telnet.Keyboard.ResetKeyboardLock(false);
 			}
-			else if ((telnet.Keyboard.kybdlock & Keyboard.KL_OIA_TWAIT) != 0)
+			else if ((telnet.Keyboard.keyboardLock & KeyboardConstants.OiaTWait) != 0)
 			{
-				this.telnet.Keyboard.kybdlock_clr(Keyboard.KL_OIA_TWAIT, "ctlr_write");
+				this.telnet.Keyboard.KeyboardLockClear(KeyboardConstants.OiaTWait, "ctlr_write");
 				//status_syswait();
 			}
 			if (wccSoundAlarm)
@@ -2196,7 +2196,7 @@ namespace Open3270.TN3270
 
 			/* Unlock the keyboard. */
 			attentionID = AID.None;
-			telnet.Keyboard.do_reset(false);
+			telnet.Keyboard.ResetKeyboardLock(false);
 
 			/* Let a script go. */
 			telnet.Events.RunScript("ctlr_write_sscp_lu done");
@@ -2208,7 +2208,7 @@ namespace Open3270.TN3270
 		public void ProcessPendingInput()
 		{
 			//Process type ahead queue
-			while (telnet.Keyboard.run_ta());
+			while (telnet.Keyboard.RunTypeAhead());
 			//Notify script we're ok
 			//Console.WriteLine("--sms_continue");
 
@@ -2246,7 +2246,7 @@ namespace Open3270.TN3270
 						if (!telnet.CanProceed)
 							break;
 						if (telnet.IsPending ||
-							(telnet.IsConnected && (telnet.Keyboard.kybdlock & Keyboard.KL_AWAITING_FIRST) != 0))
+							(telnet.IsConnected && (telnet.Keyboard.keyboardLock & KeyboardConstants.AwaitingFirst) != 0))
 							break;
 						// do stuff
 						telnet.WaitEvent1.Set();
@@ -2254,7 +2254,7 @@ namespace Open3270.TN3270
 						break;
 					case SmsState.ConnectWait:
 						if (telnet.IsPending ||
-							(telnet.IsConnected && (telnet.Keyboard.kybdlock & Keyboard.KL_AWAITING_FIRST) != 0))
+							(telnet.IsConnected && (telnet.Keyboard.keyboardLock & KeyboardConstants.AwaitingFirst) != 0))
 							break;
 						// do stuff
 						telnet.WaitEvent1.Set();
@@ -2339,7 +2339,6 @@ namespace Open3270.TN3270
 		public void AddCharacter(int baddr, byte c, byte cs)
 		{
 			byte oc;
-			// debug
 			char ch = System.Convert.ToChar(Tables.Cg2Ascii[c]);
 
 			if ((oc = screenBuffer[baddr]) != c || extendedAttributes[baddr].cs != cs)

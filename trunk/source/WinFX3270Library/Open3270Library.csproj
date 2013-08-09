@@ -191,6 +191,7 @@
     <Compile Include="TN3270E\X3270\Stuff\Keyboard.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\X3270\Stuff\KeyboardConstants.cs" />
     <Compile Include="TN3270E\X3270\Stuff\print.cs">
       <SubType>Code</SubType>
     </Compile>

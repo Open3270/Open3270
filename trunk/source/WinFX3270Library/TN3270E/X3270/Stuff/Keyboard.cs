@@ -28,135 +28,42 @@ using System.Threading;
 
 namespace Open3270.TN3270
 {
-	/// <summary>
-	/// Summary description for Keyboard.
-	/// </summary>
+
 	internal class Keyboard:IDisposable
 	{
 		Telnet telnet;
 		TNTrace trace;
 		Actions action;
-		internal Keyboard(Telnet telnet)
-		{
 
-			this.action = telnet.Action;
-			this.telnet = telnet;
-			this.trace = telnet.Trace;
-			PF_SZ = pf_xlate.Length;
-			PA_SZ = pa_xlate.Length;
 
-		}
-		public const int KL_OERR_MASK		=0x000f;
-		public const int KL_OERR_PROTECTED	=1;
-		public const int KL_OERR_NUMERIC	=2;
-		public const int KL_OERR_OVERFLOW	=3;
-		public const int KL_NOT_CONNECTED	=0x0010;
-		public const int KL_AWAITING_FIRST	=0x0020;
-		public const int KL_OIA_TWAIT		=0x0040;
-		public const int KL_OIA_LOCKED		=0x0080;
-		public const int KL_DEFERRED_UNLOCK	=0x0100;
-		public const int KL_ENTER_INHIBIT	=0x0200;
-		public const int KL_SCROLLED		=0x0400;
-		public const int KL_OIA_MINUS		=0x0800;
 
-		public int kybdlock = Keyboard.KL_NOT_CONNECTED;
-		public bool insert = false;		/* insert mode */
-		public bool reverse = false;	/* reverse-input mode */
+		public int keyboardLock = KeyboardConstants.NotConnected;
 
-		
-		const int NoSymbol =0;
+
+		bool insertMode = false;
+		bool reverseMode = false;
 		bool flipped = false;
 
-		public enum enum_keytype { KT_STD, KT_GE };
-		public enum enum_composing { NONE, COMPOSE, FIRST };
-		internal class akeysym 
+		int PF_SZ;
+		int PA_SZ;
+
+		Composing composing = Composing.None;
+
+		Queue taQueue = new Queue();
+
+		System.Threading.Timer unlock_id = null;
+
+
+
+
+		#region Nested Classes
+
+		internal class AKeySym 
 		{
 			public byte keysym;
-			public enum_keytype keytype;
+			public KeyType keytype;
 		};
-#if N_COMPOSITES
-		internal class composite 
-		{
-			public akeysym k1, k2;
-			public  akeysym translation;
-		};
-		composite[] composites = null;
-		int n_composites = 0;
-#endif
-		//akeysym cc_first = null;
 
-
-
-
-		enum_composing composing = enum_composing.NONE;
-
-
-		/* Statics */
-		private byte[] pf_xlate = new byte[] { 
-												 AID.F1,  AID.F2,  AID.F3,  AID.F4,  AID.F5,  AID.F6,
-												 AID.F7,  AID.F8,  AID.F9,  AID.F10, AID.F11, AID.F12,
-												 AID.F13, AID.F14, AID.F15, AID.F16, AID.F17, AID.F18,
-												 AID.F19, AID.F20, AID.F21, AID.F22, AID.F23, AID.F24
-											 };
-		private byte[] pa_xlate = new byte[]  { 
-												  AID.PA1, AID.PA2, AID.PA3
-											  };
-		int PF_SZ;// = pf_xlate.Length;
-		int PA_SZ;// = pa_xlate.Length;
-
-		const int UNLOCK_MS	=350;
-
-
-
-
-/* Composite key mappings. */
-
-
-
-		public bool ak_eq(akeysym k1, akeysym k2)
-		{
-			return ((k1.keysym  == k2.keysym) && (k1.keytype == k2.keytype));
-		}
-
-
-		byte FROM_HEX(char c)
-		{
-			const string dx1 = "0123456789abcdef";
-			const string dx2 = "0123456789ABCDEF";
-
-			int index = dx1.IndexOf(c);
-			if (index==-1)
-				index = dx2.IndexOf(c);
-			if (index==-1)
-				throw new ApplicationException("sorry, '"+c+"' isn't a valid hex digit");
-			return (byte)index;
-			
-		}
-
-		bool isxdigit(char ch)
-		{
-			string ok = "0123456789ABCDEFabcdef";
-			if (ok.IndexOf((char)ch)!=-1)
-				return true;
-			else
-				return false;
-		}
-		bool isdigit(char ch)
-		{
-			if (ch>='0' && ch<='9')
-				return true;
-			else
-				return false;
-
-
-		}
-		
-
-//MFW--extern Widget *screen;
-
-
-
-		System.Collections.Queue ta_queue = new Queue();
 		internal class TAItem
 		{
 			public ActionDelegate fn;
@@ -167,267 +74,361 @@ namespace Open3270.TN3270
 				this.args = args;
 			}
 		}
-		/*
-		 * Put an action on the typeahead queue.
-		 */
-		void enq_ta(ActionDelegate fn, params object[] args)
+
+		#endregion Nested Classes
+
+
+
+
+
+
+
+#if N_COMPOSITES
+		internal class composite 
 		{
-			//struct ta *ta;
+			public akeysym k1, k2;
+			public  akeysym translation;
+		};
+		composite[] composites = null;
+		int n_composites = 0;
+#endif
 
-			/* If no connection, forget it. */
-			if (!telnet.IsConnected) 
+
+		
+
+
+		#region Ctors, dtors, and clean-up
+
+		internal Keyboard(Telnet telnet)
+		{
+
+			this.action = this.telnet.Action;
+			this.telnet = telnet;
+			this.trace = this.telnet.Trace;
+			PF_SZ = KeyboardConstants.PfTranslation.Length;
+			PA_SZ = KeyboardConstants.PaTranslation.Length;
+		}
+
+		#endregion Ctors, dtors, and clean-up
+
+
+
+
+		public bool AkEq(AKeySym k1, AKeySym k2)
+		{
+			return ((k1.keysym  == k2.keysym) && (k1.keytype == k2.keytype));
+		}
+
+
+		byte FromHex(char c)
+		{
+			const string dx1 = "0123456789abcdef";
+			const string dx2 = "0123456789ABCDEF";
+
+			int index = dx1.IndexOf(c);
+			if (index == -1)
 			{
-				telnet.Trace.trace_event("  dropped (not connected)\n");
+				index = dx2.IndexOf(c);
+			}
+			if (index == -1)
+			{
+				throw new ApplicationException("sorry, '" + c + "' isn't a valid hex digit");
+			}
+			return (byte)index;
+			
+		}
+
+		bool IsXDigit(char ch)
+		{
+			string ok = "0123456789ABCDEFabcdef";
+			if (ok.IndexOf((char)ch) != -1)
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		bool IsDigit(char ch)
+		{
+			if (ch >= '0' && ch <= '9')
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		
+
+		
+
+		/// <summary>
+		/// Put an action on the typeahead queue.
+		/// </summary>
+		/// <param name="fn"></param>
+		/// <param name="args"></param>
+		void EnqueueTypeAheadAction(ActionDelegate fn, params object[] args)
+		{
+			// If no connection, forget it.
+			if (!this.telnet.IsConnected) 
+			{
+				this.telnet.Trace.trace_event("  dropped (not connected)\n");
 				return;
 			}
 
-			/* If operator error, complain and drop it. */
-			if ((kybdlock & KL_OERR_MASK)!=0) 
+			// If operator error, complain and drop it.
+			if ((this.keyboardLock & KeyboardConstants.ErrorMask) != 0) 
 			{
 				//ring_bell();
-				telnet.Trace.trace_event("  dropped (operator error)\n");
+				this.telnet.Trace.trace_event("  dropped (operator error)\n");
 				return;
 			}
 
-			/* If scroll lock, complain and drop it. */
-			if ((kybdlock & KL_SCROLLED) !=0)
+			// If scroll lock, complain and drop it.
+			if ((this.keyboardLock & KeyboardConstants.Scrolled) != 0)
 			{
 				//ring_bell();
-				telnet.Trace.trace_event("  dropped (scrolled)\n");
+				this.telnet.Trace.trace_event("  dropped (scrolled)\n");
 				return;
 			}
 
-			/* If typeahead disabled, complain and drop it. */
+			// If typeahead disabled, complain and drop it.
 			if (!telnet.Appres.typeahead) 
 			{
-				telnet.Trace.trace_event("  dropped (no typeahead)\n");
+				this.telnet.Trace.trace_event("  dropped (no typeahead)\n");
 				return;
 			}
 
-			ta_queue.Enqueue(new TAItem(fn, args));
+			taQueue.Enqueue(new TAItem(fn, args));
 			//	status_typeahead(true);
 
-			telnet.Trace.trace_event("  action queued (kybdlock 0x"+kybdlock+")\n");
+			this.telnet.Trace.trace_event("  action queued (kybdlock 0x"+keyboardLock+")\n");
 		}
 
-		/*
-		 * Execute an action from the typeahead queue.
-		 */
-		public bool run_ta()
+
+		/// <summary>
+		/// Execute an action from the typeahead queue.
+		/// </summary>
+		/// <returns></returns>
+		public bool RunTypeAhead()
 		{
-
-			if (kybdlock!=0 || ta_queue.Count==0)
-				return false;
-	
-			TAItem item = (TAItem)ta_queue.Dequeue();
-
-			if (ta_queue.Count==0)
+			bool success = false;
+			if (this.keyboardLock == 0 && taQueue.Count != 0)
 			{
-				//		status_typeahead(false);
-			}
-			item.fn(item.args);
+				TAItem item = (TAItem)taQueue.Dequeue();
 
-			return true;
+				if (taQueue.Count == 0)
+				{
+					//status_typeahead(false);
+				}
+				item.fn(item.args);
+				success = true;
+			}
+			return success;
 		}
 
-		/*
-		 * Flush the typeahead queue.
-		 * Returns whether or not anything was flushed.
-		 */
-		bool flush_ta()
+
+		/// <summary>
+		/// Flush the typeahead queue.  Returns whether or not anything was flushed.
+		/// </summary>
+		/// <returns></returns>
+		bool FlushTypeAheadQueue()
 		{
 			bool any = false;
-			if (ta_queue.Count>0)
+			if (taQueue.Count > 0)
+			{
 				any = true;
-			ta_queue.Clear();
+			}
+			taQueue.Clear();
 			//			status_typeahead(false);
 			return any;
 		}
 
-		private void ps_set(string text, bool is_hex)
+		private void PsSet(string text, bool is_hex)
 		{
-			// move forwards to first non protected
-			// hack for mfw/FDI USA
-			bool skiptounprotected = telnet.Config.AlwaysSkipToUnprotected;
+			// Move forwards to first non protected
+			// Hack for mfw/FDI USA
+			bool skiptounprotected = this.telnet.Config.AlwaysSkipToUnprotected;
 
-			int baddr = telnet.Controller.CursorAddress;
+			int address = this.telnet.Controller.CursorAddress;
 			if (skiptounprotected)
 			{
-				//
 				// Move cursor forwards to next unprotected field
-				//
-			
 				bool ok = true;
 				int fa;
 				do
 				{
 					ok = true;
-					fa = telnet.Controller.GetFieldAttribute(baddr);
-					if (fa==-1)
+					fa = this.telnet.Controller.GetFieldAttribute(address);
+					if (fa == -1)
+					{
 						break;
-					if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]) || (fa>=0 && FA.IsProtected(telnet.Controller.ScreenBuffer[fa]))) 
+					}
+					if (FA.IsFA(this.telnet.Controller.ScreenBuffer[address]) || (fa >= 0 && FA.IsProtected(this.telnet.Controller.ScreenBuffer[fa]))) 
 					{
 						ok = false;
-						telnet.Controller.IncrementAddress(ref baddr);
-						if (baddr == telnet.Controller.CursorAddress)
+						this.telnet.Controller.IncrementAddress(ref address);
+						if (address == this.telnet.Controller.CursorAddress)
 						{
 							Console.WriteLine("**BUGBUG** Screen has no unprotected field!");
 							return;
 						}
 					}
-				}
-				while (!ok);
-				if (baddr != telnet.Controller.CursorAddress)
+				}while (!ok);
+
+				if (address != this.telnet.Controller.CursorAddress)
 				{
-					Console.WriteLine("Moved cursor to "+baddr+" to skip protected fields");
-					telnet.Controller.SetCursorAddress(baddr);
-					Console.WriteLine("cursor position "+telnet.Controller.AddressToColumn(baddr)+", "+telnet.Controller.AddresstoRow(baddr));
+					Console.WriteLine("Moved cursor to "+address+" to skip protected fields");
+					this.telnet.Controller.SetCursorAddress(address);
+					Console.WriteLine("cursor position "+telnet.Controller.AddressToColumn(address)+", "+telnet.Controller.AddresstoRow(address));
 					Console.WriteLine("text : "+text);
 				}
 			}
-			//
+
 			//push_string(text, false, is_hex);
-			emulate_input(text, false);
+			this.emulate_input(text, false);
 			
-			//throw new ApplicationException("oops");
 		}
 
-		/* Set bits in the keyboard lock. */
-		public void kybdlock_set(int bits, string cause)
+		/// <summary>
+		/// Set bits in the keyboard lock.
+		/// </summary>
+		/// <param name="bits"></param>
+		/// <param name="cause"></param>
+		public void KeyboardLockSet(int bits, string cause)
 		{
 			int n;
 
-			n = kybdlock | bits;
-			if (n != kybdlock) 
+			n = keyboardLock | bits;
+			if (n != keyboardLock) 
 			{
-				kybdlock = n;
+				keyboardLock = n;
 			}
 			//Console.WriteLine("kybdlock_set "+bits+" "+cause);
 		}
 
-		/* Clear bits in the keyboard lock. */
-		public void kybdlock_clr(int bits, string debug)
+		/// <summary>
+		/// Clear bits in the keyboard lock.
+		/// </summary>
+		/// <param name="bits"></param>
+		/// <param name="debug"></param>
+		public void KeyboardLockClear(int bits, string debug)
 		{
 			int n;
 			//Console.WriteLine("kybdlock_clr "+bits+" "+debug);
-			if (bits==-1)
-				bits = 0xFFFF;
-
-			n = kybdlock & ~bits;
-			if (n != kybdlock) 
+			if (bits == -1)
 			{
-				kybdlock = n;
+				bits = 0xFFFF;
+			}
+
+			n = keyboardLock & ~bits;
+			if (n != keyboardLock) 
+			{
+				keyboardLock = n;
 			}
 		}
 
 
-		/*
-		 * Set or clear enter-inhibit mode.
-		 */
-		public void kybd_inhibit(bool inhibit)
+
+		/// <summary>
+		/// Set or clear enter-inhibit mode.
+		/// </summary>
+		/// <param name="inhibit"></param>
+		public void ToggleEnterInhibitMode(bool inhibit)
 		{
 			if (inhibit) 
 			{
-				kybdlock_set(KL_ENTER_INHIBIT, "kybd_inhibit");
+				this.KeyboardLockSet(KeyboardConstants.EnterInhibit, "kybd_inhibit");
 			} 
 			else 
 			{
-				kybdlock_clr(KL_ENTER_INHIBIT, "kybd_inhibit");
+				this.KeyboardLockClear(KeyboardConstants.EnterInhibit, "kybd_inhibit");
 			}
 		}
-		/*
-		 * Called when a host connects or disconnects.
-		 */
-		System.Threading.Timer unlock_id = null;
-		public void kybd_connect(bool connected)
+
+
+
+		/// <summary>
+		/// Called when a host connects or disconnects.
+		/// </summary>
+		/// <param name="connected"></param>
+		public void ConnectedStateChanged(bool connected)
 		{
-			if ((kybdlock & KL_DEFERRED_UNLOCK)!=0)
+			if ((this.keyboardLock & KeyboardConstants.DeferredUnlock) != 0)
 			{
-				telnet.Controller.RemoveTimeOut(unlock_id);
+				this.telnet.Controller.RemoveTimeOut(unlock_id);
 			}
-			kybdlock_clr(-1, "kybd_connect");
+
+			this.KeyboardLockClear(-1, "kybd_connect");
 
 			if (connected) 
 			{
-		
-				/* Wait for any output or a WCC(restore) from the host */
-				kybdlock_set(KL_AWAITING_FIRST, "kybd_connect");
+				// Wait for any output or a WCC(restore) from the host
+				this.KeyboardLockSet(KeyboardConstants.AwaitingFirst, "kybd_connect");
 			} 
 			else 
 			{
-				kybdlock_set(KL_NOT_CONNECTED, "kybd_connect");
-				flush_ta();
+				this.KeyboardLockSet(KeyboardConstants.NotConnected, "kybd_connect");
+				this.FlushTypeAheadQueue();
 			}
 		}
 
-		/*
-		 * Called when we switch between 3270 and ANSI modes.
-		 */
-		public void kybd_in3270(bool in3270)
+
+		/// <summary>
+		/// Called when we switch between 3270 and ANSI modes.
+		/// </summary>
+		/// <param name="in3270"></param>
+		public void SwitchMode3270(bool in3270)
 		{
-			if ((kybdlock & KL_DEFERRED_UNLOCK)!=0)
-				telnet.Controller.RemoveTimeOut(unlock_id);
-			kybdlock_clr(-1, "kybd_connect");
+			if ((this.keyboardLock & KeyboardConstants.DeferredUnlock) != 0)
+			{
+				this.telnet.Controller.RemoveTimeOut(unlock_id);
+			}
+			this.KeyboardLockClear(-1, "kybd_connect");
 		}
 
-		/*
-		 * Called to initialize the keyboard logic.
-		 */
-		public void kybd_init()
 
+		/// <summary>
+		/// Called to initialize the keyboard logic.
+		/// </summary>
+		public void Initialize()
 		{
-			/* interest in connect and disconnect events. */
 			this.telnet.PrimaryConnectionChanged += telnet_PrimaryConnectionChanged;
 			this.telnet.Connected3270 += telnet_Connected3270;
 		}
 
+
 		void telnet_Connected3270(object sender, Connected3270EventArgs e)
 		{
-			this.kybd_in3270(e.Is3270);
+			this.SwitchMode3270(e.Is3270);
 		}
+
 
 		void telnet_PrimaryConnectionChanged(object sender, PrimaryConnectionChangedArgs e)
 		{
-			this.kybd_connect(e.Success);
+			this.ConnectedStateChanged(e.Success);
 		}
 
-		/*
-		 * Toggle insert mode.
-		 */
-		public void insert_mode(bool on)
-		{
-			insert = on;
-			//	status_insert_mode(on);
-		}
 
-		/*
-		 * Toggle reverse mode.
-		 */
-		public void reverse_mode(bool on)
+		/// <summary>
+		/// Lock the keyboard because of an operator error.
+		/// </summary>
+		/// <param name="address"></param>
+		/// <param name="errorType"></param>
+		public void HandleOperatorError(int address, int errorType)
 		{
-			reverse = on;
-			//	status_reverse_mode(on);
-		}
+			Console.WriteLine("cursor@"+address+" - ROW="+telnet.Controller.AddresstoRow(address)+" COL="+telnet.Controller.AddressToColumn(address));
+			this.telnet.Events.popup_an_error("Keyboard locked");
+			Console.WriteLine("WARNING--operator_error error_type="+errorType);
 
-		/*
-		 * Lock the keyboard because of an operator error.
-		 */
-		public void operator_error(int baddr, int error_type)
-		{
-			Console.WriteLine("cursor@"+baddr+" - ROW="+telnet.Controller.AddresstoRow(baddr)+" COL="+telnet.Controller.AddressToColumn(baddr));
-			telnet.Events.popup_an_error("Keyboard locked");
-			Console.WriteLine("WARNING--operator_error error_type="+error_type);
-			//
-			//flush_ta();
-			//
-			//if (sms_redirect())
-			//	telnet.events.popup_an_error("Keyboard locked");
-			if (telnet.Config.LockScreenOnWriteToUnprotected)//appres.oerr_lock)// || sms_redirect()) 
+			if (this.telnet.Config.LockScreenOnWriteToUnprotected)
 			{
-				//		status_oerr(error_type);
-				//		mcursor_locked();
-				kybdlock_set(error_type, "operator_error");
-				flush_ta();
+				this.KeyboardLockSet(errorType, "operator_error");
+				this.FlushTypeAheadQueue();
 			} 
 			else 
 			{
@@ -436,176 +437,190 @@ namespace Open3270.TN3270
 		}
 
  
-		/*
-		 * Handle an AID (Attention IDentifier) key.  This is the common stuff that
-		 * gets executed for all AID keys (PFs, PAs, Clear and etc).
-		 */
-		public void key_AID(byte AID_code)
+		/// <summary>
+		/// Handle an AID (Attention IDentifier) key.  This is the common stuff that gets executed for all AID keys (PFs, PAs, Clear and etc).
+		/// </summary>
+		/// <param name="aidCode"></param>
+		public void HandleAttentionIdentifierKey(byte aidCode)
 		{
-			if (telnet.IsAnsi) 
+			if (this.telnet.IsAnsi) 
 			{
 				int i;
 
-				if (AID_code == AID.Enter) 
+				if (aidCode == AID.Enter) 
 				{
-					telnet.SendChar('\r');
+					this.telnet.SendChar('\r');
 					return;
 				}
 				for (i = 0; i < PF_SZ; i++)
 				{
-					if (AID_code == pf_xlate[i]) 
+					if (aidCode == KeyboardConstants.PfTranslation[i]) 
 					{
-						telnet.Ansi.ansi_send_pf(i+1);
+						this.telnet.Ansi.ansi_send_pf(i + 1);
 						return;
 					}
 				}
 				for (i = 0; i < PA_SZ; i++)
 				{
-					if (AID_code == pa_xlate[i]) 
+					if (aidCode == KeyboardConstants.PaTranslation[i]) 
 					{
-						telnet.Ansi.ansi_send_pa(i+1);
+						this.telnet.Ansi.ansi_send_pa(i + 1);
 						return;
 					}
 				}
 				return;
 			}
-			if (telnet.IsSscp) 
+			if (this.telnet.IsSscp) 
 			{
-				if ((kybdlock & Keyboard.KL_OIA_MINUS)!=0)
+				if ((this.keyboardLock & KeyboardConstants.OiaMinus) != 0)
 					return;
-				if (AID_code != AID.Enter && AID_code != AID.Clear) 
+				if (aidCode != AID.Enter && aidCode != AID.Clear) 
 				{
-					//			status_minus();
-					kybdlock_set(Keyboard.KL_OIA_MINUS, "key_AID");
+					KeyboardLockSet(KeyboardConstants.OiaMinus, "key_AID");
 					return;
 				}
 			}
-			if (telnet.IsSscp && AID_code == AID.Enter) 
+			if (this.telnet.IsSscp && aidCode == AID.Enter) 
 			{
-				/* Act as if the host had written our input. */
-				telnet.Controller.BufferAddress = telnet.Controller.CursorAddress;
+				//Act as if the host had written our input.
+				this.telnet.Controller.BufferAddress = this.telnet.Controller.CursorAddress;
 			}
-			if (!telnet.IsSscp || AID_code != AID.Clear) 
+			if (!telnet.IsSscp || aidCode != AID.Clear) 
 			{
-				//		status_twait();
-				//		mcursor_waiting();
-				insert_mode(false);
+				this.insertMode = false;
 				//Console.WriteLine("**BUGBUG** KL_OIA_LOCKED REMOVED");
-				kybdlock_set(Keyboard.KL_OIA_TWAIT | Keyboard.KL_OIA_LOCKED, "key_AID");
+				KeyboardLockSet(KeyboardConstants.OiaTWait | KeyboardConstants.OiaLocked, "key_AID");
 			}
-			//
-			//Console.WriteLine("BUGBUG - reset_idle_timer");
-			telnet.Idle.reset_idle_timer();
-			telnet.Controller.AttentionID = AID_code;
-			telnet.Controller.ProcessReadModifiedCommand(telnet.Controller.AttentionID, false);
-			//Console.WriteLine("ticking-start...");
-			//telnet.tnctlr.ticking_start(false);
-			//if (!telnet.IN_SSCP) 
-			//{
-			//	status_ctlr_done();
-			//	}
+			this.telnet.Idle.reset_idle_timer();
+			this.telnet.Controller.AttentionID = aidCode;
+			this.telnet.Controller.ProcessReadModifiedCommand(this.telnet.Controller.AttentionID, false);
 		}
 
-		public bool PF_action(params object[] args)
+
+
+		public bool PFAction(params object[] args)
 		{
 			int k;
 
 			k = (int)args[0];
 			if (k < 1 || k > PF_SZ) 
 			{
-				telnet.Events.popup_an_error("PF_action: Invalid argument '"+args[0]+"'");
+				this.telnet.Events.popup_an_error("PF_action: Invalid argument '" + args[0] + "'");
 				return false;
 			}
-			if ((kybdlock & KL_OIA_MINUS)!=0)
+			if ((this.keyboardLock & KeyboardConstants.OiaMinus) != 0)
+			{
 				return false;
-			else if (kybdlock!=0)
-				enq_ta(new ActionDelegate(PF_action), args);
+			}
+			else if (this.keyboardLock != 0)
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(PFAction), args);
+			}
 			else
-				key_AID(pf_xlate[k-1]);
+			{
+				this.HandleAttentionIdentifierKey(KeyboardConstants.PfTranslation[k - 1]);
+			}
 			return true;
 		}
 
-		public bool PA_action(params object[] args)
+		public bool PAAction(params object[] args)
 		{
 			int k;
 
 			k = (int)args[0];
 			if (k < 1 || k > PA_SZ) 
 			{
-				telnet.Events.popup_an_error("PA_action: Invalid argument '"+args[0]+"'");
+				this.telnet.Events.popup_an_error("PA_action: Invalid argument '" + args[0] + "'");
 				return false;
 			}
-			if ((kybdlock & KL_OIA_MINUS)!=0)
+			if ((this.keyboardLock & KeyboardConstants.OiaMinus) != 0)
+			{
 				return false;
-			else if (kybdlock!=0)
-				enq_ta(new ActionDelegate(PA_action), args);
+			}
+			else if (this.keyboardLock != 0)
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(PAAction), args);
+			}
 			else
-				key_AID(pa_xlate[k-1]);
+			{
+				this.HandleAttentionIdentifierKey(KeyboardConstants.PaTranslation[k - 1]);
+			}
 			return true;
 		}
 
 
-		/*
-		 * ATTN key, per RFC 2355.  Sends IP, regardless.
-		 */
-		public bool Attn_action(params object[] args)
+		/// <summary>
+		/// ATTN key, per RFC 2355.  Sends IP, regardless.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool AttnAction(params object[] args)
 		{
-			if (!telnet.Is3270)
-				return false;
-			telnet.Interrupt();
-			return true;
+			if (this.telnet.Is3270)
+			{
+				this.telnet.Interrupt();
+				return true;
+			}
+			return false;
 		}
 
-		/*
-		 * IAC IP, which works for 5250 System Request and interrupts the program
-		 * on an AS/400, even when the keyboard is locked.
-		 *
-		 * This is now the same as the Attn action.
-		 */
-		public bool Interrupt_action(params object[] args)
+
+		/// <summary>
+		/// IAC IP, which works for 5250 System Request and interrupts the program on an AS/400, even when the keyboard is locked.
+		/// This is now the same as the Attn action.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool InterruptAction(params object[] args)
 		{
-			if (!telnet.Is3270)
-				return false;
-			telnet.Interrupt();
-			return true;
+			if (this.telnet.Is3270)
+			{
+				this.telnet.Interrupt();
+				return true;
+			}
+			return false;
 		}
 
-		public const int GE_WFLAG	=0x100;
-		public const int PASTE_WFLAG	=0x200;
 
-		bool  key_Character_wrapper(int cgcode)
+
+		bool  WrapCharacter(int cgcode)
 		{
 			bool with_ge = false;
 			bool  pasting = false;
 
-			if ((cgcode & GE_WFLAG)!=0) 
+			if ((cgcode & KeyboardConstants.WFlag) != 0) 
 			{
 				with_ge = true;
-				cgcode &= ~GE_WFLAG;
+				cgcode &= ~KeyboardConstants.WFlag;
 			}
-			if ((cgcode & PASTE_WFLAG)!=0)
+			if ((cgcode & KeyboardConstants.PasteWFlag) != 0)
 			{
 				pasting = true;
-				cgcode &= ~PASTE_WFLAG;
+				cgcode &= ~KeyboardConstants.PasteWFlag;
 			}
-			telnet.Trace.trace_event(" %s -> Key(%s\"%s\")\n",
+			this.telnet.Trace.trace_event(" %s -> Key(%s\"%s\")\n",
 				"nop",/*ia_name[(int) ia_cause],*/
 				with_ge ? "GE " : "",
 				Util.ctl_see((byte) Tables.Cg2Ascii[cgcode]));
-			return key_Character(cgcode, with_ge, pasting);
+			return HandleOrdinaryCharacter(cgcode, with_ge, pasting);
 		}
 
-		/*
-		 * Handle an ordinary displayable character key.  Lots of stuff to handle
-		 * insert-mode, protected fields and etc.
-		 */
-		public bool key_Character(int cgcode, bool with_ge, bool pasting)
-		{
-			int	baddr, end_baddr;
-			int fa;
-			bool no_room = false;
 
-			if (kybdlock!=0) 
+		/// <summary>
+		/// Handle an ordinary displayable character key.  Lots of stuff to handle: insert-mode, protected fields and etc.
+		/// </summary>
+		/// <param name="cgCode"></param>
+		/// <param name="withGE"></param>
+		/// <param name="pasting"></param>
+		/// <returns></returns>
+		public bool HandleOrdinaryCharacter(int cgCode, bool withGE, bool pasting)
+		{
+			int address;
+			int endAddress;
+			int fa;
+			bool noRoom = false;
+
+			if (this.keyboardLock!=0) 
 			{
 				Console.WriteLine("--bugbug--should enq_ta key, but since keylock is !=0, dropping it instead (not implemented properly)");
 				return false;
@@ -618,183 +633,199 @@ namespace Open3270.TN3270
 				enq_ta(new ActionDelegate(key_Character_wrapper, code, CN);
 				return false;*/
 			}
-			baddr = telnet.Controller.CursorAddress;
-			fa = telnet.Controller.GetFieldAttribute(baddr);
-			byte favalue = telnet.Controller.FakeFA;
+
+			address = this.telnet.Controller.CursorAddress;
+			fa = this.telnet.Controller.GetFieldAttribute(address);
+			byte favalue = this.telnet.Controller.FakeFA;
 			if (fa != -1)
-				favalue = telnet.Controller.ScreenBuffer[fa];
-			if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]) || FA.IsProtected(favalue)) 
 			{
-				operator_error(baddr, KL_OERR_PROTECTED);
+				favalue = this.telnet.Controller.ScreenBuffer[fa];
+			}
+			if (FA.IsFA(this.telnet.Controller.ScreenBuffer[address]) || FA.IsProtected(favalue)) 
+			{
+				this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
 				return false;
 			}
-			if (telnet.Appres.numeric_lock && FA.IsNumeric(favalue) &&
-				!((cgcode >= CG.CG_0 && cgcode <= CG.CG_9) ||
-				cgcode == CG.CG_minus || cgcode == CG.CG_period)) 
+			if (this.telnet.Appres.numeric_lock && FA.IsNumeric(favalue) &&
+				!((cgCode >= CG.CG_0 && cgCode <= CG.CG_9) ||
+				cgCode == CG.CG_minus || cgCode == CG.CG_period)) 
 			{
-				operator_error(baddr, KL_OERR_NUMERIC);
+				this.HandleOperatorError(address, KeyboardConstants.ErrorNumeric);
 				return false;
 			}
-			if (reverse || (insert && telnet.Controller.ScreenBuffer[baddr]!=0)) 
+			if (reverseMode || (insertMode && this.telnet.Controller.ScreenBuffer[address]!=0)) 
 			{
 				int last_blank = -1;
 
-				/* Find next null, next fa, or last blank */
-				end_baddr = baddr;
-				if (telnet.Controller.ScreenBuffer[end_baddr] == CG.CG_space)
-					last_blank = end_baddr;
+				//Find next null, next fa, or last blank
+				endAddress = address;
+				if (this.telnet.Controller.ScreenBuffer[endAddress] == CG.CG_space)
+				{
+					last_blank = endAddress;
+				}
 				do 
 				{
-					telnet.Controller.IncrementAddress(ref end_baddr);
-					if (telnet.Controller.ScreenBuffer[end_baddr] == CG.CG_space)
-						last_blank = end_baddr;
-					if (telnet.Controller.ScreenBuffer[end_baddr] == CG.CG_null
-						||  FA.IsFA(telnet.Controller.ScreenBuffer[end_baddr]))
-						break;
-				} while (end_baddr != baddr);
-
-				/* Pretend a trailing blank is a null, if desired. */
-				if (telnet.Appres.toggled(Appres.BLANK_FILL) && last_blank != -1) 
-				{
-					telnet.Controller.IncrementAddress(ref last_blank);
-					if (last_blank == end_baddr) 
+					this.telnet.Controller.IncrementAddress(ref endAddress);
+					if (this.telnet.Controller.ScreenBuffer[endAddress] == CG.CG_space)
 					{
-						telnet.Controller.DecrementAddress(ref end_baddr);
-						telnet.Controller.AddCharacter(end_baddr, CG.CG_null, 0);
+						last_blank = endAddress;
+					}
+					if (this.telnet.Controller.ScreenBuffer[endAddress] == CG.CG_null ||  FA.IsFA(this.telnet.Controller.ScreenBuffer[endAddress]))
+					{
+						break;
+					}
+				} while (endAddress != address);
+
+				//Pretend a trailing blank is a null, if desired.
+				if (this.telnet.Appres.toggled(Appres.BLANK_FILL) && last_blank != -1) 
+				{
+					this.telnet.Controller.IncrementAddress(ref last_blank);
+					if (last_blank == endAddress) 
+					{
+						this.telnet.Controller.DecrementAddress(ref endAddress);
+						this.telnet.Controller.AddCharacter(endAddress, CG.CG_null, 0);
 					}
 				}
 
-				/* Check for field overflow. */
-				if (telnet.Controller.ScreenBuffer[end_baddr] != CG.CG_null) 
+				//Check for field overflow.
+				if (this.telnet.Controller.ScreenBuffer[endAddress] != CG.CG_null) 
 				{
-					if (insert) 
+					if (insertMode) 
 					{
-						operator_error(end_baddr, KL_OERR_OVERFLOW);
+						this.HandleOperatorError(endAddress, KeyboardConstants.ErrorOverflow);
 						return false;
 					} 
 					else 
-					{	/* reverse */
-						no_room = true;
+					{	
+						//Reverse
+						noRoom = true;
 					}
 				} 
 				else 
 				{
-					/* Shift data over. */
-					if (end_baddr > baddr) 
+					// Shift data over.
+					if (endAddress > address) 
 					{
-						/* At least one byte to copy, no wrap. */
-						telnet.Controller.CopyBlock(baddr, baddr+1, end_baddr - baddr,
-							false);
+						// At least one byte to copy, no wrap.
+						this.telnet.Controller.CopyBlock(address, address + 1, endAddress - address, false);
 					}
-					else if (end_baddr < baddr) 
+					else if (endAddress < address) 
 					{
-						/* At least one byte to copy, wraps to top. */
-						telnet.Controller.CopyBlock(0, 1, end_baddr, false);
-						telnet.Controller.AddCharacter(0, telnet.Controller.ScreenBuffer[(telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1], 0);
-						telnet.Controller.CopyBlock(baddr, baddr+1,
-							((telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1) - baddr, false);
+						// At least one byte to copy, wraps to top.
+						this.telnet.Controller.CopyBlock(0, 1, endAddress, false);
+						this.telnet.Controller.AddCharacter(0, this.telnet.Controller.ScreenBuffer[(this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1], 0);
+						this.telnet.Controller.CopyBlock(address, address + 1, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
 					}
 				}
 
 			}
 
-			/* Replace leading nulls with blanks, if desired. */
-			if (telnet.Controller.Formatted && telnet.Appres.toggled(Appres.BLANK_FILL)) 
+			// Replace leading nulls with blanks, if desired.
+			if (this.telnet.Controller.Formatted && this.telnet.Appres.toggled(Appres.BLANK_FILL)) 
 			{
-				int		baddr_sof = fa;//fa - telnet.tnctlr.screen_buf;
-				int baddr_fill = baddr;
+				int	addresSof = fa;//fa - this.telnet.tnctlr.screen_buf;
+				int addressFill = address;
 
-				telnet.Controller.DecrementAddress(ref baddr_fill);
-				while (baddr_fill != baddr_sof) 
+				this.telnet.Controller.DecrementAddress(ref addressFill);
+				while (addressFill != addresSof) 
 				{
-
-					/* Check for backward line wrap. */
-					if ((baddr_fill % telnet.Controller.ColumnCount) == telnet.Controller.ColumnCount - 1) 
+					// Check for backward line wrap.
+					if ((addressFill % this.telnet.Controller.ColumnCount) == this.telnet.Controller.ColumnCount - 1) 
 					{
 						bool aborted = true;
-						int baddr_scan = baddr_fill;
+						int addressScan = addressFill;
 
-						/*
-						 * Check the field within the preceeding line
-						 * for NULLs.
-						 */
-						while (baddr_scan != baddr_sof) 
+						 // Check the field within the preceeding line for NULLs.
+						while (addressScan != addresSof) 
 						{
-							if (telnet.Controller.ScreenBuffer[baddr_scan] != CG.CG_null) 
+							if (this.telnet.Controller.ScreenBuffer[addressScan] != CG.CG_null) 
 							{
 								aborted = false;
 								break;
 							}
-							if (0==(baddr_scan % telnet.Controller.ColumnCount))
+							if (0 == (addressScan % this.telnet.Controller.ColumnCount))
+							{
 								break;
-							telnet.Controller.DecrementAddress(ref baddr_scan);
+							}
+							this.telnet.Controller.DecrementAddress(ref addressScan);
 						}
 						if (aborted)
+						{
 							break;
+						}
 					}
 
-					if (telnet.Controller.ScreenBuffer[baddr_fill] == CG.CG_null)
-						telnet.Controller.AddCharacter(baddr_fill, CG.CG_space, 0);
-					telnet.Controller.DecrementAddress(ref baddr_fill);
+					if (this.telnet.Controller.ScreenBuffer[addressFill] == CG.CG_null)
+					{
+						this.telnet.Controller.AddCharacter(addressFill, CG.CG_space, 0);
+					}
+					this.telnet.Controller.DecrementAddress(ref addressFill);
 				}
 			}
 
-			/* Add the character. */
-			if (no_room) 
+			// Add the character.
+			if (noRoom) 
 			{
 				do 
 				{
-					telnet.Controller.IncrementAddress(ref baddr);
-				} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
+					this.telnet.Controller.IncrementAddress(ref address);
+				} while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[address]));
 			} 
 			else 
 			{
-				telnet.Controller.AddCharacter(baddr, (byte)cgcode, (byte)(with_ge ? ExtendedAttribute.CS_GE : (byte)0));
-				telnet.Controller.SetForegroundColor(baddr, 0);
-				telnet.Controller.ctlr_add_gr(baddr, 0);
-				if (!reverse)
-					telnet.Controller.IncrementAddress(ref baddr);
+				this.telnet.Controller.AddCharacter(address, (byte)cgCode, (byte)(withGE ? ExtendedAttribute.CS_GE : (byte)0));
+				this.telnet.Controller.SetForegroundColor(address, 0);
+				this.telnet.Controller.ctlr_add_gr(address, 0);
+				if (!reverseMode)
+				{
+					this.telnet.Controller.IncrementAddress(ref address);
+				}
 			}
 
-			/*
-			 * Implement auto-skip, and don't land on attribute bytes.
-			 * This happens for all pasted data (even DUP), and for all
-			 * keyboard-generated data except DUP.
-			 */
-			if (pasting || (cgcode != CG.CG_dup)) 
+			 //Implement auto-skip, and don't land on attribute bytes.
+			 //This happens for all pasted data (even DUP), and for all keyboard-generated data except DUP.
+			if (pasting || (cgCode != CG.CG_dup)) 
 			{
-				while (FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
+				while (FA.IsFA(this.telnet.Controller.ScreenBuffer[address])) 
 				{
-					if (FA.IsSkip(telnet.Controller.ScreenBuffer[baddr]))
-						baddr = telnet.Controller.GetNextUnprotectedField(baddr);
+					if (FA.IsSkip(this.telnet.Controller.ScreenBuffer[address]))
+					{
+						address = this.telnet.Controller.GetNextUnprotectedField(address);
+					}
 					else
 					{
-						telnet.Controller.IncrementAddress(ref baddr);
+						this.telnet.Controller.IncrementAddress(ref address);
 					}
 				}
-				telnet.Controller.SetCursorAddress(baddr);
+				this.telnet.Controller.SetCursorAddress(address);
 			}
 
-			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa);
+			this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, fa);
 			return true;
 		}
 
-		/*
-		 * Handle an ordinary character key, given an ASCII code.
-		 */
-		void key_ACharacter(byte c, enum_keytype keytype, iaction cause)
+		
+		/// <summary>
+		/// Handle an ordinary character key, given an ASCII code.
+		/// </summary>
+		/// <param name="character"></param>
+		/// <param name="keytype"></param>
+		/// <param name="cause"></param>
+		void HandleAsciiCharacter(byte character, KeyType keytype, iaction cause)
 		{
-			//int i;
-			akeysym ak = new akeysym();
+			AKeySym keySymbol = new AKeySym();
 
-			ak.keysym = c;
-			ak.keytype = keytype;
+			keySymbol.keysym = character;
+			keySymbol.keytype = keytype;
 
 			switch (composing) 
 			{
-				case enum_composing.NONE:
-					break;
-				case enum_composing.COMPOSE:
+				case Composing.None:
+					{
+						break;
+					}
+				case Composing.Compose:
+					{
 #if N_COMPOSITES
 					for (i = 0; i < n_composites; i++)
 						if (ak_eq(composites[i].k1, ak) ||
@@ -809,15 +840,15 @@ namespace Open3270.TN3270
 					} 
 					else 
 #endif
-				   {
-						//ring_bell();
-						composing = enum_composing.NONE;
-//						status_compose(false, 0, enum_keytype.KT_STD);
+						{
+							composing = Composing.None;
+						}
+						return;
 					}
-					return;
-				case enum_composing.FIRST:
-					composing = enum_composing.NONE;
-//					status_compose(false, 0, enum_keytype.KT_STD);
+				case Composing.First:
+					{
+						composing = Composing.None;
+						//					status_compose(false, 0, enum_keytype.KT_STD);
 #if N_COMPOSITES
 					for (i = 0; i < n_composites; i++)
 					{
@@ -834,26 +865,25 @@ namespace Open3270.TN3270
 					} 
 					else 
 #endif
-					{
-						//			ring_bell();
-						return;
+						{
+							return;
+						}
 					}
-					//break;
 			}
 
-			trace.trace_event(" %s -> Key(\"%s\")\n", telnet.Action.ia_name[(int) cause], Util.ctl_see(c));
-			if (telnet.Is3270) 
+			trace.trace_event(" %s -> Key(\"%s\")\n", this.telnet.Action.ia_name[(int) cause], Util.ctl_see(character));
+			if (this.telnet.Is3270) 
 			{
-				if (c < ' ') 
+				if (character < ' ') 
 				{
 					trace.trace_event("  dropped (control char)\n");
 					return;
 				}
-				key_Character(Tables.Ascii2Cg[c], keytype == enum_keytype.KT_GE, false);
+				this.HandleOrdinaryCharacter(Tables.Ascii2Cg[character], keytype == KeyType.GE, false);
 			}
-			else if (telnet.IsAnsi) 
+			else if (this.telnet.IsAnsi) 
 			{
-				telnet.SendChar((char) c);
+				this.telnet.SendChar((char)character);
 			}
 			else 
 			{
@@ -862,884 +892,1040 @@ namespace Open3270.TN3270
 		}
 
  
-		/*
-		 * Simple toggles.
-		 */
 
-		public bool MonoCase_action(params object[] args)
+		/// <summary>
+		/// Simple toggles.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MonoCaseAction(params object[] args)
 		{
-			telnet.Appres.do_toggle(Appres.MONOCASE);
+			this.telnet.Appres.do_toggle(Appres.MONOCASE);
 			return true;
 		}
 
-		/*
-		 * Flip the display left-to-right
-		 */
-		public bool Flip_action(params object[] args)
+
+		/// <summary>
+		/// Flip the display left-to-right
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool FlipAction(params object[] args)
 		{
 //			screen_flip();
 			return true;
 		}
 
 
- 
-		/*
-		 * Tab forward to next field.
-		 */
-		public bool Tab_action(params object[] args)
+
+		public bool TabForwardAction(params object[] args)
 		{
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Tab_action),args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(TabForwardAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.SendChar('\t');
+				this.telnet.SendChar('\t');
 				return true;
 			}
-			telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.CursorAddress));
+			this.telnet.Controller.SetCursorAddress(this.telnet.Controller.GetNextUnprotectedField(this.telnet.Controller.CursorAddress));
 			return true;
 		}
 
  
-		/*
-		 * Tab backward to previous field.
-		 */
+		/// <summary>
+		/// Tab backward to previous field.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
 		public bool BackTab_action(params object[] args)
 		{
 			int	baddr, nbaddr;
 			int		sbaddr;
 
-			if (!telnet.Is3270)
-				return false;
-	
-			if (kybdlock!=0) 
+			if (!this.telnet.Is3270)
 			{
-				enq_ta(new ActionDelegate(BackTab_action), args);
+				return false;
+			}
+	
+			if (this.keyboardLock!=0) 
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(BackTab_action), args);
 				return true;
 			}
-			baddr = telnet.Controller.CursorAddress;
-			telnet.Controller.DecrementAddress(ref baddr);
-			if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))	/* at bof */
-				telnet.Controller.DecrementAddress(ref baddr);
+			baddr = this.telnet.Controller.CursorAddress;
+			this.telnet.Controller.DecrementAddress(ref baddr);
+			if (FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr]))	/* at bof */
+			{
+				this.telnet.Controller.DecrementAddress(ref baddr);
+			}
 			sbaddr = baddr;
 			while (true) 
 			{
 				nbaddr = baddr;
-				telnet.Controller.IncrementAddress(ref nbaddr);
-				if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr])
-					&&  !FA.IsProtected(telnet.Controller.ScreenBuffer[baddr])
-					&&  !FA.IsFA(telnet.Controller.ScreenBuffer[nbaddr]))
+				this.telnet.Controller.IncrementAddress(ref nbaddr);
+				if (FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr])
+					&& !FA.IsProtected(this.telnet.Controller.ScreenBuffer[baddr])
+					&& !FA.IsFA(this.telnet.Controller.ScreenBuffer[nbaddr]))
+				{
 					break;
-				telnet.Controller.DecrementAddress(ref baddr);
+				}
+				this.telnet.Controller.DecrementAddress(ref baddr);
 				if (baddr == sbaddr) 
 				{
-					telnet.Controller.SetCursorAddress(0);
+					this.telnet.Controller.SetCursorAddress(0);
 					return true;
 				}
 			}
-			telnet.Controller.IncrementAddress(ref baddr);
-			telnet.Controller.SetCursorAddress(baddr);
+			this.telnet.Controller.IncrementAddress(ref baddr);
+			this.telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
 
-		/*
-		 * Deferred keyboard unlock.
-		 */
 
-		void defer_unlock(object state)
+		/// <summary>
+		/// Deferred keyboard unlock.
+		/// </summary>
+		/// <param name="state"></param>
+		void DeferUnlock(object state)
 		{
 			lock (telnet)
 			{
-
-				//
 				// Only actually process the event if the keyboard is currently unlocked...
-				//
-				if ((telnet.Keyboard.kybdlock | Keyboard.KL_DEFERRED_UNLOCK)==Keyboard.KL_DEFERRED_UNLOCK)
+				if ((this.telnet.Keyboard.keyboardLock | KeyboardConstants.DeferredUnlock) == KeyboardConstants.DeferredUnlock)
 				{
 
-					telnet.Trace.WriteLine("--debug--defer_unlock");
-					kybdlock_clr(KL_DEFERRED_UNLOCK, "defer_unlock");
+					this.telnet.Trace.WriteLine("--debug--defer_unlock");
+					KeyboardLockClear(KeyboardConstants.DeferredUnlock, "defer_unlock");
 					//status_reset();
-					if (telnet.IsConnected)
-						telnet.Controller.ProcessPendingInput();
+					if (this.telnet.IsConnected)
+					{
+						this.telnet.Controller.ProcessPendingInput();
+					}
 				}
 				else
-					telnet.Trace.WriteLine("--debug--defer_unlock ignored");
+				{
+					this.telnet.Trace.WriteLine("--debug--defer_unlock ignored");
+				}
 
 			}
 		}
-		/*
-		 * Reset keyboard lock.
-		 */
-		public void do_reset(bool explicitvalue)
+
+
+
+		public void ResetKeyboardLock(bool explicitvalue)
 		{
-			//Console.WriteLine("do_reset "+explicitvalue);
-			/*
-			 * If explicit (from the keyboard) and there is typeahead or
-			 * a half-composed key, simply flush it.
-			 */
+			 //If explicit (from the keyboard) and there is typeahead or a half-composed key, simply flush it.
+			 
 			if (explicitvalue)
 			{
-				bool half_reset = false;
+				bool halfReset = false;
 
-				if (flush_ta())
-					half_reset = true;
-				if (composing != enum_composing.NONE) 
+				if (FlushTypeAheadQueue())
 				{
-					composing = enum_composing.NONE;
-					//			status_compose(false, 0, KT_STD);
-					half_reset = true;
+					halfReset = true;
 				}
-				if (half_reset)
+				if (composing != Composing.None) 
+				{
+					composing = Composing.None;
+					//	status_compose(false, 0, KT_STD);
+					halfReset = true;
+				}
+				if (halfReset)
+				{
 					return;
+				}
 			}
 
 
-			/* Always clear insert mode. */
-			insert_mode(false);
+			//Always clear insert mode.
+			this.insertMode = false;
 
-			/* Otherwise, if not connect, reset is a no-op. */
-			if (!telnet.IsConnected)
+			// Otherwise, if not connect, reset is a no-op.
+			if (this.telnet.IsConnected)
+			{
 				return;
+			}
 
-			/*
-			 * Remove any deferred keyboard unlock.  We will either unlock the
-			 * keyboard now, or want to defer further into the future.
-			 */
-			if ((kybdlock & Keyboard.KL_DEFERRED_UNLOCK)!=0)
-				telnet.Controller.RemoveTimeOut(unlock_id);
+			//Remove any deferred keyboard unlock.  We will either unlock the keyboard now, or want to defer further into the future.
 
-			/*
-			 * If explicit (from the keyboard), unlock the keyboard now.
-			 * Otherwise (from the host), schedule a deferred keyboard unlock.
-			 */
+			if ((this.keyboardLock & KeyboardConstants.DeferredUnlock) != 0)
+			{
+				this.telnet.Controller.RemoveTimeOut(unlock_id);
+			}
+
+			
+			//If explicit (from the keyboard), unlock the keyboard now.
+			//Otherwise (from the host), schedule a deferred keyboard unlock.
 			if (explicitvalue) 
 			{
-				kybdlock_clr(-1, "do_reset");
-			} 
-			else if ((kybdlock & (KL_DEFERRED_UNLOCK | KL_OIA_TWAIT | KL_OIA_LOCKED | KL_AWAITING_FIRST))!=0) 
+				this.KeyboardLockClear(-1, "ResetKeyboardLock");
+			}
+			else if ((this.keyboardLock & (KeyboardConstants.DeferredUnlock | KeyboardConstants.OiaTWait | KeyboardConstants.OiaLocked | KeyboardConstants.AwaitingFirst)) != 0) 
 			{
-				telnet.Trace.WriteLine("Clear lock in 1010/55");
-				kybdlock_clr(~KL_DEFERRED_UNLOCK, "do_reset");
-				kybdlock_set(KL_DEFERRED_UNLOCK, "do_reset");
+				this.telnet.Trace.WriteLine("Clear lock in 1010/55");
+				this.KeyboardLockClear(~KeyboardConstants.DeferredUnlock, "ResetKeyboardLock");
+				this.KeyboardLockSet(KeyboardConstants.DeferredUnlock, "ResetKeyboardLock");
 				lock (telnet)
 				{
-					unlock_id = telnet.Controller.AddTimeout(UNLOCK_MS, new TimerCallback(defer_unlock));
+					unlock_id = this.telnet.Controller.AddTimeout(KeyboardConstants.UnlockMS, new TimerCallback(DeferUnlock));
 				}
 			}
 
-			/* Clean up other modes. */
-			//status_reset();
-			//mcursor_normal();
-			composing = enum_composing.NONE;
-			//status_compose(false, 0, KT_STD);
+			// Clean up other modes.
+			composing = Composing.None;
 		}
-		public bool Reset_action(params object[] args)
+
+
+		public bool ResetAction(params object[] args)
 		{
-			do_reset(true);
+			ResetKeyboardLock(true);
 			return true;
 		}
 
 
-		/*
-		 * Move to first unprotected field on screen.
-		 */
-		public bool Home_action(params object[] args)
+		/// <summary>
+		/// Move to first unprotected field on screen.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool HomeAction(params object[] args)
 		{
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Home_action),args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(HomeAction),args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.Ansi.ansi_send_home();
+				this.telnet.Ansi.ansi_send_home();
 				return true;
 			}
 			if (!telnet.Controller.Formatted) 
 			{
-				telnet.Controller.SetCursorAddress(0);
+				this.telnet.Controller.SetCursorAddress(0);
 				return true;
 			}
-			telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.RowCount*telnet.Controller.ColumnCount-1));
+			this.telnet.Controller.SetCursorAddress(this.telnet.Controller.GetNextUnprotectedField(this.telnet.Controller.RowCount*telnet.Controller.ColumnCount-1));
 			return true;
 		}
 
 
-		/*
-		 * Cursor left 1 position.
-		 */
-		void do_left()
+		
+		
+		/// <summary>
+		/// Cursor left 1 position.
+		/// </summary>
+		void MoveLeft()
 		{
-			int	baddr;
-
-			baddr = telnet.Controller.CursorAddress;
-			telnet.Controller.DecrementAddress(ref baddr);
-			telnet.Controller.SetCursorAddress(baddr);
+			int	address = this.telnet.Controller.CursorAddress;
+			this.telnet.Controller.DecrementAddress(ref address);
+			this.telnet.Controller.SetCursorAddress(address);
 		}
 
-		public bool Left_action(params object[] args)
+
+		public bool LeftAction(params object[] args)
 		{
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Left_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(LeftAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.Ansi.ansi_send_left();
+				this.telnet.Ansi.ansi_send_left();
+				return true;
+			}
+			if (!this.flipped)
+				this.MoveLeft();
+			else 
+			{
+				int	address = this.telnet.Controller.CursorAddress;
+				this.telnet.Controller.IncrementAddress(ref address);
+				this.telnet.Controller.SetCursorAddress(address);
+			}
+			return true;
+		}
+
+ 
+		/// <summary>
+		/// Delete char key.
+		/// </summary>
+		/// <returns> Returns "true" if succeeds, "false" otherwise.</returns>
+		bool DeleteCharacter()
+		{
+			int	address, andAddress;
+			int faIndex;
+			byte fa = this.telnet.Controller.FakeFA;
+
+			address = this.telnet.Controller.CursorAddress;
+			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+			if (faIndex != -1)
+			{
+				fa = this.telnet.Controller.ScreenBuffer[faIndex];
+			}
+			if (FA.IsProtected(fa) || FA.IsFA(this.telnet.Controller.ScreenBuffer[address])) 
+			{
+				this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
+				return false;
+			}
+			//Find next FA
+			if (this.telnet.Controller.Formatted) 
+			{
+				andAddress = address;
+				do 
+				{
+					this.telnet.Controller.IncrementAddress(ref andAddress);
+					if (FA.IsFA(this.telnet.Controller.ScreenBuffer[andAddress]))
+						break;
+				} while (andAddress != address);
+
+				this.telnet.Controller.DecrementAddress(ref andAddress);
+			} 
+			else 
+			{
+				if ((address % this.telnet.Controller.ColumnCount) == this.telnet.Controller.ColumnCount - 1)
+				{
+					return true;
+				}
+				andAddress = address + (this.telnet.Controller.ColumnCount - (address % this.telnet.Controller.ColumnCount)) - 1;
+			}
+
+			if (andAddress > address) 
+			{
+				this.telnet.Controller.CopyBlock(address + 1, address, andAddress - address, false);
+			} 
+			else if (andAddress != address) 
+			{
+				this.telnet.Controller.CopyBlock(address + 1, address, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
+				this.telnet.Controller.AddCharacter((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1, this.telnet.Controller.ScreenBuffer[0], 0);
+				this.telnet.Controller.CopyBlock(1, 0, andAddress, false);
+			}
+
+			this.telnet.Controller.AddCharacter(andAddress, CG.CG_null, 0);
+			this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
+			return true;
+		}
+
+
+		public bool DeleteAction(params object[] args)
+		{
+			if (this.keyboardLock!=0) 
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(DeleteAction), args);
+				return true;
+			}
+			if (this.telnet.IsAnsi) 
+			{
+				this.telnet.SendByte(0x7f);
+				return true;
+			}
+			if (!this.DeleteCharacter())
+				return false;
+			if (this.reverseMode) 
+			{
+				int address = this.telnet.Controller.CursorAddress;
+
+				this.telnet.Controller.DecrementAddress(ref address);
+				if (!FA.IsFA(this.telnet.Controller.ScreenBuffer[address]))
+				{
+					this.telnet.Controller.SetCursorAddress(address);
+				}
+			}
+			return true;
+		}
+
+ 
+		public bool BackSpaceAction(params object[] args)
+		{
+			if (this.keyboardLock != 0) 
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(BackSpaceAction), args);
+				return true;
+			}
+			if (this.telnet.IsAnsi) 
+			{
+				this.telnet.SendErase();
+				return true;
+			}
+			if (this.reverseMode)
+			{
+				this.DeleteCharacter();
+			}
+			else if (!this.flipped)
+			{
+				this.MoveLeft();
+			}
+			else
+			{
+				int address;
+
+				address = this.telnet.Controller.CursorAddress;
+				this.telnet.Controller.DecrementAddress(ref address);
+				this.telnet.Controller.SetCursorAddress(address);
+			}
+			return true;
+		}
+
+ 
+
+		/// <summary>
+		/// Destructive backspace, like Unix "erase".
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool EraseAction(params object[] args)
+		{
+			int	address;
+			byte fa = this.telnet.Controller.FakeFA;
+			int faIndex;
+
+			if (this.keyboardLock != 0) 
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(EraseAction), args);
+				return true;
+			}
+			if (this.telnet.IsAnsi) 
+			{
+				this.telnet.SendErase();
+				return true;
+			}
+			address = this.telnet.Controller.CursorAddress;
+			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+			if (faIndex != -1)
+			{
+				fa = this.telnet.Controller.ScreenBuffer[faIndex];
+			}
+			if (faIndex == address || FA.IsProtected(fa)) 
+			{
+				this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
+				return false;
+			}
+			if (address != 0 && faIndex == address - 1)
+			{
+				return true;
+			}
+			this.MoveLeft();
+			this.DeleteCharacter();
+			return true;
+		}
+
+
+		/// <summary>
+		/// Move cursor right
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveRight(params object[] args)
+		{
+			int address;
+
+			if (this.keyboardLock!=0) 
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveRight), args);
+				return true;
+			}
+			if (this.telnet.IsAnsi) 
+			{
+				this.telnet.Ansi.ansi_send_right();
 				return true;
 			}
 			if (!flipped)
-				do_left();
-			else 
 			{
-				int	baddr;
-
-				baddr = telnet.Controller.CursorAddress;
-				telnet.Controller.IncrementAddress(ref baddr);
-				telnet.Controller.SetCursorAddress(baddr);
+				address = this.telnet.Controller.CursorAddress;
+				this.telnet.Controller.IncrementAddress(ref address);
+				this.telnet.Controller.SetCursorAddress(address);
 			}
-			return true;
-		}
-
- 
-		/*
-		 * Delete char key.
-		 * Returns "true" if succeeds, "false" otherwise.
-		 */
-		bool do_delete()
-		{
-			int	baddr, end_baddr;
-			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
-
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
-			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
-			{
-				operator_error(baddr, KL_OERR_PROTECTED);
-				return false;
-			}
-			/* find next fa */
-			if (telnet.Controller.Formatted) 
-			{
-				end_baddr = baddr;
-				do 
-				{
-					telnet.Controller.IncrementAddress(ref end_baddr);
-					if (FA.IsFA(telnet.Controller.ScreenBuffer[end_baddr]))
-						break;
-				} while (end_baddr != baddr);
-				telnet.Controller.DecrementAddress(ref end_baddr);
-			} 
-			else 
-			{
-				if ((baddr % telnet.Controller.ColumnCount) == telnet.Controller.ColumnCount - 1)
-					return true;
-				end_baddr = baddr + (telnet.Controller.ColumnCount - (baddr % telnet.Controller.ColumnCount)) - 1;
-			}
-			if (end_baddr > baddr) 
-			{
-				telnet.Controller.CopyBlock(baddr+1, baddr, end_baddr - baddr, false);
-			} 
-			else if (end_baddr != baddr) 
-			{
-				telnet.Controller.CopyBlock(baddr+1, baddr, ((telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1) - baddr, false);
-				telnet.Controller.AddCharacter((telnet.Controller.RowCount * telnet.Controller.ColumnCount) - 1, telnet.Controller.ScreenBuffer[0], 0);
-				telnet.Controller.CopyBlock(1, 0, end_baddr, false);
-			}
-			telnet.Controller.AddCharacter(end_baddr, CG.CG_null, 0);
-			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
-			return true;
-		}
-
-		public bool Delete_action(params object[] args)
-		{
-			if (kybdlock!=0) 
-			{
-				enq_ta(new ActionDelegate(Delete_action),args);
-				return true;
-			}
-			if (telnet.IsAnsi) 
-			{
-				telnet.SendByte(0x7f);
-				return true;
-			}
-			if (!do_delete())
-				return false;
-			if (reverse) 
-			{
-				int baddr = telnet.Controller.CursorAddress;
-
-				telnet.Controller.DecrementAddress(ref baddr);
-				if (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
-					telnet.Controller.SetCursorAddress(baddr);
-			}
-			return true;
-		}
-
- 
-		/*
-		 * Backspace.
-		 */
-		public bool BackSpace_action(params object[] args)
-		{
-			if (kybdlock!=0) 
-			{
-				enq_ta(new ActionDelegate(BackSpace_action), args);
-				return true;
-			}
-			if (telnet.IsAnsi) 
-			{
-				telnet.SendErase();
-				return true;
-			}
-			if (reverse)
-				do_delete();
-			else if (!flipped)
-				do_left();
-			else 
-			{
-				int	baddr;
-
-				baddr = telnet.Controller.CursorAddress;
-				telnet.Controller.DecrementAddress(ref baddr);
-				telnet.Controller.SetCursorAddress(baddr);
-			}
-			return true;
-		}
-
- 
-		/*
-		 * Destructive backspace, like Unix "erase".
-		 */
-		public bool Erase_action(params object[] args)
-		{
-			int	baddr;
-			byte fa = telnet.Controller.FakeFA;
-			int fa_index;
-	
-			if (kybdlock!=0) 
-			{
-				enq_ta(new ActionDelegate(Erase_action), args);
-				return true;
-			}
-			if (telnet.IsAnsi) 
-			{
-				telnet.SendErase();
-				return true;
-			}
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
-			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-			if (fa_index == baddr || FA.IsProtected(fa)) 
-			{
-				operator_error(baddr, KL_OERR_PROTECTED);
-				return false;
-			}
-			if (baddr!=0 && fa_index == baddr - 1)
-				return true;
-			do_left();
-			do_delete();
-			return true;
-		}
-
- 
-		/*
-		 * Cursor right 1 position.
-		 */
-		public bool Right_action(params object[] args)
-		{
-			int	baddr;
-
-			if (kybdlock!=0) 
-			{
-				enq_ta(new ActionDelegate(Right_action), args);
-				return true;
-			}
-			if (telnet.IsAnsi) 
-			{
-				telnet.Ansi.ansi_send_right();
-				return true;
-			}
-			if (!flipped) 
-			{
-				baddr = telnet.Controller.CursorAddress;
-				telnet.Controller.IncrementAddress(ref baddr);
-				telnet.Controller.SetCursorAddress(baddr);
-			} 
 			else
-				do_left();
+			{
+				MoveLeft();
+			}
 			return true;
 		}
 
  
-		/*
-		 * Cursor left 2 positions.
-		 */
-		public bool Left2_action(params object[] args)
+		/// <summary>
+		/// Move cursor left 2 positions.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveCursorLeft2Positions(params object[] args)
 		{
-			int	baddr;
+			int	address;
 
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Left2_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursorLeft2Positions), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+
+			if (this.telnet.IsAnsi)
+			{
 				return false;
-			baddr = telnet.Controller.CursorAddress;
-			telnet.Controller.DecrementAddress(ref baddr);
-			telnet.Controller.DecrementAddress(ref baddr);
-			telnet.Controller.SetCursorAddress(baddr);
+			}
+
+			address = this.telnet.Controller.CursorAddress;
+			this.telnet.Controller.DecrementAddress(ref address);
+			this.telnet.Controller.DecrementAddress(ref address);
+			this.telnet.Controller.SetCursorAddress(address);
 			return true;
 		}
 
  
-		/*
-		 * Cursor to previous word.
-		 */
-		public bool PreviousWord_action(params object[] args)
+	
+		/// <summary>
+		/// Move cursor to previous word.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool PreviousWordAction(params object[] args)
 		{
-			int baddr;
-			int baddr0;
-			byte  c;
+			int address;
+			int address0;
+			byte c;
 			bool prot;
 
-	
-			if (kybdlock!=0) 
+
+			if (this.keyboardLock != 0) 
 			{
-				enq_ta(new ActionDelegate(PreviousWord_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(PreviousWordAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
+			{
 				return false;
-			if (!telnet.Controller.Formatted)
+			}
+			if (!this.telnet.Controller.Formatted)
+			{
 				return false;
+			}
 
-			baddr = telnet.Controller.CursorAddress;
-			prot = FA.IsProtectedAt(telnet.Controller.ScreenBuffer, baddr);
+			address = this.telnet.Controller.CursorAddress;
+			prot = FA.IsProtectedAt(this.telnet.Controller.ScreenBuffer, address);
 
-			/* Skip to before this word, if in one now. */
+			//Skip to before this word, if in one now.
 			if (!prot) 
 			{
-				c = telnet.Controller.ScreenBuffer[baddr];
+				c = this.telnet.Controller.ScreenBuffer[address];
 				while (!FA.IsFA(c) && c != CG.CG_space && c != CG.CG_null) 
 				{
-					telnet.Controller.DecrementAddress(ref baddr);
-					if (baddr == telnet.Controller.CursorAddress)
+					this.telnet.Controller.DecrementAddress(ref address);
+					if (address == this.telnet.Controller.CursorAddress)
 						return true;
-					c = telnet.Controller.ScreenBuffer[baddr];
+					c = this.telnet.Controller.ScreenBuffer[address];
 				}
 			}
-			baddr0 = baddr;
+			address0 = address;
 
-			/* Find the end of the preceding word. */
+			//Find the end of the preceding word.
 			do 
 			{
-				c = telnet.Controller.ScreenBuffer[baddr];
+				c = this.telnet.Controller.ScreenBuffer[address];
 				if (FA.IsFA(c)) 
 				{
-					telnet.Controller.DecrementAddress(ref baddr);
-					prot = FA.IsProtectedAt(telnet.Controller.ScreenBuffer, baddr);
+					this.telnet.Controller.DecrementAddress(ref address);
+					prot = FA.IsProtectedAt(this.telnet.Controller.ScreenBuffer, address);
 					continue;
 				}
 				if (!prot && c != CG.CG_space && c != CG.CG_null)
 					break;
-				telnet.Controller.DecrementAddress(ref baddr);
-			} while (baddr != baddr0);
+				this.telnet.Controller.DecrementAddress(ref address);
+			} while (address != address0);
 
-			if (baddr == baddr0)
-				return true;
-
-			/* Go it its front. */
-			for (;;) 
+			if (address == address0)
 			{
-				telnet.Controller.DecrementAddress(ref baddr);
-				c = telnet.Controller.ScreenBuffer[baddr];
-				if (FA.IsFA(c) || c == CG.CG_space || c == CG.CG_null) 
-				{
-					break;
-				}
+				return true;
 			}
-			telnet.Controller.IncrementAddress(ref baddr);
-			telnet.Controller.SetCursorAddress(baddr);
+
+			// Go to the front.
+			do
+			{
+				this.telnet.Controller.DecrementAddress(ref address);
+				c = this.telnet.Controller.ScreenBuffer[address];
+			}
+			while (!FA.IsFA(c) && c != CG.CG_space && c != CG.CG_null);
+
+			this.telnet.Controller.IncrementAddress(ref address);
+			this.telnet.Controller.SetCursorAddress(address);
 			return true;
 		}
 
  
-		/*
-		 * Cursor right 2 positions.
-		 */
-		public bool Right2_action(params object[] args)
-		{
-			int	baddr;
 
-			if (kybdlock!=0) 
+
+		/// <summary>
+		/// Move cursor right 2 positions.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveCursorRight2Positions(params object[] args)
+		{
+			int	address;
+
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Right2_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursorRight2Positions), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
+			{
 				return false;
-			baddr = telnet.Controller.CursorAddress;
-			telnet.Controller.IncrementAddress(ref baddr);
-			telnet.Controller.IncrementAddress(ref baddr);
-			telnet.Controller.SetCursorAddress(baddr);
+			}
+			address = this.telnet.Controller.CursorAddress;
+			this.telnet.Controller.IncrementAddress(ref address);
+			this.telnet.Controller.IncrementAddress(ref address);
+			this.telnet.Controller.SetCursorAddress(address);
 			return true;
 		}
 
  
-		/* Find the next unprotected word, or -1 */
-		int nu_word(int baddr)
+
+		/// <summary>
+		/// Find the next unprotected word
+		/// </summary>
+		/// <param name="baseAddress"></param>
+		/// <returns>-1 if unsuccessful</returns>
+		int FindNextUnprotectedWord(int baseAddress)
 		{
-			int baddr0 = baddr;
+			int address0 = baseAddress;
 			byte c;
 			bool prot;
 
-			prot = FA.IsProtectedAt(telnet.Controller.ScreenBuffer, baddr);
+			prot = FA.IsProtectedAt(this.telnet.Controller.ScreenBuffer, baseAddress);
 
 			do 
 			{
-				c = telnet.Controller.ScreenBuffer[baddr];
+				c = this.telnet.Controller.ScreenBuffer[baseAddress];
 				if (FA.IsFA(c))
+				{
 					prot = FA.IsProtected(c);
+				}
 				else if (!prot && c != CG.CG_space && c != CG.CG_null)
-					return baddr;
-				telnet.Controller.IncrementAddress(ref baddr);
-			} while (baddr != baddr0);
+				{
+					return baseAddress;
+				}
+				this.telnet.Controller.IncrementAddress(ref baseAddress);
+
+			} while (baseAddress != address0);
 
 			return -1;
 		}
 
-		/* Find the next word in this field, or -1 */
-		int nt_word(int baddr)
+
+
+		/// <summary>
+		/// Find the next word in this field
+		/// </summary>
+		/// <param name="baseAddress"></param>
+		/// <returns>-1 when unsuccessful</returns>
+		int FindNextWordInField(int baseAddress)
 		{
-			int baddr0 = baddr;
+			int address0 = baseAddress;
 			byte c;
-			bool in_word = true;
+			bool inWord = true;
 
 			do 
 			{
-				c = telnet.Controller.ScreenBuffer[baddr];
+				c = this.telnet.Controller.ScreenBuffer[baseAddress];
 				if (FA.IsFA(c))
+				{
 					return -1;
-				if (in_word) 
+				}
+
+				if (inWord) 
 				{
 					if (c == CG.CG_space || c == CG.CG_null)
-						in_word = false;
+					{
+						inWord = false;
+					}
 				} 
 				else 
 				{
 					if (c != CG.CG_space && c != CG.CG_null)
-						return baddr;
+					{
+						return baseAddress;
+					}
 				}
-				telnet.Controller.IncrementAddress(ref baddr);
-			} while (baddr != baddr0);
+
+				this.telnet.Controller.IncrementAddress(ref baseAddress);
+			} while (baseAddress != address0);
 
 			return -1;
 		}
 
 
-		/*
-		 * Cursor to next unprotected word.
-		 */
-		public bool NextWord_action(params object[] args)
+
+		/// <summary>
+		/// Cursor to next unprotected word.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveCursorToNextUnprotectedWord(params object[] args)
 		{
-			int	baddr;
+			int	address;
 			byte c;
 
-			if (kybdlock!=0) 
+			if (this.keyboardLock != 0) 
 			{
-				enq_ta(new ActionDelegate(NextWord_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursorToNextUnprotectedWord), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+
+			if (this.telnet.IsAnsi)
+			{
 				return false;
+			}
 			if (!telnet.Controller.Formatted)
-				return false;
-
-			/* If not in an unprotected field, go to the next unprotected word. */
-			if (FA.IsFA(telnet.Controller.ScreenBuffer[telnet.Controller.CursorAddress]) ||
-				FA.IsProtectedAt(telnet.Controller.ScreenBuffer, telnet.Controller.CursorAddress)) 
 			{
-				baddr = nu_word(telnet.Controller.CursorAddress);
-				if (baddr != -1)
-					telnet.Controller.SetCursorAddress(baddr);
+				return false;
+			}
+
+			// If not in an unprotected field, go to the next unprotected word.
+			if (FA.IsFA(this.telnet.Controller.ScreenBuffer[telnet.Controller.CursorAddress]) ||
+				FA.IsProtectedAt(this.telnet.Controller.ScreenBuffer, this.telnet.Controller.CursorAddress)) 
+			{
+				address = this.FindNextUnprotectedWord(this.telnet.Controller.CursorAddress);
+				if (address != -1)
+				{
+					this.telnet.Controller.SetCursorAddress(address);
+				}
 				return true;
 			}
 
-			/* If there's another word in this field, go to it. */
-			baddr = nt_word(telnet.Controller.CursorAddress);
-			if (baddr != -1) 
+			// If there's another word in this field, go to it.
+			address = this.FindNextWordInField(this.telnet.Controller.CursorAddress);
+			if (address != -1) 
 			{
-				telnet.Controller.SetCursorAddress(baddr);
+				this.telnet.Controller.SetCursorAddress(address);
 				return true;
 			}
 
 			/* If in a word, go to just after its end. */
-			c = telnet.Controller.ScreenBuffer[telnet.Controller.CursorAddress];
+			c = this.telnet.Controller.ScreenBuffer[telnet.Controller.CursorAddress];
 			if (c != CG.CG_space && c != CG.CG_null) 
 			{
-				baddr = telnet.Controller.CursorAddress;
+				address = this.telnet.Controller.CursorAddress;
 				do 
 				{
-					c = telnet.Controller.ScreenBuffer[baddr];
+					c = this.telnet.Controller.ScreenBuffer[address];
 					if (c == CG.CG_space || c == CG.CG_null) 
 					{
-						telnet.Controller.SetCursorAddress(baddr);
+						this.telnet.Controller.SetCursorAddress(address);
 						return true;
 					} 
 					else if (FA.IsFA(c)) 
 					{
-						baddr = nu_word(baddr);
-						if (baddr != -1)
-							telnet.Controller.SetCursorAddress(baddr);
+						address = this.FindNextUnprotectedWord(address);
+						if (address != -1)
+						{
+							this.telnet.Controller.SetCursorAddress(address);
+						}
 						return true;
 					}
-					telnet.Controller.IncrementAddress(ref baddr);
-				} while (baddr != telnet.Controller.CursorAddress);
+					this.telnet.Controller.IncrementAddress(ref address);
+				} while (address != this.telnet.Controller.CursorAddress);
 			}
-				/* Otherwise, go to the next unprotected word. */
+				//Otherwise, go to the next unprotected word.
 			else 
 			{
-				baddr = nu_word(telnet.Controller.CursorAddress);
-				if (baddr != -1)
-					telnet.Controller.SetCursorAddress(baddr);
+				address = FindNextUnprotectedWord(this.telnet.Controller.CursorAddress);
+				if (address != -1)
+				{
+					this.telnet.Controller.SetCursorAddress(address);
+				}
 			}
 			return true;
 		}
 
  
-		/*
-		 * Cursor up 1 position.
-		 */
-		public bool Up_action(params object[] args)
-		{
-			int	baddr;
 
-			if (kybdlock!=0) 
+		/// <summary>
+		/// Cursor up 1 position.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveCursorUp(params object[] args)
+		{
+			int	address;
+
+			if (this.keyboardLock != 0) 
 			{
-				enq_ta(new ActionDelegate(Up_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursorUp), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.Ansi.ansi_send_up();
+				this.telnet.Ansi.ansi_send_up();
 				return true;
 			}
-			baddr = telnet.Controller.CursorAddress - telnet.Controller.ColumnCount;
-			if (baddr < 0)
-				baddr = (telnet.Controller.CursorAddress + (telnet.Controller.RowCount * telnet.Controller.ColumnCount)) - telnet.Controller.ColumnCount;
-			telnet.Controller.SetCursorAddress(baddr);
+
+			address = this.telnet.Controller.CursorAddress - this.telnet.Controller.ColumnCount;
+
+			if (address < 0)
+			{
+				address = (this.telnet.Controller.CursorAddress + (this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount)) - this.telnet.Controller.ColumnCount;
+			}
+
+			this.telnet.Controller.SetCursorAddress(address);
 			return true;
 		}
 
  
-		/*
-		 * Cursor down 1 position.
-		 */
-		public bool Down_action(params object[] args)
-		{
-			int	baddr;
 
-			if (kybdlock!=0) 
+		/// <summary>
+		/// Cursor down 1 position.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveCursorDown(params object[] args)
+		{
+			int	address;
+
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Down_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursorDown), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.Ansi.ansi_send_down();
+				this.telnet.Ansi.ansi_send_down();
 				return true;
 			}
-			baddr = (telnet.Controller.CursorAddress + telnet.Controller.ColumnCount) % (telnet.Controller.ColumnCount * telnet.Controller.RowCount);
-			telnet.Controller.SetCursorAddress(baddr);
+
+			address = (this.telnet.Controller.CursorAddress + this.telnet.Controller.ColumnCount) % (this.telnet.Controller.ColumnCount * this.telnet.Controller.RowCount);
+			this.telnet.Controller.SetCursorAddress(address);
 			return true;
 		}
 
  
-		/*
-		 * Cursor to first field on next line or any lines after that.
-		 */
-		public bool Newline_action(params object[] args)
-		{
-			int	baddr;
-			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
-	
 
-			if (kybdlock!=0) 
+		/// <summary>
+		/// Cursor to first field on next line or any lines after that.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool MoveCursorToNewLine(params object[] args)
+		{
+			int	address;
+			int faIndex;
+			byte fa = this.telnet.Controller.FakeFA;
+
+
+			if (this.keyboardLock != 0) 
 			{
-				enq_ta(new ActionDelegate(Newline_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursorToNewLine), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.SendChar('\n');
+				this.telnet.SendChar('\n');
 				return false;
 			}
-			baddr = (telnet.Controller.CursorAddress + telnet.Controller.ColumnCount) % (telnet.Controller.ColumnCount * telnet.Controller.RowCount);	/* down */
-			baddr = (baddr / telnet.Controller.ColumnCount) * telnet.Controller.ColumnCount;			/* 1st col */
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
-			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-			//
-			if (fa_index != baddr && !FA.IsProtected(fa))
-				telnet.Controller.SetCursorAddress(baddr);
+
+			address = (this.telnet.Controller.CursorAddress + this.telnet.Controller.ColumnCount) % (this.telnet.Controller.ColumnCount * this.telnet.Controller.RowCount);	/* down */
+			address = (address / this.telnet.Controller.ColumnCount) * this.telnet.Controller.ColumnCount;			/* 1st col */
+			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+
+			if (faIndex != -1)
+			{
+				fa = this.telnet.Controller.ScreenBuffer[faIndex];
+			}
+			if (faIndex != address && !FA.IsProtected(fa))
+			{
+				this.telnet.Controller.SetCursorAddress(address);
+			}
 			else
-				telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(baddr));
+			{
+				this.telnet.Controller.SetCursorAddress(this.telnet.Controller.GetNextUnprotectedField(address));
+			}
 			return true;
 		}
 
  
-		/*
-		 * DUP key
-		 */
-		public bool Dup_action(params object[] args)
+
+		/// <summary>
+		/// DUP key
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool DupAction(params object[] args)
 		{
-			if (kybdlock!=0) 
+			if (this.keyboardLock != 0) 
 			{
-				enq_ta(new ActionDelegate(Dup_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(DupAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
 				return false;
-			if (key_Character(CG.CG_dup, false, false))
-				telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.CursorAddress));
+			if (HandleOrdinaryCharacter(CG.CG_dup, false, false))
+				this.telnet.Controller.SetCursorAddress(this.telnet.Controller.GetNextUnprotectedField(this.telnet.Controller.CursorAddress));
 			return true;
 		}
 
  
-		/*
-		 * FM key
-		 */
-		public bool FieldMark_action(params object[] args)
+		/// <summary>
+		/// FM key
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool FieldMarkAction(params object[] args)
 		{
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(FieldMark_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(FieldMarkAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
+			{
 				return false;
-			key_Character(CG.CG_fm, false, false);
+			}
+			this.HandleOrdinaryCharacter(CG.CG_fm, false, false);
 			return true;
 		}
 
  
-		/*
-		 * Vanilla AID keys.
-		 */
-		public bool Enter_action(params object[] args)
+
+		/// <summary>
+		/// Vanilla AID keys
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool EnterAction(params object[] args)
 		{
-			if ((kybdlock & KL_OIA_MINUS)!=0)
+			if ((this.keyboardLock & KeyboardConstants.OiaMinus) != 0)
+			{
 				return false;
-			else if (kybdlock!=0)
-				enq_ta(new ActionDelegate(Enter_action), args);
+			}
+			else if (this.keyboardLock != 0)
+			{
+				this.EnqueueTypeAheadAction(new ActionDelegate(EnterAction), args);
+			}
 			else
-				key_AID(AID.Enter);
+			{
+				this.HandleAttentionIdentifierKey(AID.Enter);
+			}
 			return true;
 		}
 
 
-		public bool SysReq_action(params object[] args)
+		public bool SystemRequestAction(params object[] args)
 		{
-			if (telnet.IsAnsi)
-				return false;
-			if (telnet.IsE) 
+			if (this.telnet.IsAnsi)
 			{
-				telnet.Abort();
+				return false;
+			}
+			if (this.telnet.IsE) 
+			{
+				this.telnet.Abort();
 			} 
 			else
 			{
-				if ((kybdlock & KL_OIA_MINUS)!=0)
+				if ((this.keyboardLock & KeyboardConstants.OiaMinus) != 0)
+				{
 					return false;
-				else if (kybdlock!=0)
-					enq_ta(new ActionDelegate(SysReq_action), args);
+				}
+				else if (this.keyboardLock != 0)
+				{
+					this.EnqueueTypeAheadAction(new ActionDelegate(SystemRequestAction), args);
+				}
 				else
-					key_AID(AID.SysReq);
+				{
+					this.HandleAttentionIdentifierKey(AID.SysReq);
+				}
 			}
 			return true;
 		}
 
  
-		/*
-		 * Clear AID key
-		 */
-		public bool Clear_action(params object[] args)
+
+		/// <summary>
+		/// Clear AID key
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool ClearAction(params object[] args)
 		{
-	
-			if ((kybdlock & KL_OIA_MINUS)!=0)
+			if ((this.keyboardLock & KeyboardConstants.OiaMinus) != 0)
 			{
 				return false;
 			}
-			if (kybdlock!=0 && telnet.IsConnected) 
+
+			if (this.keyboardLock!=0 && this.telnet.IsConnected) 
 			{
-				enq_ta(new ActionDelegate(Clear_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(ClearAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.Ansi.ansi_send_clear();
+				this.telnet.Ansi.ansi_send_clear();
 				return true;
 			}
-			telnet.Controller.BufferAddress = 0;
-			telnet.Controller.Clear(true);
-			telnet.Controller.SetCursorAddress(0);
-			if (telnet.IsConnected)
-				key_AID(AID.Clear);
+
+			this.telnet.Controller.BufferAddress = 0;
+			this.telnet.Controller.Clear(true);
+			this.telnet.Controller.SetCursorAddress(0);
+
+			if (this.telnet.IsConnected)
+			{
+				this.HandleAttentionIdentifierKey(AID.Clear);
+			}
 			return true;
 		}
 
  
-		/*
-		 * Cursor Select key (light pen simulator).
-		 */
-		void lightpen_select(int baddr)
+
+		/// <summary>
+		/// Cursor Select key (light pen simulator).
+		/// </summary>
+		/// <param name="address"></param>
+		void LightPenSelect(int address)
 		{
-			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			int faIndex;
+			byte fa = this.telnet.Controller.FakeFA;
 			byte sel;
-			//, *sel;
 			int designator;
 
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
-			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-			//
+			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+
+			if (faIndex != -1)
+			{
+				fa = this.telnet.Controller.ScreenBuffer[faIndex];
+			}
+
 			if (!FA.IsSelectable(fa)) 
 			{
 				//ring_bell();
 				return;
 			}
-			sel = telnet.Controller.ScreenBuffer[fa_index+1];
-			//sel = fa + 1;
-			designator = fa_index+1;//sel - screen_buf;
+
+			sel = this.telnet.Controller.ScreenBuffer[faIndex+1];
+
+			designator = faIndex+1;
+
 			switch (sel) 
 			{
 				case CG.CG_greater:		/* > */
-					telnet.Controller.AddCharacter(designator, CG.CG_question, 0); /* change to ? */
-					telnet.Controller.MDTClear(telnet.Controller.ScreenBuffer, fa_index);
+					this.telnet.Controller.AddCharacter(designator, CG.CG_question, 0); /* change to ? */
+					this.telnet.Controller.MDTClear(this.telnet.Controller.ScreenBuffer, faIndex);
 					break;
 				case CG.CG_question:		/* ? */
-					telnet.Controller.AddCharacter(designator, CG.CG_greater, 0);	/* change to > */
-					telnet.Controller.MDTClear(telnet.Controller.ScreenBuffer, fa_index);
+					this.telnet.Controller.AddCharacter(designator, CG.CG_greater, 0);	/* change to > */
+					this.telnet.Controller.MDTClear(this.telnet.Controller.ScreenBuffer, faIndex);
 					break;
 				case CG.CG_space:		/* space */
 				case CG.CG_null:		/* null */
-					key_AID(AID.SELECT);
+					this.HandleAttentionIdentifierKey(AID.SELECT);
 					break;
 				case CG.CG_ampersand:		/* & */
-					telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
-					key_AID(AID.Enter);
+					this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
+					this.HandleAttentionIdentifierKey(AID.Enter);
 					break;
 				default:
 					//ring_bell();
@@ -1748,247 +1934,294 @@ namespace Open3270.TN3270
 			return;
 		}
 
-		/*
-		 * Cursor Select key (light pen simulator) -- at the current cursor location.
-		 */
-		public bool CursorSelect_action(params object[] args)
+
+		/// <summary>
+		/// Cursor Select key (light pen simulator) -- at the current cursor location.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool CursorSelectAction(params object[] args)
 		{
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(CursorSelect_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(CursorSelectAction), args);
 				return true;
 			}
 
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
+			{
 				return false;
-			lightpen_select(telnet.Controller.CursorAddress);
+			}
+			this.LightPenSelect(this.telnet.Controller.CursorAddress);
 			return true;
 		}
 
 
  
-		/*
-		 * Erase End Of Field Key.
-		 */
-		public bool EraseEOF_action(params object[] args)
+		/// <summary>
+		/// Erase End Of Field Key.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool EraseEndOfFieldAaction(params object[] args)
 		{
-			int	baddr;
-			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			int	address;
+			int faIndex;
+			byte fa = this.telnet.Controller.FakeFA;
 
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(EraseEOF_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(EraseEndOfFieldAaction), args);
 				return false;
 			}
-			if (telnet.IsAnsi)
-				return false;
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
-			if (fa_index!=-1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
+
+			if (this.telnet.IsAnsi)
 			{
-				operator_error(baddr, KL_OERR_PROTECTED);
 				return false;
 			}
-			if (telnet.Controller.Formatted) 
-			{	/* erase to next field attribute */
+
+			address = this.telnet.Controller.CursorAddress;
+			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+
+			if (faIndex != -1)
+			{
+				fa = this.telnet.Controller.ScreenBuffer[faIndex];
+			}
+
+			if (FA.IsProtected(fa) || FA.IsFA(this.telnet.Controller.ScreenBuffer[address])) 
+			{
+				HandleOperatorError(address, KeyboardConstants.ErrorProtected);
+				return false;
+			}
+
+			if (this.telnet.Controller.Formatted) 
+			{	
+				//Erase to next field attribute
 				do 
 				{
-					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
-					telnet.Controller.IncrementAddress(ref baddr);
-				} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
-				telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
+					this.telnet.Controller.AddCharacter(address, CG.CG_null, 0);
+					this.telnet.Controller.IncrementAddress(ref address);
+				} while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[address]));
+
+				this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
 			} 
 			else 
-			{	/* erase to end of screen */
+			{	
+				//Erase to end of screen
 				do 
 				{
-					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
-					telnet.Controller.IncrementAddress(ref baddr);
-				} while (baddr != 0);
+					this.telnet.Controller.AddCharacter(address, CG.CG_null, 0);
+					this.telnet.Controller.IncrementAddress(ref address);
+				} while (address != 0);
 			}
 			return true;
 		}
 
  
-		/*
-		 * Erase all Input Key.
-		 */
-		public bool EraseInput_action(params object[] args)
+
+		/// <summary>
+		/// Erase all Input Key.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool EraseInputAction(params object[] args)
 		{
-			int	baddr, sbaddr;
-			byte	fa = telnet.Controller.FakeFA;
-//			int fa_index;
-			Boolean		f;
+			int address, sbAddress;
+			byte fa = this.telnet.Controller.FakeFA;
+			Boolean f;
 
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(EraseInput_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(EraseInputAction), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+
+			if (this.telnet.IsAnsi)
+			{
 				return false;
-			if (telnet.Controller.Formatted) 
+			}
+
+			if (this.telnet.Controller.Formatted) 
 			{
 				/* find first field attribute */
-				baddr = 0;
+				address = 0;
 				do 
 				{
-					if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
+					if (FA.IsFA(this.telnet.Controller.ScreenBuffer[address]))
+					{
 						break;
-					telnet.Controller.IncrementAddress(ref baddr);
-				} while (baddr != 0);
-				sbaddr = baddr;
+					}
+					this.telnet.Controller.IncrementAddress(ref address);
+				} while (address != 0);
+
+				sbAddress = address;
 				f = false;
+
 				do 
 				{
-					fa = telnet.Controller.ScreenBuffer[baddr];
+					fa = this.telnet.Controller.ScreenBuffer[address];
 					if (!FA.IsProtected(fa)) 
 					{
-						telnet.Controller.MDTClear(telnet.Controller.ScreenBuffer, baddr);
+						this.telnet.Controller.MDTClear(this.telnet.Controller.ScreenBuffer, address);
 						do 
 						{
-							telnet.Controller.IncrementAddress(ref baddr);
+							this.telnet.Controller.IncrementAddress(ref address);
 							if (!f) 
 							{
-								telnet.Controller.SetCursorAddress(baddr);
+								this.telnet.Controller.SetCursorAddress(address);
 								f = true;
 							}
-							if (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
+
+							if (!FA.IsFA(this.telnet.Controller.ScreenBuffer[address])) 
 							{
-								telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+								this.telnet.Controller.AddCharacter(address, CG.CG_null, 0);
 							}
-						}		while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
+						}	while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[address]));
 					} 
 					else 
 					{	/* skip protected */
 						do 
 						{
-							telnet.Controller.IncrementAddress(ref baddr);
-						} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
+							this.telnet.Controller.IncrementAddress(ref address);
+						} while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[address]));
+
 					}
-				} while (baddr != sbaddr);
+				} while (address != sbAddress);
+
 				if (!f)
-					telnet.Controller.SetCursorAddress(0);
+				{
+					this.telnet.Controller.SetCursorAddress(0);
+				}
 			} 
 			else 
 			{
-				telnet.Controller.Clear(true);
-				telnet.Controller.SetCursorAddress(0);
+				this.telnet.Controller.Clear(true);
+				this.telnet.Controller.SetCursorAddress(0);
 			}
 			return true;
 		}
 
 
  
-		/*
-		 * Delete word key.  Backspaces the cursor until it hits the front of a word,
-		 * deletes characters until it hits a blank or null, and deletes all of these
-		 * but the last.
-		 *
-		 * Which is to say, does a ^W.
-		 */
-		public bool DeleteWord_action(params object[] args)
+	
+		/// <summary>
+		/// Delete word key.  Backspaces the cursor until it hits the front of a word, deletes characters until it hits a blank or null, 
+		///and deletes all of these but the last. Which is to say, does a ^W.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool DeleteWordAction(params object[] args)
 		{
-			int	baddr, baddr2, front_baddr, back_baddr, end_baddr;
-			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			int	address, address2, frontAddress, backAddress, endAddress;
+			int faIndex;
+			byte fa = this.telnet.Controller.FakeFA;
 	
 
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(DeleteWord_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(DeleteWordAction), args);
 				return false;
 			}
-			if (telnet.IsAnsi) 
+
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.SendWErase();
+				this.telnet.SendWErase();
 				return true;
 			}
+
 			if (!telnet.Controller.Formatted)
-				return true;
-
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
-			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-
-			/* Make sure we're on a modifiable field. */
-			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
 			{
-				operator_error(baddr, KL_OERR_PROTECTED);
+				return true;
+			}
+
+			address = this.telnet.Controller.CursorAddress;
+			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+			if (faIndex != -1)
+			{
+				fa = this.telnet.Controller.ScreenBuffer[faIndex];
+			}
+
+			// Make sure we're on a modifiable field.
+			if (FA.IsProtected(fa) || FA.IsFA(this.telnet.Controller.ScreenBuffer[address])) 
+			{
+				this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
 				return false;
 			}
 
-			/* Search backwards for a non-blank character. */
-			front_baddr = baddr;
-			while (telnet.Controller.ScreenBuffer[front_baddr] == CG.CG_space ||
-				telnet.Controller.ScreenBuffer[front_baddr] == CG.CG_null)
-				telnet.Controller.DecrementAddress(ref front_baddr);
-
-			/* If we ran into the edge of the field without seeing any non-blanks,
-			   there isn't any word to delete; just move the cursor. */
-			if (FA.IsFA(telnet.Controller.ScreenBuffer[front_baddr])) 
+			//Search backwards for a non-blank character.
+			frontAddress = address;
+			while (this.telnet.Controller.ScreenBuffer[frontAddress] == CG.CG_space ||
+				this.telnet.Controller.ScreenBuffer[frontAddress] == CG.CG_null)
 			{
-				telnet.Controller.SetCursorAddress(front_baddr+1);
+				this.telnet.Controller.DecrementAddress(ref frontAddress);
+			}
+
+			//If we ran into the edge of the field without seeing any non-blanks,
+			//there isn't any word to delete; just move the cursor. 
+			if (FA.IsFA(this.telnet.Controller.ScreenBuffer[frontAddress])) 
+			{
+				this.telnet.Controller.SetCursorAddress(frontAddress+1);
 				return true;
 			}
 
-			/* front_baddr is now pointing at a non-blank character.  Now search
-			   for the first blank to the left of that (or the edge of the field),
-			   leaving front_baddr pointing at the the beginning of the word. */
-			while (!FA.IsFA(telnet.Controller.ScreenBuffer[front_baddr]) &&
-				telnet.Controller.ScreenBuffer[front_baddr] != CG.CG_space &&
-				telnet.Controller.ScreenBuffer[front_baddr] != CG.CG_null)
-				telnet.Controller.DecrementAddress(ref front_baddr);
-			telnet.Controller.IncrementAddress(ref front_baddr);
-
-			/* Find the end of the word, searching forward for the edge of the
-			   field or a non-blank. */
-			back_baddr = front_baddr;
-			while (!FA.IsFA(telnet.Controller.ScreenBuffer[back_baddr]) &&
-				telnet.Controller.ScreenBuffer[back_baddr] != CG.CG_space &&
-				telnet.Controller.ScreenBuffer[back_baddr] != CG.CG_null)
-				telnet.Controller.IncrementAddress(ref back_baddr);
-
-			/* Find the start of the next word, leaving back_baddr pointing at it
-			   or at the end of the field. */
-			while (telnet.Controller.ScreenBuffer[back_baddr] == CG.CG_space ||
-				telnet.Controller.ScreenBuffer[back_baddr] == CG.CG_null)
-				telnet.Controller.IncrementAddress(ref back_baddr);
-
-			/* Find the end of the field, leaving end_baddr pointing at the field
-			   attribute of the start of the next field. */
-			end_baddr = back_baddr;
-			while (!FA.IsFA(telnet.Controller.ScreenBuffer[end_baddr]))
-				telnet.Controller.IncrementAddress(ref end_baddr);
-
-			/* Copy any text to the right of the word we are deleting. */
-			baddr = front_baddr;
-			baddr2 = back_baddr;
-			while (baddr2 != end_baddr) 
+			//FrontAddress is now pointing at a non-blank character.  Now search for the first blank to the left of that
+			//(or the edge of the field), leaving frontAddress pointing at the the beginning of the word.
+			while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[frontAddress]) &&
+				this.telnet.Controller.ScreenBuffer[frontAddress] != CG.CG_space &&
+				this.telnet.Controller.ScreenBuffer[frontAddress] != CG.CG_null)
 			{
-				telnet.Controller.AddCharacter(baddr, telnet.Controller.ScreenBuffer[baddr2], 0);
-				telnet.Controller.IncrementAddress(ref baddr);
-				telnet.Controller.IncrementAddress(ref baddr2);
+				this.telnet.Controller.DecrementAddress(ref frontAddress);
 			}
 
-			/* Insert nulls to pad out the end of the field. */
-			while (baddr != end_baddr) 
+			this.telnet.Controller.IncrementAddress(ref frontAddress);
+
+			// Find the end of the word, searching forward for the edge of the field or a non-blank.
+			backAddress = frontAddress;
+			while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[backAddress]) &&
+				this.telnet.Controller.ScreenBuffer[backAddress] != CG.CG_space &&
+				this.telnet.Controller.ScreenBuffer[backAddress] != CG.CG_null)
 			{
-				telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
-				telnet.Controller.IncrementAddress(ref baddr);
+				this.telnet.Controller.IncrementAddress(ref backAddress);
 			}
 
-			/* Set the MDT and move the cursor. */
-			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
-			telnet.Controller.SetCursorAddress(front_baddr);
+			//Find the start of the next word, leaving back_baddr pointing at it or at the end of the field.
+			while (this.telnet.Controller.ScreenBuffer[backAddress] == CG.CG_space ||
+				this.telnet.Controller.ScreenBuffer[backAddress] == CG.CG_null)
+			{
+				this.telnet.Controller.IncrementAddress(ref backAddress);
+			}
+
+			// Find the end of the field, leaving end_baddr pointing at the field attribute of the start of the next field.
+			endAddress = backAddress;
+			while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[endAddress]))
+			{
+				this.telnet.Controller.IncrementAddress(ref endAddress);
+			}
+
+			//Copy any text to the right of the word we are deleting.
+			address = frontAddress;
+			address2 = backAddress;
+			while (address2 != endAddress) 
+			{
+				this.telnet.Controller.AddCharacter(address, this.telnet.Controller.ScreenBuffer[address2], 0);
+				this.telnet.Controller.IncrementAddress(ref address);
+				this.telnet.Controller.IncrementAddress(ref address2);
+			}
+
+			// Insert nulls to pad out the end of the field.
+			while (address != endAddress) 
+			{
+				this.telnet.Controller.AddCharacter(address, CG.CG_null, 0);
+				this.telnet.Controller.IncrementAddress(ref address);
+			}
+
+			// Set the MDT and move the cursor.
+			this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
+			this.telnet.Controller.SetCursorAddress(frontAddress);
 			return true;
 		}
 
@@ -2004,42 +2237,42 @@ namespace Open3270.TN3270
 		public bool DeleteField_action(params object[] args)
 		{
 			int	baddr;
-			byte fa = telnet.Controller.FakeFA;
+			byte fa = this.telnet.Controller.FakeFA;
 			int fa_index;
 
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(DeleteField_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(DeleteField_action), args);
 				return true;
 			}
-			if (telnet.IsAnsi) 
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.SendKill();
+				this.telnet.SendKill();
 				return true;
 			}
 			if (!telnet.Controller.Formatted)
 				return false;
 
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
+			baddr = this.telnet.Controller.CursorAddress;
+			fa_index = this.telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
-			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
+				fa = this.telnet.Controller.ScreenBuffer[fa_index];
+			if (FA.IsProtected(fa) || FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr])) 
 			{
-				operator_error(baddr, KL_OERR_PROTECTED);
+				HandleOperatorError(baddr, KeyboardConstants.ErrorProtected);
 				return false;
 			}
-			while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
-				telnet.Controller.DecrementAddress(ref baddr);
-			telnet.Controller.IncrementAddress(ref baddr);
-			telnet.Controller.SetCursorAddress(baddr);
-			while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
+			while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr]))
+				this.telnet.Controller.DecrementAddress(ref baddr);
+			this.telnet.Controller.IncrementAddress(ref baddr);
+			this.telnet.Controller.SetCursorAddress(baddr);
+			while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr])) 
 			{
-				telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
-				telnet.Controller.IncrementAddress(ref baddr);
+				this.telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+				this.telnet.Controller.IncrementAddress(ref baddr);
 			}
-			telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
+			this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, fa_index);
 			return true;
 		}
 
@@ -2051,14 +2284,14 @@ namespace Open3270.TN3270
 		public bool Insert_action(params object[] args)
 		{
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(Insert_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(Insert_action), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
 				return false;
-			insert_mode(true);
+			this.insertMode = true;
 			return true;
 		}
 
@@ -2069,17 +2302,17 @@ namespace Open3270.TN3270
 		public bool ToggleInsert_action(params object[] args)
 		{
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(ToggleInsert_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(ToggleInsert_action), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
 				return false;
-			if (insert)
-				insert_mode(false);
+			if (insertMode)
+				this.insertMode = false;
 			else
-				insert_mode(true);
+				this.insertMode = true;
 			return true;
 		}
 
@@ -2090,14 +2323,14 @@ namespace Open3270.TN3270
 		public bool ToggleReverse_action(params object[] args)
 		{
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(ToggleReverse_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(ToggleReverse_action), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
 				return false;
-			reverse_mode(!reverse);
+			this.reverseMode = !this.reverseMode;
 			return true;
 		}
 
@@ -2110,33 +2343,33 @@ namespace Open3270.TN3270
 		{
 			int	baddr;
 			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			byte fa = this.telnet.Controller.FakeFA;
 			byte c;
 			int	last_nonblank = -1;
 
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(FieldEnd_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(FieldEnd_action), args);
 				return true;
 			}
-			if (telnet.IsAnsi)
+			if (this.telnet.IsAnsi)
 				return false;
 			if (!telnet.Controller.Formatted)
 				return false;
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
+			baddr = this.telnet.Controller.CursorAddress;
+			fa_index = this.telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index != -1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
+				fa = this.telnet.Controller.ScreenBuffer[fa_index];
 			//
-			if (fa_index == telnet.Controller.ScreenBuffer[baddr] || FA.IsProtected(fa))
+			if (fa_index == this.telnet.Controller.ScreenBuffer[baddr] || FA.IsProtected(fa))
 				return false;
 
 			baddr = fa_index;
 			while (true) 
 			{
-				telnet.Controller.IncrementAddress(ref baddr);
-				c = telnet.Controller.ScreenBuffer[baddr];
+				this.telnet.Controller.IncrementAddress(ref baddr);
+				c = this.telnet.Controller.ScreenBuffer[baddr];
 				if (FA.IsFA(c))
 					break;
 				if (c != CG.CG_null && c != CG.CG_space)
@@ -2145,17 +2378,17 @@ namespace Open3270.TN3270
 
 			if (last_nonblank == -1) 
 			{
-				baddr = fa_index;// - telnet.tnctlr.screen_buf;
-				telnet.Controller.IncrementAddress(ref baddr);
+				baddr = fa_index;// - this.telnet.tnctlr.screen_buf;
+				this.telnet.Controller.IncrementAddress(ref baddr);
 			} 
 			else 
 			{
 				baddr = last_nonblank;
-				telnet.Controller.IncrementAddress(ref baddr);
-				if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
+				this.telnet.Controller.IncrementAddress(ref baddr);
+				if (FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr]))
 					baddr = last_nonblank;
 			}
-			telnet.Controller.SetCursorAddress(baddr);
+			this.telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
@@ -2169,10 +2402,10 @@ namespace Open3270.TN3270
 			int row, col;
 
 	
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
 				if (args.Length == 2)
-					enq_ta(new ActionDelegate(MoveCursor_action), args);
+					this.EnqueueTypeAheadAction(new ActionDelegate(MoveCursor_action), args);
 				return true;
 			}
 
@@ -2190,12 +2423,12 @@ namespace Open3270.TN3270
 						row = 0;
 					if (col < 0)
 						col = 0;
-					baddr = ((row * telnet.Controller.ColumnCount) + col) % (telnet.Controller.RowCount * telnet.Controller.ColumnCount);
+					baddr = ((row * this.telnet.Controller.ColumnCount) + col) % (this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount);
 //					printf("--MoveCursor baddr=%d\n", baddr);
-					telnet.Controller.SetCursorAddress(baddr);
+					this.telnet.Controller.SetCursorAddress(baddr);
 					break;
 				default:		/* couln't say */
-					telnet.Events.popup_an_error("MoveCursor_action requires 0 or 2 arguments");
+					this.telnet.Events.popup_an_error("MoveCursor_action requires 0 or 2 arguments");
 					break;
 			}
 			return true;
@@ -2211,7 +2444,7 @@ namespace Open3270.TN3270
 		{
 			int i;
 			int k;
-			enum_keytype keytype;
+			KeyType keytype;
 
 	
 			for (i = 0; i < args.Length; i++) 
@@ -2219,17 +2452,17 @@ namespace Open3270.TN3270
 				string s = args[i] as String;
 		
 				k = MyStringToKeysym(s, out keytype);
-				if (k == NoSymbol) 
+				if (k == KeyboardConstants.NoSymbol) 
 				{
-					telnet.Events.popup_an_error("Key_action: Nonexistent or invalid KeySym: "+s);
+					this.telnet.Events.popup_an_error("Key_action: Nonexistent or invalid KeySym: "+s);
 					continue;
 				}
 				if ((k & ~0xff) !=0)
 				{
-					telnet.Events.popup_an_error("Key_action: Invalid KeySym: "+s);
+					this.telnet.Events.popup_an_error("Key_action: Invalid KeySym: "+s);
 					continue;
 				}
-				key_ACharacter((byte)(k & 0xff), keytype, iaction.IA_KEY);
+				HandleAsciiCharacter((byte)(k & 0xff), keytype, iaction.IA_KEY);
 			}
 			return true;
 		}
@@ -2250,10 +2483,10 @@ namespace Open3270.TN3270
 			}
 
 			/* Set a pending string. */
-			ps_set(s, false);
+			PsSet(s, false);
 			bool ok = !telnet.Events.IsError();
-			if (!ok && telnet.Config.ThrowExceptionOnLockedScreen)
-				throw new ApplicationException(telnet.Events.GetErrorAsText());
+			if (!ok && this.telnet.Config.ThrowExceptionOnLockedScreen)
+				throw new ApplicationException(this.telnet.Events.GetErrorAsText());
 			else
 				return ok;
 			//return true;
@@ -2279,7 +2512,7 @@ namespace Open3270.TN3270
 				return false;
 
 			/* Set a pending string. */
-			ps_set(s, true);
+			PsSet(s, true);
 			return true;
 		}
 
@@ -2290,10 +2523,10 @@ namespace Open3270.TN3270
 		 */
 		public bool CircumNot_action(params object[] args)
 		{
-			if (telnet.Is3270 && composing == enum_composing.NONE)
-				key_ACharacter(0xac, enum_keytype.KT_STD, iaction.IA_KEY);
+			if (this.telnet.Is3270 && composing == Composing.None)
+				HandleAsciiCharacter(0xac, KeyType.Standard, iaction.IA_KEY);
 			else
-				key_ACharacter((byte)'^', enum_keytype.KT_STD, iaction.IA_KEY);
+				HandleAsciiCharacter((byte)'^', KeyType.Standard, iaction.IA_KEY);
 			return true;
 		}
 
@@ -2302,15 +2535,15 @@ namespace Open3270.TN3270
 		{
 			if (n < 1 || n > PA_SZ) 
 			{
-				telnet.Events.popup_an_error("Unknown PA key %d", n);
+				this.telnet.Events.popup_an_error("Unknown PA key %d", n);
 				return;
 			}
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(PA_action), n.ToString());
+				this.EnqueueTypeAheadAction(new ActionDelegate(PAAction), n.ToString());
 				return;
 			}
-			key_AID(pa_xlate[n-1]);
+			this.HandleAttentionIdentifierKey(KeyboardConstants.PaTranslation[n - 1]);
 		}
 
 		/* PF key action for String actions */
@@ -2318,16 +2551,16 @@ namespace Open3270.TN3270
 		{
 			if (n < 1 || n > PF_SZ) 
 			{
-				telnet.Events.popup_an_error("Unknown PF key %d", n);
+				this.telnet.Events.popup_an_error("Unknown PF key %d", n);
 				return;
 			}
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
 
-				enq_ta(new ActionDelegate(PF_action), n.ToString());
+				this.EnqueueTypeAheadAction(new ActionDelegate(PFAction), n.ToString());
 				return;
 			}
-			key_AID(pf_xlate[n-1]);
+			this.HandleAttentionIdentifierKey(KeyboardConstants.PfTranslation[n - 1]);
 		}
 
 		/*
@@ -2338,9 +2571,9 @@ namespace Open3270.TN3270
 			if (!telnet.Is3270)
 				return;
 			if (lockflag)
-				kybdlock_set(KL_SCROLLED, "kybd_scroll_lock");
+				KeyboardLockSet(KeyboardConstants.Scrolled, "kybd_scroll_lock");
 			else
-				kybdlock_clr(KL_SCROLLED, "kybd_scroll_lock");
+				KeyboardLockClear(KeyboardConstants.Scrolled, "kybd_scroll_lock");
 		}
 
 		/*
@@ -2352,31 +2585,31 @@ namespace Open3270.TN3270
 			bool ever = false;
 			int baddr, b0 = 0;
 			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			byte fa = this.telnet.Controller.FakeFA;
 	
 
-			baddr = telnet.Controller.CursorAddress;
-			while (telnet.Controller.AddressToColumn(baddr) < lmargin) 
+			baddr = this.telnet.Controller.CursorAddress;
+			while (this.telnet.Controller.AddressToColumn(baddr) < lmargin) 
 			{
-				baddr = telnet.Controller.RowColumnToByteAddress(telnet.Controller.AddresstoRow(baddr), lmargin);
+				baddr = this.telnet.Controller.RowColumnToByteAddress(this.telnet.Controller.AddresstoRow(baddr), lmargin);
 				if (!ever) 
 				{
 					b0 = baddr;
 					ever = true;
 				}
-				fa_index = telnet.Controller.GetFieldAttribute(baddr);
+				fa_index = this.telnet.Controller.GetFieldAttribute(baddr);
 				if (fa_index != -1)
-					fa = telnet.Controller.ScreenBuffer[fa_index];
+					fa = this.telnet.Controller.ScreenBuffer[fa_index];
 
 				if (fa_index == baddr || FA.IsProtected(fa)) 
 				{
-					baddr = telnet.Controller.GetNextUnprotectedField(baddr);
+					baddr = this.telnet.Controller.GetNextUnprotectedField(baddr);
 					if (baddr <= b0)
 						return false;
 				}
 			}
 
-			telnet.Controller.SetCursorAddress(baddr);
+			this.telnet.Controller.SetCursorAddress(baddr);
 			return true;
 		}
 
@@ -2416,8 +2649,8 @@ namespace Open3270.TN3270
 			int literal = 0;
 			int nc = 0;
 			iaction ia = pasting ? iaction.IA_PASTE : iaction.IA_STRING;
-			int orig_addr = telnet.Controller.CursorAddress;
-			int orig_col = telnet.Controller.AddressToColumn(telnet.Controller.CursorAddress);
+			int orig_addr = this.telnet.Controller.CursorAddress;
+			int orig_col = this.telnet.Controller.AddressToColumn(this.telnet.Controller.CursorAddress);
 			int len = s.Length;
 
 			/*
@@ -2431,24 +2664,24 @@ namespace Open3270.TN3270
 				 * It isn't possible to unlock the keyboard from a string,
 				 * so if the keyboard is locked, it's fatal
 				 */
-				if (kybdlock!=0) 
+				if (this.keyboardLock!=0) 
 				{
-					telnet.Trace.trace_event("  keyboard locked, string dropped. kybdlock="+kybdlock+"\n");
-					if (telnet.Config.ThrowExceptionOnLockedScreen)
+					this.telnet.Trace.trace_event("  keyboard locked, string dropped. kybdlock="+keyboardLock+"\n");
+					if (this.telnet.Config.ThrowExceptionOnLockedScreen)
 						throw new ApplicationException("Keyboard locked typing data onto screen - data was lost.  Turn of configuration option 'ThrowExceptionOnLockedScreen' to ignore this exception.");
 					return 0;
 				}
 
-				if (pasting && telnet.Is3270) 
+				if (pasting && this.telnet.Is3270) 
 				{
 
 					/* Check for cursor wrap to top of screen. */
-					if (telnet.Controller.CursorAddress < orig_addr)
+					if (this.telnet.Controller.CursorAddress < orig_addr)
 						return len-1;		/* wrapped */
 
 					/* Jump cursor over left margin. */
-					if (telnet.Appres.toggled(Appres.MARGINED_PASTE) &&
-						telnet.Controller.AddressToColumn(telnet.Controller.CursorAddress) < orig_col) 
+					if (this.telnet.Appres.toggled(Appres.MARGINED_PASTE) &&
+						this.telnet.Controller.AddressToColumn(this.telnet.Controller.CursorAddress) < orig_col) 
 					{
 						if (!remargin(orig_col))
 							return len-1;
@@ -2462,17 +2695,17 @@ namespace Open3270.TN3270
 					switch ((char)c) 
 					{
 						case '\b':
-							action.action_internal(new ActionDelegate(Left_action), ia);
+							action.action_internal(new ActionDelegate(LeftAction), ia);
 							continue;
 						case '\f':
 							if (pasting) 
 							{
-								key_ACharacter((byte) ' ', enum_keytype.KT_STD, ia);
+								HandleAsciiCharacter((byte) ' ', KeyType.Standard, ia);
 							} 
 							else 
 							{
-								action.action_internal(new ActionDelegate(Clear_action), ia);
-								if (telnet.Is3270)
+								action.action_internal(new ActionDelegate(ClearAction), ia);
+								if (this.telnet.Is3270)
 									return len-1;
 								else
 									break;
@@ -2480,24 +2713,24 @@ namespace Open3270.TN3270
 							break; // mfw - added BUGBUG
 						case '\n':
 							if (pasting)
-								action.action_internal(new ActionDelegate(Newline_action), ia);
+								action.action_internal(new ActionDelegate(MoveCursorToNewLine), ia);
 							else 
 							{
-								action.action_internal(new ActionDelegate(Enter_action), ia);
-								if (telnet.Is3270)
+								action.action_internal(new ActionDelegate(EnterAction), ia);
+								if (this.telnet.Is3270)
 									return len-1;
 							}
 							break;
 						case '\r':	/* ignored */
 							break;
 						case '\t':
-							action.action_internal(new ActionDelegate(Tab_action), ia);
+							action.action_internal(new ActionDelegate(TabForwardAction), ia);
 							break;
 						case '\\':	/* backslashes are NOT special when pasting */
 							if (!pasting)
 								state = EIState.BACKSLASH;
 							else
-								key_ACharacter((byte) c, enum_keytype.KT_STD, ia);
+								HandleAsciiCharacter((byte) c, KeyType.Standard, ia);
 							break;
 						case (char)0x1b: /* ESC is special only when pasting */
 							if (pasting)
@@ -2509,7 +2742,7 @@ namespace Open3270.TN3270
 									(byte) XK_Yacute,
 									KT_GE, ia);
 							else*/
-							key_ACharacter((byte) c, enum_keytype.KT_STD, ia);
+							HandleAsciiCharacter((byte) c, KeyType.Standard, ia);
 							break;
 						case ']':	/* APL right bracket */
 							/*MFW if (pasting && appres.apl_mode)
@@ -2517,10 +2750,10 @@ namespace Open3270.TN3270
 									(byte) XK_diaeresis,
 									KT_GE, ia);
 							else*/
-							key_ACharacter((byte) c, enum_keytype.KT_STD, ia);
+							HandleAsciiCharacter((byte) c, KeyType.Standard, ia);
 							break;
 						default:
-							key_ACharacter((byte) c, enum_keytype.KT_STD, ia);
+							HandleAsciiCharacter((byte) c, KeyType.Standard, ia);
 							break;
 					}
 						break;
@@ -2528,24 +2761,24 @@ namespace Open3270.TN3270
 					switch ((char)c) 
 					{
 						case 'a':
-							telnet.Events.popup_an_error("String_action: Bell not supported");
+							this.telnet.Events.popup_an_error("String_action: Bell not supported");
 							state = EIState.BASE;
 							break;
 						case 'b':
-							action.action_internal(new ActionDelegate(Left_action), ia);
+							action.action_internal(new ActionDelegate(LeftAction), ia);
 							state = EIState.BASE;
 							break;
 						case 'f':
-							action.action_internal(new ActionDelegate(Clear_action), ia);
+							action.action_internal(new ActionDelegate(ClearAction), ia);
 							state = EIState.BASE;
-							if (telnet.Is3270)
+							if (this.telnet.Is3270)
 								return len-1;
 							else
 								break;
 						case 'n':
-							action.action_internal(new ActionDelegate(Enter_action), ia);
+							action.action_internal(new ActionDelegate(EnterAction), ia);
 							state = EIState.BASE;
-							if (telnet.Is3270)
+							if (this.telnet.Is3270)
 								return len-1;
 							else
 								break;
@@ -2553,11 +2786,11 @@ namespace Open3270.TN3270
 							state = EIState.BACKP;
 							break;
 						case 'r':
-							action.action_internal(new ActionDelegate(Newline_action), ia);
+							action.action_internal(new ActionDelegate(MoveCursorToNewLine), ia);
 							state = EIState.BASE;
 							break;
 						case 't':
-							action.action_internal(new ActionDelegate(Tab_action), ia);
+							action.action_internal(new ActionDelegate(TabForwardAction), ia);
 							state = EIState.BASE;
 							break;
 						case 'T':
@@ -2565,14 +2798,14 @@ namespace Open3270.TN3270
 							state = EIState.BASE;
 							break;
 						case 'v':
-							telnet.Events.popup_an_error("String_action: Vertical tab not supported");
+							this.telnet.Events.popup_an_error("String_action: Vertical tab not supported");
 							state = EIState.BASE;
 							break;
 						case 'x':
 							state = EIState.BACKX;
 							break;
 						case '\\':
-							key_ACharacter((byte) c, enum_keytype.KT_STD, ia);
+							HandleAsciiCharacter((byte) c, KeyType.Standard, ia);
 							state = EIState.BASE;
 							break;
 						case '0': 
@@ -2606,53 +2839,53 @@ namespace Open3270.TN3270
 							state = EIState.BACKPF;
 							break;
 						default:
-							telnet.Events.popup_an_error("String_action: Unknown character after \\p");
+							this.telnet.Events.popup_an_error("String_action: Unknown character after \\p");
 							state = EIState.BASE;
 							break;
 					}
 						break;
 					case EIState.BACKPF: /* last three characters were "\pf" */
-						if (nc < 2 && isdigit(c)) 
+						if (nc < 2 && IsDigit(c)) 
 						{
 							literal = (literal * 10) + (c - '0');
 							nc++;
 						} 
 						else if (nc==0) 
 						{
-							telnet.Events.popup_an_error("String_action: Unknown character after \\pf");
+							this.telnet.Events.popup_an_error("String_action: Unknown character after \\pf");
 							state = EIState.BASE;
 						} 
 						else 
 						{
 							do_pf(literal);
-							if (telnet.Is3270)
+							if (this.telnet.Is3270)
 								return len-1;
 							state = EIState.BASE;
 							continue;
 						}
 						break;
 					case EIState.BACKPA: /* last three characters were "\pa" */
-						if (nc < 1 && isdigit(c)) 
+						if (nc < 1 && IsDigit(c)) 
 						{
 							literal = (literal * 10) + (c - '0');
 							nc++;
 						} 
 						else if (nc==0) 
 						{
-							telnet.Events.popup_an_error("String_action: Unknown character after \\pa");
+							this.telnet.Events.popup_an_error("String_action: Unknown character after \\pa");
 							state = EIState.BASE;
 						} 
 						else 
 						{
 							do_pa(literal);
-							if (telnet.Is3270)
+							if (this.telnet.Is3270)
 								return len-1;
 							state = EIState.BASE;
 							continue;
 						}
 						break;
 					case EIState.BACKX:	/* last two characters were "\x" */
-						if (isxdigit(c)) 
+						if (IsXDigit(c)) 
 						{
 							state = EIState.HEX;
 							literal = 0;
@@ -2661,33 +2894,33 @@ namespace Open3270.TN3270
 						} 
 						else 
 						{
-							telnet.Events.popup_an_error("String_action: Missing hex digits after \\x");
+							this.telnet.Events.popup_an_error("String_action: Missing hex digits after \\x");
 							state = EIState.BASE;
 							continue;
 						}
 					case EIState.OCTAL:	/* have seen \ and one or more octal digits */
-						if (nc < 3 && isdigit(c) && c < '8') 
+						if (nc < 3 && IsDigit(c) && c < '8') 
 						{
-							literal = (literal * 8) + FROM_HEX(c);
+							literal = (literal * 8) + FromHex(c);
 							nc++;
 							break;
 						} 
 						else 
 						{
-							key_ACharacter((byte) literal, enum_keytype.KT_STD, ia);
+							HandleAsciiCharacter((byte) literal, KeyType.Standard, ia);
 							state = EIState.BASE;
 							continue;
 						}
 					case EIState.HEX:	/* have seen \ and one or more hex digits */
-						if (nc < 2 && isxdigit(c)) 
+						if (nc < 2 && IsXDigit(c)) 
 						{
-							literal = (literal * 16) + FROM_HEX(c);
+							literal = (literal * 16) + FromHex(c);
 							nc++;
 							break;
 						} 
 						else 
 						{
-							key_ACharacter((byte) literal, enum_keytype.KT_STD,
+							HandleAsciiCharacter((byte) literal, KeyType.Standard,
 								ia);
 							state = EIState.BASE;
 							continue;
@@ -2696,13 +2929,13 @@ namespace Open3270.TN3270
 					switch ((char)c) 
 					{
 						case ';':	/* FM */
-							key_Character(CG.CG_fm, false, true);
+							this.HandleOrdinaryCharacter(CG.CG_fm, false, true);
 							break;
 						case '*':	/* DUP */
-							key_Character(CG.CG_dup, false, true);
+							this.HandleOrdinaryCharacter(CG.CG_dup, false, true);
 							break;
 						default:
-							key_ACharacter((byte) c, enum_keytype.KT_GE, ia);
+							HandleAsciiCharacter((byte) c, KeyType.GE, ia);
 							break;
 					}
 						state = EIState.BASE;
@@ -2717,7 +2950,7 @@ namespace Open3270.TN3270
 			{
 				case EIState.OCTAL:
 				case EIState.HEX:
-					key_ACharacter((byte) literal, enum_keytype.KT_STD, ia);
+					HandleAsciiCharacter((byte) literal, KeyType.Standard, ia);
 					state = EIState.BASE;
 					break;
 				case EIState.BACKPF:
@@ -2739,7 +2972,7 @@ namespace Open3270.TN3270
 			}
 
 			if (state != EIState.BASE)
-				telnet.Events.popup_an_error("String_action: Missing data after \\");
+				this.telnet.Events.popup_an_error("String_action: Missing data after \\");
 
 			return len;
 		}
@@ -2765,7 +2998,7 @@ namespace Open3270.TN3270
 			/* Validate the string. */
 			if ((s.Length % 2)!=0) 
 			{
-				telnet.Events.popup_an_error("HexString_action: Odd number of characters in specification");
+				this.telnet.Events.popup_an_error("HexString_action: Odd number of characters in specification");
 				return;
 			}
 			int index;
@@ -2773,7 +3006,7 @@ namespace Open3270.TN3270
 			index=0;
 			while (index<s.Length) 
 			{
-				if (isxdigit(s[index]) && isxdigit(s[index+1])) 
+				if (IsXDigit(s[index]) && IsXDigit(s[index+1])) 
 				{
 					escaped = false;
 					nbytes++;
@@ -2782,27 +3015,27 @@ namespace Open3270.TN3270
 				{
 					if (escaped) 
 					{
-						telnet.Events.popup_an_error("HexString_action: Double \\E");
+						this.telnet.Events.popup_an_error("HexString_action: Double \\E");
 
 						return;
 					}
 					if (!telnet.Is3270) 
 					{
-						telnet.Events.popup_an_error("HexString_action: \\E in ANSI mode");
+						this.telnet.Events.popup_an_error("HexString_action: \\E in ANSI mode");
 						return;
 					}
 					escaped = true;
 				} 
 				else 
 				{
-					telnet.Events.popup_an_error("HexString_action: Illegal character in specification");
+					this.telnet.Events.popup_an_error("HexString_action: Illegal character in specification");
 					return;
 				}
 				index += 2;
 			}
 			if (escaped) 
 			{
-				telnet.Events.popup_an_error("HexString_action: Nothing follows \\E");
+				this.telnet.Events.popup_an_error("HexString_action: Nothing follows \\E");
 				return;
 			}
 
@@ -2819,13 +3052,13 @@ namespace Open3270.TN3270
 			escaped = false;
 			while (index < s.Length) 
 			{
-				if (isxdigit(s[index]) && isxdigit(s[index+1])) 
+				if (IsXDigit(s[index]) && IsXDigit(s[index+1])) 
 				{
 					byte c;
 
-					c = (byte)((FROM_HEX(s[index]) * 16) + FROM_HEX(s[index+1]));
-					if (telnet.Is3270)
-						key_Character(Tables.Ebc2Cg[c], escaped, true);
+					c = (byte)((FromHex(s[index]) * 16) + FromHex(s[index+1]));
+					if (this.telnet.Is3270)
+						this.HandleOrdinaryCharacter(Tables.Ebc2Cg[c], escaped, true);
 					else
 						xbuf[tbuf++] = (byte)c;
 					escaped = false;
@@ -2838,7 +3071,7 @@ namespace Open3270.TN3270
 			}
 			if (!telnet.Is3270 && nbytes!=0) 
 			{
-				telnet.SendHexAnsiOut(xbuf, nbytes);
+				this.telnet.SendHexAnsiOut(xbuf, nbytes);
 			}
 		}
  
@@ -2848,7 +3081,7 @@ namespace Open3270.TN3270
 		 * Translate a keysym name to a keysym, including APL and extended
 		 * characters.
 		 */
-		int MyStringToKeysym(string s,  out enum_keytype keytypep)
+		int MyStringToKeysym(string s,  out KeyType keytypep)
 		{
 			throw new ApplicationException("MyStringToKeysym not implemented");
 		}
@@ -2863,46 +3096,46 @@ namespace Open3270.TN3270
 		{
 			int baddr;
 			int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			byte fa = this.telnet.Controller.FakeFA;
 	
 
 	
-			if (telnet.IsAnsi) 
+			if (this.telnet.IsAnsi) 
 			{
-				telnet.SendChar('\n');
+				this.telnet.SendChar('\n');
 				return true;
 			}
-			if (kybdlock!=0) 
+			if (this.keyboardLock!=0) 
 			{
-				enq_ta(new ActionDelegate(FieldExit_action), args);
+				this.EnqueueTypeAheadAction(new ActionDelegate(FieldExit_action), args);
 				return true;
 			}
-			baddr = telnet.Controller.CursorAddress;
-			fa_index = telnet.Controller.GetFieldAttribute(baddr);
+			baddr = this.telnet.Controller.CursorAddress;
+			fa_index = this.telnet.Controller.GetFieldAttribute(baddr);
 			if (fa_index!=-1)
-				fa = telnet.Controller.ScreenBuffer[fa_index];
+				fa = this.telnet.Controller.ScreenBuffer[fa_index];
 
-			if (FA.IsProtected(fa) || FA.IsFA(telnet.Controller.ScreenBuffer[baddr])) 
+			if (FA.IsProtected(fa) || FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr])) 
 			{
-				operator_error(baddr, KL_OERR_PROTECTED);
+				HandleOperatorError(baddr, KeyboardConstants.ErrorProtected);
 				return false;
 			}
-			if (telnet.Controller.Formatted) 
+			if (this.telnet.Controller.Formatted) 
 			{        /* erase to next field attribute */
 				do 
 				{
-					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
-					telnet.Controller.IncrementAddress(ref baddr);
-				} while (!FA.IsFA(telnet.Controller.ScreenBuffer[baddr]));
-				telnet.Controller.SetMDT(telnet.Controller.ScreenBuffer, fa_index);
-				telnet.Controller.SetCursorAddress(telnet.Controller.GetNextUnprotectedField(telnet.Controller.CursorAddress));
+					this.telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+					this.telnet.Controller.IncrementAddress(ref baddr);
+				} while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr]));
+				this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, fa_index);
+				this.telnet.Controller.SetCursorAddress(this.telnet.Controller.GetNextUnprotectedField(this.telnet.Controller.CursorAddress));
 			} 
 			else 
 			{        /* erase to end of screen */
 				do 
 				{
-					telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
-					telnet.Controller.IncrementAddress(ref baddr);
+					this.telnet.Controller.AddCharacter(baddr, CG.CG_null, 0);
+					this.telnet.Controller.IncrementAddress(ref baddr);
 				} while (baddr != 0);
 			}
 			return true;
@@ -2912,26 +3145,26 @@ namespace Open3270.TN3270
 		{
 			//int baddr;
 			//int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			byte fa = this.telnet.Controller.FakeFA;
 
 			int fieldpos = 0;
 			int index = 0;
 			int end;
 			do
 			{
-				int newfield = telnet.Controller.GetNextUnprotectedField(fieldpos);
+				int newfield = this.telnet.Controller.GetNextUnprotectedField(fieldpos);
 				if (newfield<=fieldpos) break;
 				end = newfield;
-				while (!FA.IsFA(telnet.Controller.ScreenBuffer[end])) 
+				while (!FA.IsFA(this.telnet.Controller.ScreenBuffer[end])) 
 				{
-					telnet.Controller.IncrementAddress(ref end);
+					this.telnet.Controller.IncrementAddress(ref end);
 					if (end==0) 
 					{
-						end=(telnet.Controller.ColumnCount*telnet.Controller.RowCount)-1;
+						end=(this.telnet.Controller.ColumnCount*telnet.Controller.RowCount)-1;
 						break;
 					}
 				}
-				telnet.Action.action_output("data: field["+index+"] at "+newfield+" to "+end+" (x="+telnet.Controller.AddressToColumn(newfield)+", y="+telnet.Controller.AddresstoRow(newfield)+", len="+(end-newfield+1)+")\n");
+				this.telnet.Action.action_output("data: field["+index+"] at "+newfield+" to "+end+" (x="+telnet.Controller.AddressToColumn(newfield)+", y="+telnet.Controller.AddresstoRow(newfield)+", len="+(end-newfield+1)+")\n");
 				
 				index++;
 				fieldpos = newfield;
@@ -2944,12 +3177,12 @@ namespace Open3270.TN3270
 		{
 			//int baddr;
 			//int fa_index;
-			//byte fa = telnet.tnctlr.fake_fa;
+			//byte fa = this.telnet.tnctlr.fake_fa;
 
 	
 			if (!telnet.Controller.Formatted)
 			{
-				telnet.Events.popup_an_error("FieldGet: Screen is not formatted");
+				this.telnet.Events.popup_an_error("FieldGet: Screen is not formatted");
 				return false;
 			}
 			int fieldnumber = (int)args[0];
@@ -2958,31 +3191,31 @@ namespace Open3270.TN3270
 			int index = 0;
 			do
 			{
-				int newfield = telnet.Controller.GetNextUnprotectedField(fieldpos);
+				int newfield = this.telnet.Controller.GetNextUnprotectedField(fieldpos);
 				if (newfield<=fieldpos) break;
 
 				if (fieldnumber==index)
 				{
-					byte fa = telnet.Controller.FakeFA;
+					byte fa = this.telnet.Controller.FakeFA;
 					int fa_index;
 					int start, baddr;
 					int len = 0;
 
-					fa_index = telnet.Controller.GetFieldAttribute(newfield);
+					fa_index = this.telnet.Controller.GetFieldAttribute(newfield);
 					if (fa_index!=-1)
-						fa = telnet.Controller.ScreenBuffer[fa_index];
+						fa = this.telnet.Controller.ScreenBuffer[fa_index];
 					start = fa_index;
-					telnet.Controller.IncrementAddress(ref start);
+					this.telnet.Controller.IncrementAddress(ref start);
 					baddr = start;
 					do 
 					{
-						if (FA.IsFA(telnet.Controller.ScreenBuffer[baddr]))
+						if (FA.IsFA(this.telnet.Controller.ScreenBuffer[baddr]))
 							break;
 						len++;
-						telnet.Controller.IncrementAddress(ref baddr);
+						this.telnet.Controller.IncrementAddress(ref baddr);
 					} while (baddr != start);
 
-					telnet.Controller.DumpRange(start, len, true, telnet.Controller.ScreenBuffer, telnet.Controller.RowCount, telnet.Controller.ColumnCount);
+					this.telnet.Controller.DumpRange(start, len, true, this.telnet.Controller.ScreenBuffer, this.telnet.Controller.RowCount, this.telnet.Controller.ColumnCount);
 
 					return true;
 				}
@@ -2990,7 +3223,7 @@ namespace Open3270.TN3270
 				fieldpos = newfield;
 			}
 			while (true);
-			telnet.Events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
+			this.telnet.Events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
 			return true;
 		}
 
@@ -2998,11 +3231,11 @@ namespace Open3270.TN3270
 		{
 			//int baddr;
 			//int fa_index;
-			byte fa = telnet.Controller.FakeFA;
+			byte fa = this.telnet.Controller.FakeFA;
 	
 			if (!telnet.Controller.Formatted) 
 			{
-				telnet.Events.popup_an_error("FieldSet: Screen is not formatted");
+				this.telnet.Events.popup_an_error("FieldSet: Screen is not formatted");
 				return false;
 			}
 			int fieldnumber = (int)args[0];
@@ -3012,14 +3245,14 @@ namespace Open3270.TN3270
 			int index = 0;
 			do
 			{
-				int newfield = telnet.Controller.GetNextUnprotectedField(fieldpos);
+				int newfield = this.telnet.Controller.GetNextUnprotectedField(fieldpos);
 				if (newfield<=fieldpos) break;
 
 				if (fieldnumber==index)
 				{
-					telnet.Controller.CursorAddress = newfield;
+					this.telnet.Controller.CursorAddress = newfield;
 					DeleteField_action(null, null, null, 0);
-					ps_set(fielddata, false);
+					PsSet(fielddata, false);
 
 					return true;
 				}
@@ -3027,7 +3260,7 @@ namespace Open3270.TN3270
 				fieldpos = newfield;
 			}
 			while (true);
-			telnet.Events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
+			this.telnet.Events.popup_an_error("FieldGet: Field %d not found", fieldnumber);
 			return true;
 		}
 

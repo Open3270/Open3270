@@ -70,7 +70,7 @@
 		<KeyBinding Key="Enter" CommandParameter="Enter" Command="{x:Static local:MainWindow.SendCommand}" />
 		<KeyBinding Key="Clear" CommandParameter="Clear" Command="{x:Static local:MainWindow.SendCommand}" />
 		<KeyBinding Key="Pause" CommandParameter="Clear" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Back" CommandParameter="Backspace" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Back" CommandParameter="Erase" Command="{x:Static local:MainWindow.SendCommand}" />
 		<KeyBinding Key="Delete" CommandParameter="Delete" Command="{x:Static local:MainWindow.SendCommand}" />
 		
 		<KeyBinding Key="Left" CommandParameter="Left" Command="{x:Static local:MainWindow.SendCommand}" />

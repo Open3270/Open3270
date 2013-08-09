@@ -61,7 +61,7 @@ namespace Open3270.TN3270
 			get
 			{
 				string text = "";
-				text+= "kybdinhibit = "+telnet.Keyboard.kybdlock;
+				text+= "kybdinhibit = "+telnet.Keyboard.keyboardLock;
 				return text;
 			}
 		}

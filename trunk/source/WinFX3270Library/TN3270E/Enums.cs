@@ -231,6 +231,18 @@ namespace Open3270.TN3270
 
 	}
 
+	public enum KeyType 
+	{ 
+		Standard, 
+		GE 
+	};
+
+	public enum Composing 
+	{ 
+		None, 
+		Compose, 
+		First 
+	};
 
 	internal delegate void TelnetDataDelegate(object parentData, TNEvent eventType, string text);
 

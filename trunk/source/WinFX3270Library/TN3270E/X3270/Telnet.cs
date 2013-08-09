@@ -262,7 +262,7 @@ namespace Open3270.TN3270
 
 		public bool IsKeyboardInWait
 		{
-			get { return 0 != (keyboard.kybdlock & (Keyboard.KL_OIA_LOCKED | Keyboard.KL_OIA_TWAIT | Keyboard.KL_DEFERRED_UNLOCK)); }
+			get { return 0 != (keyboard.keyboardLock & (KeyboardConstants.OiaLocked | KeyboardConstants.OiaTWait | KeyboardConstants.DeferredUnlock)); }
 		}
 
 		//Macro that defines when it's safe to continue a Wait()ing sms.
@@ -273,7 +273,7 @@ namespace Open3270.TN3270
 				return (
 					IsSscp ||
 					(Is3270 && controller.Formatted && controller.CursorAddress != 0 && !IsKeyboardInWait) ||
-					(IsAnsi && 0 == (keyboard.kybdlock & Keyboard.KL_AWAITING_FIRST))
+					(IsAnsi && 0 == (keyboard.keyboardLock & KeyboardConstants.AwaitingFirst))
 					);
 			}
 		}
@@ -511,7 +511,7 @@ namespace Open3270.TN3270
 
 			this.controller.Initialize(-1);
 			this.controller.Reinitialize(-1);
-			this.keyboard.kybd_init();
+			this.keyboard.Initialize();
 			ansi.ansi_init();
 
 
@@ -691,7 +691,7 @@ namespace Open3270.TN3270
 			{
 				if (this.tnState == TN3270State.InNeither)
 				{
-					keyboard.kybdlock_clr(Keyboard.KL_AWAITING_FIRST, "telnet_fsm");
+					keyboard.KeyboardLockClear(KeyboardConstants.AwaitingFirst, "telnet_fsm");
 					//status_reset();
 					this.tnState = TN3270State.ANSI;
 				}
@@ -737,7 +737,7 @@ namespace Open3270.TN3270
 						{
 							//Now can assume ANSI mode 
 							SetHostState(ConnectionState.ConnectedANSI);
-							keyboard.kybdlock_clr(Keyboard.KL_AWAITING_FIRST, "telnet_fsm");
+							keyboard.KeyboardLockClear(KeyboardConstants.AwaitingFirst, "telnet_fsm");
 							controller.ProcessPendingInput();
 						}
 						if (IsAnsi && !IsE)
@@ -1323,7 +1323,7 @@ namespace Open3270.TN3270
 									byte v = System.Convert.ToByte(text.Substring(0, 2), 16);
 									if (this.tnState == TN3270State.InNeither)
 									{
-										keyboard.kybdlock_clr(Keyboard.KL_AWAITING_FIRST, "telnet_fsm");
+										keyboard.KeyboardLockClear(KeyboardConstants.AwaitingFirst, "telnet_fsm");
 										//status_reset();
 										this.tnState = TN3270State.ANSI;
 									}
@@ -1554,7 +1554,7 @@ namespace Open3270.TN3270
 
 								if (this.tnState == TN3270State.InNeither)
 								{
-									this.keyboard.kybdlock_clr(Keyboard.KL_AWAITING_FIRST, "telnet_fsm");
+									this.keyboard.KeyboardLockClear(KeyboardConstants.AwaitingFirst, "telnet_fsm");
 									//status_reset();
 									this.tnState = TN3270State.ANSI;
 								}
@@ -2047,7 +2047,7 @@ namespace Open3270.TN3270
 		/// <param name="length"></param>
 		void Cook(byte[] buffer, int length)
 		{
-			if (!IsAnsi || (keyboard.kybdlock & Keyboard.KL_AWAITING_FIRST) != 0)
+			if (!IsAnsi || (keyboard.keyboardLock & KeyboardConstants.AwaitingFirst) != 0)
 			{
 				return;
 			}
@@ -2772,20 +2772,20 @@ namespace Open3270.TN3270
 		{
 			Console.WriteLine("state = " + connectionState);
 
-			if ((keyboard.kybdlock & Keyboard.KL_OIA_MINUS) != 0)
+			if ((keyboard.keyboardLock & KeyboardConstants.OiaMinus) != 0)
 			{
 				Console.WriteLine("--KL_OIA_MINUS");
 				return;
 			}
-			else if ((keyboard.kybdlock) != 0)
+			else if ((keyboard.keyboardLock) != 0)
 			{
-				Console.WriteLine("queue key - " + keyboard.kybdlock);
+				Console.WriteLine("queue key - " + keyboard.keyboardLock);
 				throw new ApplicationException("Sorry, queue key is not implemented, please contact mikewarriner@gmail.com for assistance");
 			}
 			else
 			{
 				Console.WriteLine("do key");
-				keyboard.key_AID(AID.Enter);
+				keyboard.HandleAttentionIdentifierKey(AID.Enter);
 			}
 
 		}

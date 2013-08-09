@@ -84,7 +84,7 @@ namespace Open3270.TN3270
 		{
 			get
 			{
-				return tn.Keyboard.kybdlock;
+				return tn.Keyboard.keyboardLock;
 			}
 
 		}
@@ -317,8 +317,8 @@ namespace Open3270.TN3270
 				else
 				{
 
-					if ((tn.Keyboard.kybdlock & Keyboard.KL_OIA_MINUS) != 0 ||
-						tn.Keyboard.kybdlock != 0)
+					if ((tn.Keyboard.keyboardLock & KeyboardConstants.OiaMinus) != 0 ||
+						tn.Keyboard.keyboardLock != 0)
 					{
 						success = false;
 					}
@@ -330,7 +330,7 @@ namespace Open3270.TN3270
 							case KeyboardOp.AID:
 								{
 									byte v = (byte)typeof(AID).GetField(key).GetValue(null);
-									this.tn.Keyboard.key_AID(v);
+									this.tn.Keyboard.HandleAttentionIdentifierKey(v);
 									success = true;
 									break;
 								}
@@ -381,7 +381,7 @@ namespace Open3270.TN3270
 				{
 					for (i = 0; i < text.Length; i++)
 					{
-						success = tn.Keyboard.key_Character(text[i], false, paste);
+						success = tn.Keyboard.HandleOrdinaryCharacter(text[i], false, paste);
 						if (!success)
 						{
 							break;
