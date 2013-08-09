@@ -79,7 +79,7 @@ namespace Open3270
 		/// <summary>
 		/// Event fired when the host disconnects. Note - this must be set before you connect to the host.
 		/// </summary>
-		public event OnDisconnectDelegate OnDisconnect;
+		public event OnDisconnectDelegate Disconnected;
 		//
 		IXMLScreen _currentScreenXML; // don't access me directly, use helper
 		private string mScreenName = null;
@@ -164,7 +164,7 @@ namespace Open3270
                         currentConnection = null;
                     }
                     
-                    OnDisconnect = null;
+                    Disconnected = null;
 
                     if (sout != null)
                         sout.WriteLine("TNEmulator.Dispose() Disposing of currentScreenXML");
@@ -870,8 +870,8 @@ namespace Open3270
 
 		private void currentConnection_OnDisconnect(TNEmulator where, string Reason)
 		{
-			if (this.OnDisconnect != null)
-				this.OnDisconnect(this, Reason);
+			if (this.Disconnected != null)
+				this.Disconnected(this, Reason);
 		}
 	}
 }
