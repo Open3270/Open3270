@@ -145,6 +145,7 @@
     <Compile Include="LogParser\TN3270HostParser.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\Delegates.cs" />
     <Compile Include="TN3270E\EventArgs.cs" />
     <Compile Include="TN3270E\TN3270API.cs">
       <SubType>Code</SubType>
@@ -201,7 +202,7 @@
     <Compile Include="TN3270E\X3270\Stuff\Tables.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Tn3270e_header.cs">
+    <Compile Include="TN3270E\X3270\Stuff\Tn3270eHeader.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\Util.cs">

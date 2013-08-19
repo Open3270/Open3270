@@ -30,17 +30,13 @@ namespace Open3270.TN3270
 	/// </summary>
 	internal class Util
 	{
-		public Util()
-		{
-			//
-			// TODO: Add constructor logic here
-			//
-		}
-		/*
-		 * ctl_see
-		 *	Expands a character in the manner of "cat -v".
-		 */
-		static public string ctl_see(byte c)
+
+		/// <summary>
+		/// Expands a character in the manner of "cat -v".
+		/// </summary>
+		/// <param name="c"></param>
+		/// <returns></returns>
+		static public string ControlSee(byte c)
 		{
 			string p = "";
 
@@ -70,7 +66,7 @@ namespace Open3270.TN3270
 		}
 
 
-		public static int DecodeBaddress(byte c1, byte c2)
+		public static int DecodeBAddress(byte c1, byte c2)
 		{
 			if ((c1 & 0xC0) == 0x00)
 			{
@@ -83,7 +79,7 @@ namespace Open3270.TN3270
 		}
 
 
-		public static void EncodeBaddress(NetBuffer ptr, int addr)
+		public static void EncodeBAddress(NetBuffer ptr, int addr)
 		{
 			if ((addr) > 0xfff)
 			{

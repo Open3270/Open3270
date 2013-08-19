@@ -25,10 +25,10 @@ using System;
 
 namespace Open3270.TN3270
 {
-	internal class sf
+	internal class SF
 	{
 		Telnet telnet;
-		public sf(Telnet telnet)
+		public SF(Telnet telnet)
 		{
 			this.telnet = telnet;
 			NSR = supported_replies.Length;

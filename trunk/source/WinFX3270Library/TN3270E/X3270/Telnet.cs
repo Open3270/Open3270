@@ -82,7 +82,7 @@ namespace Open3270.TN3270
 		int eTransmitSequence = 0;
 		int ansiData = 0;
 		int currentOptionMask;
-		int responseRequired = TN3270E_HEADER.TN3270E_RSF_NO_RESPONSE;
+		int responseRequired = TnHeader.HeaderReponseFlags.NoResponse;
 		int inputBufferIndex = 0;
 		int startedReceivingCount = 0;
 
@@ -747,7 +747,7 @@ namespace Open3270.TN3270
 								trace.trace_dsn("<.. ");
 								ansiData = 4;
 							}
-							string see_chr = Util.ctl_see((byte)currentByte);
+							string see_chr = Util.ControlSee((byte)currentByte);
 							ansiData += (sl = see_chr.Length);
 							if (ansiData >= TNTrace.TRACELINE)
 							{
@@ -790,7 +790,7 @@ namespace Open3270.TN3270
 											trace.trace_dsn("<.. ");
 											ansiData = 4;
 										}
-										string see_chr = Util.ctl_see(currentByte);
+										string see_chr = Util.ControlSee(currentByte);
 										ansiData += (sl = see_chr.Length);
 										if (ansiData >= TNTrace.TRACELINE)
 										{
@@ -1235,7 +1235,7 @@ namespace Open3270.TN3270
 					trace.trace_dsn(">");
 					for (i = 0; i < length; i++)
 					{
-						trace.trace_dsn(" " + Util.ctl_see(buffer[i]));
+						trace.trace_dsn(" " + Util.ControlSee(buffer[i]));
 					}
 					trace.trace_dsn("\n");
 				}
@@ -1810,37 +1810,37 @@ namespace Open3270.TN3270
 
 				if (connectionState >= ConnectionState.ConnectedInitial3270E)
 				{
-					TN3270E_HEADER h = new TN3270E_HEADER(inputBuffer);
+					TnHeader h = new TnHeader(inputBuffer);
 					PDS rv;
 
-					trace.trace_dsn("RCVD TN3270E(datatype: " + h.data_type + ", request: " + h.request_flag + ", response: " + h.response_flag + ", seq: " + (h.seq_number[0] << 8 | h.seq_number[1]) + ")\n");
+					trace.trace_dsn("RCVD TN3270E(datatype: " + h.DataType + ", request: " + h.RequestFlag + ", response: " + h.ResponseFlag + ", seq: " + (h.SequenceNumber[0] << 8 | h.SequenceNumber[1]) + ")\n");
 
-					switch (h.data_type)
+					switch (h.DataType)
 					{
-						case TN3270E_DT.TN3270_DATA:
+						case DataType3270.Data3270:
 							{
 								if ((currentOptionMask & Shift(TelnetConstants.TN3270E_FUNC_BIND_IMAGE)) == 0 || tn3270eBound)
 								{
 									this.tn3270eSubmode = TN3270ESubmode.Mode3270;
 									this.CheckIn3270();
-									this.responseRequired = h.response_flag;
-									rv = controller.ProcessDS(inputBuffer, TN3270E_HEADER.EH_SIZE, inputBufferIndex - TN3270E_HEADER.EH_SIZE);
+									this.responseRequired = h.ResponseFlag;
+									rv = controller.ProcessDS(inputBuffer, TnHeader.EhSize, inputBufferIndex - TnHeader.EhSize);
 									//Console.WriteLine("*** RV = "+rv);
 									//Console.WriteLine("*** response_required = "+response_required);						
-									if (rv < 0 && responseRequired != TN3270E_HEADER.TN3270E_RSF_NO_RESPONSE)
+									if (rv < 0 && responseRequired != TnHeader.HeaderReponseFlags.NoResponse)
 									{
 										this.SendNak();
 									}
-									else if (rv == PDS.OkayNoOutput && responseRequired == TN3270E_HEADER.TN3270E_RSF_ALWAYS_RESPONSE)
+									else if (rv == PDS.OkayNoOutput && responseRequired == TnHeader.HeaderReponseFlags.AlwaysResponse)
 									{
 										SendAck();
 									}
-									this.responseRequired = TN3270E_HEADER.TN3270E_RSF_NO_RESPONSE;
+									this.responseRequired = TnHeader.HeaderReponseFlags.NoResponse;
 								}
 								result = false;
 								break;
 							}
-						case TN3270E_DT.BIND_IMAGE:
+						case DataType3270.BindImage:
 							{
 								if ((currentOptionMask & Shift(TelnetConstants.TN3270E_FUNC_BIND_IMAGE)) != 0)
 								{
@@ -1851,7 +1851,7 @@ namespace Open3270.TN3270
 								result = false;
 								break;
 							}
-						case TN3270E_DT.UNBIND:
+						case DataType3270.Unbind:
 							{
 								if ((currentOptionMask & Shift(TelnetConstants.TN3270E_FUNC_BIND_IMAGE)) != 0)
 								{
@@ -1865,7 +1865,7 @@ namespace Open3270.TN3270
 								result = false;
 								break;
 							}
-						case TN3270E_DT.NVT_DATA:
+						case DataType3270.NvtData:
 							{
 								//In tn3270e NVT mode
 								tn3270eSubmode = TN3270ESubmode.NVT;
@@ -1877,13 +1877,13 @@ namespace Open3270.TN3270
 								result = false;
 								break;
 							}
-						case TN3270E_DT.SSCP_LU_DATA:
+						case DataType3270.SscpLuData:
 							{
 								if ((currentOptionMask & Shift(TelnetConstants.TN3270E_FUNC_BIND_IMAGE)) != 0)
 								{
 									tn3270eSubmode = TN3270ESubmode.SSCP;
 									this.CheckIn3270();
-									this.controller.WriteSspcLuData(inputBuffer, TN3270E_HEADER.EH_SIZE, inputBufferIndex - TN3270E_HEADER.EH_SIZE);
+									this.controller.WriteSspcLuData(inputBuffer, TnHeader.EhSize, inputBufferIndex - TnHeader.EhSize);
 								}
 
 								result = false;
@@ -1934,29 +1934,29 @@ namespace Open3270.TN3270
 		private void Ack(bool positive)
 		{
 			byte[] responseBuffer = new byte[9];
-			TN3270E_HEADER header = new TN3270E_HEADER();
-			TN3270E_HEADER header_in = new TN3270E_HEADER(inputBuffer);
-			int responseLength = TN3270E_HEADER.EH_SIZE;
+			TnHeader header = new TnHeader();
+			TnHeader header_in = new TnHeader(inputBuffer);
+			int responseLength = TnHeader.EhSize;
 
-			header.data_type = TN3270E_DT.RESPONSE;
-			header.request_flag = 0;
-			header.response_flag = positive ? TN3270E_HEADER.TN3270E_RSF_POSITIVE_RESPONSE : TN3270E_HEADER.TN3270E_RSF_NEGATIVE_RESPONSE;
+			header.DataType = DataType3270.Response;
+			header.RequestFlag = 0;
+			header.ResponseFlag = positive ? TnHeader.HeaderReponseFlags.PositiveResponse : TnHeader.HeaderReponseFlags.NegativeResponse;
 
-			header.seq_number[0] = header_in.seq_number[0];
-			header.seq_number[1] = header_in.seq_number[1];
+			header.SequenceNumber[0] = header_in.SequenceNumber[0];
+			header.SequenceNumber[1] = header_in.SequenceNumber[1];
 			header.OnToByte(responseBuffer);
 
-			if (header.seq_number[1] == TelnetConstants.IAC)
+			if (header.SequenceNumber[1] == TelnetConstants.IAC)
 			{
 				responseBuffer[responseLength++] = TelnetConstants.IAC;
 			}
 
-			responseBuffer[responseLength++] = positive ? TN3270E_HEADER.TN3270E_POS_DEVICE_END : TN3270E_HEADER.TN3270E_NEG_COMMAND_REJECT;
+			responseBuffer[responseLength++] = positive ? TnHeader.HeaderReponseData.PosDeviceEnd : TnHeader.HeaderReponseData.NegCommandReject;
 			responseBuffer[responseLength++] = TelnetConstants.IAC;
 			responseBuffer[responseLength++] = TelnetConstants.EOR;
 
 			trace.trace_dsn("SENT TN3270E(RESPONSE " + (positive ? "POSITIVE" : "NEGATIVE") + "-RESPONSE: " +
-				(header_in.seq_number[0] << 8 | header_in.seq_number[1]) + ")\n");
+				(header_in.SequenceNumber[0] << 8 | header_in.SequenceNumber[1]) + ")\n");
 
 			SendRawOutput(responseBuffer, responseLength);
 		}
@@ -2089,18 +2089,18 @@ namespace Open3270.TN3270
 			//Set the TN3720E header.
 			if (IsTn3270E || IsSscp)
 			{
-				TN3270E_HEADER header = new TN3270E_HEADER();
+				TnHeader header = new TnHeader();
 
 				//Check for sending a TN3270E response.
-				if (this.responseRequired == TN3270E_HEADER.TN3270E_RSF_ALWAYS_RESPONSE)
+				if (this.responseRequired == TnHeader.HeaderReponseFlags.AlwaysResponse)
 				{
 					this.SendAck();
-					this.responseRequired = TN3270E_HEADER.TN3270E_RSF_NO_RESPONSE;
+					this.responseRequired = TnHeader.HeaderReponseFlags.NoResponse;
 				}
 
 				//Set the outbound TN3270E header.
-				header.data_type = IsTn3270E ? TN3270E_DT.TN3270_DATA : TN3270E_DT.SSCP_LU_DATA;
-				header.request_flag = 0;
+				header.DataType = IsTn3270E ? DataType3270.Data3270 : DataType3270.SscpLuData;
+				header.RequestFlag = 0;
 
 				// CFCJR:
 				// Request a response if negotiated to do so
@@ -2109,14 +2109,14 @@ namespace Open3270.TN3270
 				//if ((e_funcs & E_OPT(TN3270E_FUNC_RESPONSES)) != 0)
 				//	h.response_flag = TN3270E_HEADER.TN3270E_RSF_ALWAYS_RESPONSE;
 				//else
-				header.response_flag = 0;
+				header.ResponseFlag = 0;
 
-				header.seq_number[0] = (byte)((eTransmitSequence >> 8) & 0xff);
-				header.seq_number[1] = (byte)(eTransmitSequence & 0xff);
+				header.SequenceNumber[0] = (byte)((eTransmitSequence >> 8) & 0xff);
+				header.SequenceNumber[1] = (byte)(eTransmitSequence & 0xff);
 
 				trace.trace_dsn("SENT TN3270E(%s %s %u)\n",
 					IsTn3270E ? "3270-DATA" : "SSCP-LU-DATA",
-					(header.response_flag == TN3270E_HEADER.TN3270E_RSF_ERROR_RESPONSE) ? "ERROR-RESPONSE" : ((header.response_flag == TN3270E_HEADER.TN3270E_RSF_ALWAYS_RESPONSE) ? "ALWAYS-RESPONSE" : "NO-RESPONSE"),
+					(header.ResponseFlag == TnHeader.HeaderReponseFlags.ErrorResponse) ? "ERROR-RESPONSE" : ((header.ResponseFlag == TnHeader.HeaderReponseFlags.AlwaysResponse) ? "ALWAYS-RESPONSE" : "NO-RESPONSE"),
 					eTransmitSequence);
 
 				if (this.connectionConfig.IgnoreSequenceCount == false &&
@@ -2181,7 +2181,7 @@ namespace Open3270.TN3270
 				trace.trace_dsn(">");
 				for (i = 0; i < len; i++)
 				{
-					trace.trace_dsn(" %s", Util.ctl_see(buf[i]));
+					trace.trace_dsn(" %s", Util.ControlSee(buf[i]));
 				}
 				trace.trace_dsn("\n");
 			}
@@ -2231,9 +2231,9 @@ namespace Open3270.TN3270
 
 			switch (buffer.Data[1])
 			{
-				case TN3270E_HEADER.TN3270E_OP_SEND:
+				case TnHeader.Ops.Send:
 					{
-						if (buffer.Data[2] == TN3270E_HEADER.TN3270E_OP_DEVICE_TYPE)
+						if (buffer.Data[2] == TnHeader.Ops.DeviceType)
 						{
 							//Host wants us to send our device type.
 							trace.trace_dsn("SEND DEVICE-TYPE SE\n");
@@ -2245,27 +2245,27 @@ namespace Open3270.TN3270
 						}
 						break;
 					}
-				case TN3270E_HEADER.TN3270E_OP_DEVICE_TYPE:
+				case TnHeader.Ops.DeviceType:
 					{
 						//Device type negotiation
 						trace.trace_dsn("DEVICE-TYPE ");
 
 						switch (buffer.Data[2])
 						{
-							case TN3270E_HEADER.TN3270E_OP_IS:
+							case TnHeader.Ops.Is:
 								{
 									//Device type success.
 									int tnLength, snLength;
 
 									//Isolate the terminal type and session.
 									tnLength = 0;
-									while (buffer.Data[3 + tnLength] != TelnetConstants.SE && buffer.Data[3 + tnLength] != TN3270E_HEADER.TN3270E_OP_CONNECT)
+									while (buffer.Data[3 + tnLength] != TelnetConstants.SE && buffer.Data[3 + tnLength] != TnHeader.Ops.Connect)
 									{
 										tnLength++;
 									}
 
 									snLength = 0;
-									if (buffer.Data[3 + tnLength] == TN3270E_HEADER.TN3270E_OP_CONNECT)
+									if (buffer.Data[3 + tnLength] == TnHeader.Ops.Connect)
 									{
 										while (buffer.Data[3 + tnLength + 1 + snLength] != TelnetConstants.SE)
 										{
@@ -2299,16 +2299,16 @@ namespace Open3270.TN3270
 									}
 
 									// Tell them what we can do.
-									this.Tn3270e_Subneg_Send(TN3270E_HEADER.TN3270E_OP_REQUEST, currentOptionMask);
+									this.Tn3270e_Subneg_Send(TnHeader.Ops.Request, currentOptionMask);
 									break;
 								}
-							case TN3270E_HEADER.TN3270E_OP_REJECT:
+							case TnHeader.Ops.Reject:
 								{
 									//Device type failure.
 									trace.trace_dsn("REJECT REASON %s SE\n", TelnetConstants.GetReason(buffer.Data[4]));
 
-									if (buffer.Data[4] == TN3270E_HEADER.TN3270E_REASON_INV_DEVICE_TYPE ||
-										buffer.Data[4] == TN3270E_HEADER.TN3270E_REASON_UNSUPPORTED_REQ)
+									if (buffer.Data[4] == TnHeader.NegotiationReasonCodes.InvDeviceType ||
+										buffer.Data[4] == TnHeader.NegotiationReasonCodes.UnsupportedReq)
 									{
 										this.Backoff_TN3270e("Host rejected device type or request type");
 										break;
@@ -2341,14 +2341,14 @@ namespace Open3270.TN3270
 						}
 						break;
 					}
-				case TN3270E_HEADER.TN3270E_OP_FUNCTIONS:
+				case TnHeader.Ops.Functions:
 					{
 						//Functions negotiation.
 						trace.trace_dsn("FUNCTIONS ");
 
 						switch (buffer.Data[2])
 						{
-							case TN3270E_HEADER.TN3270E_OP_REQUEST:
+							case TnHeader.Ops.Request:
 								{
 									//Host is telling us what functions it wants
 									hostWants = buffer.CopyFrom(3, bufferLength - 3);
@@ -2359,7 +2359,7 @@ namespace Open3270.TN3270
 									{
 										//They want what we want, or less.  Done.
 										currentOptionMask = capabilitiesRequested;
-										this.Tn3270e_Subneg_Send(TN3270E_HEADER.TN3270E_OP_IS, currentOptionMask);
+										this.Tn3270e_Subneg_Send(TnHeader.Ops.Is, currentOptionMask);
 										tn3270e_negotiated = true;
 										trace.trace_dsn("TN3270E option negotiation complete.\n");
 										this.CheckIn3270();
@@ -2369,11 +2369,11 @@ namespace Open3270.TN3270
 										// They want us to do something we can't.
 										//Request the common subset.
 										currentOptionMask &= capabilitiesRequested;
-										this.Tn3270e_Subneg_Send(TN3270E_HEADER.TN3270E_OP_REQUEST, currentOptionMask);
+										this.Tn3270e_Subneg_Send(TnHeader.Ops.Request, currentOptionMask);
 									}
 									break;
 								}
-							case TN3270E_HEADER.TN3270E_OP_IS:
+							case TnHeader.Ops.Is:
 								{
 									//They accept our last request, or a subset thereof.
 									hostWants = buffer.CopyFrom(3, bufferLength - 3);
@@ -2434,8 +2434,8 @@ namespace Open3270.TN3270
 			buffer.Add(TelnetConstants.IAC);
 			buffer.Add(TelnetConstants.SB);
 			buffer.Add(TelnetConstants.TELOPT_TN3270E);
-			buffer.Add(TN3270E_HEADER.TN3270E_OP_DEVICE_TYPE);
-			buffer.Add(TN3270E_HEADER.TN3270E_OP_REQUEST);
+			buffer.Add(TnHeader.Ops.DeviceType);
+			buffer.Add(TnHeader.Ops.Request);
 			string temp = termType;
 
 			// Replace 3279 with 3278 as per the RFC
@@ -2443,7 +2443,7 @@ namespace Open3270.TN3270
 			buffer.Add(temp);
 			if (try_lu != null)
 			{
-				buffer.Add(TN3270E_HEADER.TN3270E_OP_CONNECT);
+				buffer.Add(TnHeader.Ops.Connect);
 				buffer.Add(try_lu);
 			}
 			buffer.Add(TelnetConstants.IAC);
@@ -2567,7 +2567,7 @@ namespace Open3270.TN3270
 			//Complete and send out the trace text.
 			trace.trace_dsn("SENT %s %s FUNCTIONS %s %s %s\n",
 				GetCommand(TelnetConstants.SB), GetOption(TelnetConstants.TELOPT_TN3270E),
-				(op == TN3270E_HEADER.TN3270E_OP_REQUEST) ? "REQUEST" : "IS",
+				(op == TnHeader.Ops.Request) ? "REQUEST" : "IS",
 				GetFunctionCodesAsText(new NetBuffer(protoBuffer, 5, length - 7)),
 				GetCommand(TelnetConstants.SE));
 		}
@@ -2711,7 +2711,7 @@ namespace Open3270.TN3270
 					Shift(TelnetConstants.TN3270E_FUNC_SYSREQ);
 			}
 			eTransmitSequence = 0;
-			responseRequired = TN3270E_HEADER.TN3270E_RSF_NO_RESPONSE;
+			responseRequired = TnHeader.HeaderReponseFlags.NoResponse;
 			telnetState = TelnetState.Data;
 
 			//Clear statistics and flags

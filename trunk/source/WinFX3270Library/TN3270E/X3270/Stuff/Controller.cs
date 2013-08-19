@@ -80,7 +80,7 @@ namespace Open3270.TN3270
 		Telnet telnet;
 		TNTrace trace;
 		Appres appres;
-		sf sf;
+		SF sf;
 		
 		PreviousEnum previous = PreviousEnum.None;
 
@@ -244,7 +244,7 @@ namespace Open3270.TN3270
 
 		internal Controller(Telnet tn, Appres appres)
 		{
-			this.sf = new sf(tn);
+			this.sf = new SF(tn);
 			crmAttributes = new byte[16];
 			crmnAttribute = 0;
 			this.telnet = tn;
@@ -885,7 +885,7 @@ namespace Open3270.TN3270
 							{
 								goto rm_done;
 							}
-							Util.EncodeBaddress(obptr, cursorAddress);
+							Util.EncodeBAddress(obptr, cursorAddress);
 							trace.trace_ds(trace.rcba(cursorAddress));
 						}
 						break;
@@ -906,7 +906,7 @@ namespace Open3270.TN3270
 							{
 								goto rm_done;
 							}
-							Util.EncodeBaddress(obptr, cursorAddress);
+							Util.EncodeBAddress(obptr, cursorAddress);
 							trace.trace_ds(trace.rcba(cursorAddress));
 						}
 						break;
@@ -918,7 +918,7 @@ namespace Open3270.TN3270
 						trace.trace_ds(See.GetAidFromCode(attentionIDbyte));
 						if (shortRead)
 							goto rm_done;
-						Util.EncodeBaddress(obptr, cursorAddress);
+						Util.EncodeBAddress(obptr, cursorAddress);
 						trace.trace_ds(trace.rcba(cursorAddress));
 					}
 					break;
@@ -947,7 +947,7 @@ namespace Open3270.TN3270
 
 						this.IncrementAddress(ref baddr);
 						obptr.Add(ControllerConstant.ORDER_SBA);
-						Util.EncodeBaddress(obptr, baddr);
+						Util.EncodeBAddress(obptr, baddr);
 						trace.trace_ds(" SetBufferAddress%s", trace.rcba(baddr));
 						while (!FieldAttribute.IsFA(screenBuffer[baddr]))
 						{
@@ -1100,7 +1100,7 @@ namespace Open3270.TN3270
 			trace.trace_ds("> ");
 			NetBuffer obptr = new NetBuffer();
 			obptr.Add(attentionIDbyte);
-			Util.EncodeBaddress(obptr, cursorAddress);
+			Util.EncodeBAddress(obptr, cursorAddress);
 			trace.trace_ds("%s%s", See.GetAidFromCode(attentionIDbyte), trace.rcba(cursorAddress));
 
 			baddr = 0;
@@ -1291,7 +1291,7 @@ namespace Open3270.TN3270
 			while (baddr != 0);
 
 			obptr.Add(ControllerConstant.ORDER_SBA);
-			Util.EncodeBaddress(obptr, cursorAddress);
+			Util.EncodeBAddress(obptr, cursorAddress);
 			obptr.Add(ControllerConstant.ORDER_IC);
 		}
 
@@ -1590,7 +1590,7 @@ namespace Open3270.TN3270
 						{
 							//Skip buffer address
 							cp += 2;
-							bufferAddress = Util.DecodeBaddress(buf[cp + start - 1], buf[cp + start]);
+							bufferAddress = Util.DecodeBAddress(buf[cp + start - 1], buf[cp + start]);
 							this.EndText("SetBufferAddress");
 							previous = PreviousEnum.SBA;
 							trace.trace_ds(trace.rcba(bufferAddress));
@@ -1670,7 +1670,7 @@ namespace Open3270.TN3270
 							EndText("RepeatToAddress");
 							//Skip buffer address
 							cp += 2;
-							baddr = Util.DecodeBaddress(buf[cp + start - 1], buf[cp + start]);
+							baddr = Util.DecodeBAddress(buf[cp + start - 1], buf[cp + start]);
 							trace.trace_ds(trace.rcba(baddr));
 							//Skip char to repeat
 							cp++;
@@ -1732,7 +1732,7 @@ namespace Open3270.TN3270
 						{
 							//Skip buffer address
 							cp += 2;
-							baddr = Util.DecodeBaddress(buf[cp + start - 1], buf[cp + start]);
+							baddr = Util.DecodeBAddress(buf[cp + start - 1], buf[cp + start]);
 							this.EndText("EraseUnprotectedAll");
 							if (previous != PreviousEnum.SBA)
 							{
@@ -2150,7 +2150,7 @@ namespace Open3270.TN3270
 						trace.trace_ds(" InsertCursor%s [ignored]\n", trace.rcba(bufferAddress));
 						break;
 					case ControllerConstant.ORDER_SBA:
-						baddr = Util.DecodeBaddress(buf[cp + 1], buf[cp + 2]);
+						baddr = Util.DecodeBAddress(buf[cp + 1], buf[cp + 2]);
 						trace.trace_ds(" SetBufferAddress%s [ignored]\n", trace.rcba(baddr));
 						cp += 2;
 						i += 2;

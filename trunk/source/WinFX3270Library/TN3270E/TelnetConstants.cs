@@ -121,7 +121,7 @@ namespace Open3270.TN3270
 											  
 										  };
 
-		public static readonly byte[] FunctionsReq = new byte[] { TelnetConstants.IAC, TelnetConstants.SB, TelnetConstants.TELOPT_TN3270E,TN3270E_HEADER.TN3270E_OP_FUNCTIONS };
+		public static readonly byte[] FunctionsReq = new byte[] { TelnetConstants.IAC, TelnetConstants.SB, TelnetConstants.TELOPT_TN3270E,TnHeader.Ops.Functions };
 
 		public static readonly string[] FunctionNames = new string[] { "BIND-IMAGE", "DATA-STREAM-CTL", "RESPONSES", "SCS-CTL-CODES", "SYSREQ" };
 

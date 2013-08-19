@@ -143,9 +143,9 @@ namespace Open3270.TN3270
 		}
 		public void action_output(string data, bool encode)
 		{
-			if (datacapture==null)
+			if (datacapture == null)
 				datacapture = new ArrayList();
-			if (datastringcapture==null)
+			if (datastringcapture == null)
 				datastringcapture = new ArrayList();
 
 			datacapture.Add(System.Text.Encoding.ASCII.GetBytes(data));
@@ -159,19 +159,19 @@ namespace Open3270.TN3270
 		}
 		public void action_output(byte[] data, int length)
 		{
-			action_output(data,length,false);
+			action_output(data, length, false);
 		}
 		public void action_output(byte[] data, int length, bool encode)
 		{
-			if (datacapture==null)
+			if (datacapture == null)
 				datacapture = new ArrayList();
-			if (datastringcapture==null)
+			if (datastringcapture == null)
 				datastringcapture = new ArrayList();
 
 			//
 			byte[] temp = new byte[length];
 			int i;
-			for (i=0; i<length; i++)
+			for (i = 0; i < length; i++)
 			{
 				temp[i] = data[i];
 			}
@@ -186,18 +186,18 @@ namespace Open3270.TN3270
 		}
 		public string GetStringData(int index)
 		{
-			if (datastringcapture ==null)
+			if (datastringcapture == null)
 				return null;
-			if (index>=0 && index < datastringcapture.Count)
+			if (index >= 0 && index < datastringcapture.Count)
 				return (string)datastringcapture[index];
 			else
 				return null;
 		}
 		public byte[] GetByteData(int index)
 		{
-			if (datacapture ==null)
+			if (datacapture == null)
 				return null;
-			if (index>=0 && index < datacapture.Count)
+			if (index >= 0 && index < datacapture.Count)
 				return (byte[])datacapture[index];
 			else
 				return null;
@@ -210,21 +210,21 @@ namespace Open3270.TN3270
 				return rec.CausesSubmit;
 			}
 			int i;
-			for (i=0; i<actions.Length; i++)
+			for (i = 0; i < actions.Length; i++)
 			{
-				if (actions[i].name.ToLower()==name.ToLower())
+				if (actions[i].name.ToLower() == name.ToLower())
 				{
 					actionLookup[name.ToLower()] = actions[i];
 					return actions[i].CausesSubmit;
 				}
 			}
-			throw new ApplicationException("Sorry, action '"+name+"' is not known");
+			throw new ApplicationException("Sorry, action '" + name + "' is not known");
 		}
 		public bool Execute(bool submit, string name, params object[] args)
 		{
 			this.telnet.Events.Clear();
 			// Check that we're connected
-			if (!telnet.IsConnected) 
+			if (!telnet.IsConnected)
 			{
 				throw new Open3270.TNHostException("TN3270 Host is not connected", telnet.DisconnectReason, null);
 			}
@@ -237,15 +237,15 @@ namespace Open3270.TN3270
 				return rec.proc(args);
 			}
 			int i;
-			for (i=0; i<actions.Length; i++)
+			for (i = 0; i < actions.Length; i++)
 			{
-				if (actions[i].name.ToLower()==name.ToLower())
+				if (actions[i].name.ToLower() == name.ToLower())
 				{
 					actionLookup[name.ToLower()] = actions[i];
 					return actions[i].proc(args);
 				}
 			}
-			throw new ApplicationException("Sorry, action '"+name+"' is not known");
+			throw new ApplicationException("Sorry, action '" + name + "' is not known");
 
 		}
 

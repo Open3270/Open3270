@@ -592,7 +592,7 @@ namespace Open3270.TN3270
 			this.telnet.Trace.trace_event(" %s -> Key(%s\"%s\")\n",
 				"nop",/*ia_name[(int) ia_cause],*/
 				with_ge ? "GE " : "",
-				Util.ctl_see((byte)Tables.Cg2Ascii[cgcode]));
+				Util.ControlSee((byte)Tables.Cg2Ascii[cgcode]));
 			return HandleOrdinaryCharacter(cgcode, with_ge, pasting);
 		}
 
@@ -862,7 +862,7 @@ namespace Open3270.TN3270
 					}
 			}
 
-			trace.trace_event(" %s -> Key(\"%s\")\n", this.telnet.Action.ia_name[(int)cause], Util.ctl_see(character));
+			trace.trace_event(" %s -> Key(\"%s\")\n", this.telnet.Action.ia_name[(int)cause], Util.ControlSee(character));
 			if (this.telnet.Is3270)
 			{
 				if (character < ' ')

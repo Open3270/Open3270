@@ -275,9 +275,19 @@ namespace Open3270.TN3270
 		KeyMap
 	};
 
-	internal delegate void TelnetDataDelegate(object parentData, TNEvent eventType, string text);
+	internal enum DataType3270
+	{
+		Data3270,
+		DataScs,
+		Response,
+		BindImage,
+		Unbind,
+		NvtData,
+		Request,
+		SscpLuData,
+		PrintEoj
+	}
 
-	internal delegate void SChangeDelegate(bool option);
 
-	internal delegate void RunScriptDelegate(string where);
+
 }

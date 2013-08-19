@@ -95,7 +95,7 @@ namespace Open3270.TN3270
 		byte[] data;
 		int datapos;
 		byte datatype;
-		TN3270E_HEADER header = null;
+		TnHeader header = null;
 		/// <summary>
 		/// Constructor for the client data parser class
 		/// </summary>
@@ -134,9 +134,9 @@ namespace Open3270.TN3270
 				case CS.R_HEADER:
 					data[datapos] = v;
 					datapos++;
-					if (datapos == TN3270E_HEADER.EH_SIZE)
+					if (datapos == TnHeader.EhSize)
 					{
-						header = new TN3270E_HEADER(data);
+						header = new TnHeader(data);
 						datapos = 0;
 						cs = CS.R_HEADERDATA;
 					}
@@ -147,7 +147,7 @@ namespace Open3270.TN3270
 					if (datapos==0)
 						Console.WriteLine(See.GetAidFromCode(v));
 					if (datapos==2)
-						Console.WriteLine(Util.DecodeBaddress(data[1], data[2]));
+						Console.WriteLine(Util.DecodeBAddress(data[1], data[2]));
 
 					if (datapos == 3 && data[3] != ControllerConstant.ORDER_SBA)
 						throw new ApplicationException("ni");
@@ -156,7 +156,7 @@ namespace Open3270.TN3270
 
 					if (datapos==5)
 					{
-						int baddr = Util.DecodeBaddress(data[4],data[5]);
+						int baddr = Util.DecodeBAddress(data[4],data[5]);
 						Console.WriteLine(BA_TO_COL(baddr)+", "+BA_TO_ROW(baddr));
 					}
 
