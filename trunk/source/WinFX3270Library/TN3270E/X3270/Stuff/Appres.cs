@@ -30,53 +30,58 @@ namespace Open3270.TN3270
 	/// </summary>
 	internal class Appres
 	{
-		enum toggle_type 
-		{ 
-			TT_INITIAL, TT_INTERACTIVE, TT_ACTION, TT_FINAL 
-		};
-		internal class Ctoggle 
+		enum ToggleType
 		{
-			public bool vvalue;		/* toggle value */
-			public bool changed;	/* has the value changed since init */
-			//Widget w[2];		/* the menu item widgets */
-			public string[] label; //[2];	/* labels */
-			// C++ Functtion pointer from documentation...
-			internal Ctoggle()
+			Initial,
+			Interactive,
+			Action,
+			Final
+		}
+
+		internal class Toggle
+		{
+			public bool toggleValue;
+
+			// Has the value changed since init 
+			public bool changed;
+			public string[] labels;
+
+			internal Toggle()
 			{
-				vvalue = false;
+				toggleValue = false;
 				changed = false;
-				label = new string[2];
-				label[0] = null;
-				label[1] = null;
+				labels = new string[2];
+				labels[0] = null;
+				labels[1] = null;
 			}
-		};
-		public const int MONOCASE	=0;
-		public const int ALT_CURSOR	=1;
-		public const int CURSOR_BLINK	=2;
-		public const int SHOW_TIMING	=3;
-		public const int CURSOR_POS	=4;
-		public const int DS_TRACE	=5;
-		public const int SCROLL_BAR	=6;
-		public const int LINE_WRAP	=7;
-		public const int BLANK_FILL	=8;
-		public const int SCREEN_TRACE	=9;
-		public const int EVENT_TRACE	=10;
-		public const int MARGINED_PASTE	=11;
-		public const int RECTANGLE_SELECT =12;
-		private const int N_TOGGLES	=14;
+		}
+
+		public const int MONOCASE = 0;
+		public const int ALT_CURSOR = 1;
+		public const int CURSOR_BLINK = 2;
+		public const int SHOW_TIMING = 3;
+		public const int CURSOR_POS = 4;
+		public const int DS_TRACE = 5;
+		public const int SCROLL_BAR = 6;
+		public const int LINE_WRAP = 7;
+		public const int BLANK_FILL = 8;
+		public const int SCREEN_TRACE = 9;
+		public const int EVENT_TRACE = 10;
+		public const int MARGINED_PASTE = 11;
+		public const int RECTANGLE_SELECT = 12;
+		private const int N_TOGGLES = 14;
 
 
-		Ctoggle[] toggles;
+		Toggle[] toggles;
 		public Appres()
 		{
-			toggles = new Ctoggle[N_TOGGLES];
+			toggles = new Toggle[N_TOGGLES];
 			int i;
-			for (i=0; i<N_TOGGLES;i++)
+			for (i = 0; i < N_TOGGLES; i++)
 			{
-				toggles[i] = new Ctoggle();
+				toggles[i] = new Toggle();
 			}
-			// setup defaults
-			/* Set the defaults. */
+			// Set defaults
 			this.mono = false;
 			this.extended = true;
 			this.m3279 = false;
@@ -89,7 +94,7 @@ namespace Open3270.TN3270
 			this.typeahead = true;
 			this.debug_tracing = true;
 
-//			this.model = "4";
+			//this.model = "4";
 			this.hostsfile = null;
 			this.port = "telnet";
 			this.charset = "bracket";
@@ -110,33 +115,33 @@ namespace Open3270.TN3270
 			this.quit = "^\\";
 			this.eof = "^D";
 
-			//
 		}
 
-		public bool toggled(int ix)
+		public bool Toggled(int ix)
 		{
-			return toggles[ix].vvalue;
+			return toggles[ix].toggleValue;
 		}
-		public void toggle(Ctoggle t)
+		public void ToggleTheValue(Toggle t)
 		{
-			t.vvalue = !t.vvalue;
+			t.toggleValue = !t.toggleValue;
 			t.changed = true;
 		}
-		public void do_toggle(int ix)
+		public void ToggleTheValue(int ix)
 		{
-			toggles[ix].vvalue = !toggles[ix].vvalue;
+			toggles[ix].toggleValue = !toggles[ix].toggleValue;
 			toggles[ix].changed = true;
 		}
-		public void settoggle(int ix, bool v)
+		public void SetToggle(int ix, bool v)
 		{
-			toggles[ix].vvalue = v;
+			toggles[ix].toggleValue = v;
 			toggles[ix].changed = true;
 
 		}
-public bool Toggle_action(params object[] args)
-{
-	throw new ApplicationException("toggle_action not implemented");
-}
+
+		public bool ToggleAction(params object[] args)
+		{
+			throw new ApplicationException("toggle_action not implemented");
+		}
 
 		/* Application resources */
 		/* Options (not toggles) */
@@ -145,12 +150,12 @@ public bool Toggle_action(params object[] args)
 		public bool m3279;
 		public bool modified_sel;
 		//public bool	once;
-		public bool	apl_mode;
+		public bool apl_mode;
 		public bool scripted;
 		public bool numeric_lock;
 		public bool secure;
 		//public bool oerr_lock;
-		public bool	typeahead;
+		public bool typeahead;
 		public bool debug_tracing;
 		public bool disconnect_clear = false;
 		//public bool highlight_bold;
@@ -177,9 +182,9 @@ public bool Toggle_action(params object[] args)
 
 
 		/* Line-mode TTY parameters */
-		public bool	icrnl;
-		public bool	inlcr;
-		public bool	onlcr;
+		public bool icrnl;
+		public bool inlcr;
+		public bool onlcr;
 		public string erase;
 		public string kill;
 		public string werase;

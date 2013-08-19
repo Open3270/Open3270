@@ -29,18 +29,21 @@ namespace Open3270.TN3270
 	/// <summary>
 	/// Summary description for print.
 	/// </summary>
-	internal class Print:IDisposable
+	internal class Print : IDisposable
 	{
 		Telnet telnet;
 		internal Print(Telnet telnet)
 		{
 			this.telnet = telnet;
 		}
-		/*
-		 * Print the ASCIIfied contents of the screen onto a stream.
-		 * Returns True if anything printed, False otherwise.
-		 */
-		bool fprint_screen(StreamWriter f, bool even_if_empty)
+
+		/// <summary>
+		/// Print the ASCIIfied contents of the screen onto a stream.
+		/// </summary>
+		/// <param name="f"></param>
+		/// <param name="even_if_empty"></param>
+		/// <returns>Returns True if anything printed, False otherwise.</returns>
+		bool PrintFormattedScreen(StreamWriter f, bool even_if_empty)
 		{
 			int i;
 			byte e;
@@ -51,17 +54,17 @@ namespace Open3270.TN3270
 			byte fa = telnet.Controller.FakeFA;
 			int fa_index = telnet.Controller.GetFieldAttribute(0);
 			if (fa_index != -1)
-				fa  = telnet.Controller.ScreenBuffer[fa_index];
+				fa = telnet.Controller.ScreenBuffer[fa_index];
 
-			for (i = 0; i < telnet.Controller.RowCount*telnet.Controller.ColumnCount; i++) 
+			for (i = 0; i < telnet.Controller.RowCount * telnet.Controller.ColumnCount; i++)
 			{
-				if (i!=0 && (i % telnet.Controller.ColumnCount)==0) 
+				if (i != 0 && (i % telnet.Controller.ColumnCount) == 0)
 				{
 					nr++;
 					ns = 0;
 				}
 				e = telnet.Controller.ScreenBuffer[i];
-				if (FieldAttribute.IsFA(e)) 
+				if (FieldAttribute.IsFA(e))
 				{
 					c = (byte)' ';
 					fa = telnet.Controller.ScreenBuffer[i];
@@ -72,15 +75,15 @@ namespace Open3270.TN3270
 					c = Tables.Cg2Ascii[e];
 				if (c == (byte)' ')
 					ns++;
-				else 
+				else
 				{
 					any = true;
-					while (nr!=0) 
+					while (nr != 0)
 					{
 						f.WriteLine();
 						nr--;
 					}
-					while (ns!=0) 
+					while (ns != 0)
 					{
 						f.WriteLine(" ");
 						ns--;
@@ -91,7 +94,7 @@ namespace Open3270.TN3270
 			nr++;
 			if (!any && !even_if_empty)
 				return false;
-			while (nr!=0) 
+			while (nr != 0)
 			{
 				f.WriteLine();
 				nr--;
@@ -100,8 +103,12 @@ namespace Open3270.TN3270
 		}
 
 
-		/* Print the contents of the screen as text. */
-		public bool PrintText_action(params object[] args)
+		/// <summary>
+		///  Print the contents of the screen as text.
+		/// </summary>
+		/// <param name="args"></param>
+		/// <returns></returns>
+		public bool PrintTextAction(params object[] args)
 		{
 			bool secure = telnet.Appres.secure;
 
@@ -112,13 +119,13 @@ namespace Open3270.TN3270
 			}
 			StreamWriter f = (StreamWriter)args[0];
 			//	secure = True;
-			fprint_screen(f, true);
+			PrintFormattedScreen(f, true);
 			return true;
 		}
 
 		public void Dispose()
 		{
-			
+
 		}
 	}
 }

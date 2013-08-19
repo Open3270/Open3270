@@ -38,7 +38,7 @@ namespace Open3270.TN3270
 		}
 		public override string ToString()
 		{
-			return CFormat.Format(error,data);
+			return TraceFormatter.Format(error,data);
 		}
 
 	}
@@ -84,7 +84,7 @@ namespace Open3270.TN3270
 		public void ShowError(string error, params object[] args)
 		{
 			events.Add(new EventNotification(error, args));
-			Console.WriteLine("ERROR"+CFormat.Format(error,args));
+			Console.WriteLine("ERROR"+TraceFormatter.Format(error,args));
 			//telnet.FireEvent(error, args);
 		}
 		public void Warning(string warning)

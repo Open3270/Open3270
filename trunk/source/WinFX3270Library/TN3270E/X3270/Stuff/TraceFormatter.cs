@@ -26,14 +26,13 @@ using System.Text;
 
 namespace Open3270.TN3270
 {
-	/// <summary>
-	/// Summary description for CFormat.
-	/// </summary>6
-	internal class CFormat
+
+	internal class TraceFormatter
 	{
-		internal CFormat()
+		internal TraceFormatter()
 		{
 		}
+
 		static public string Format(string fmt, params object[] args)
 		{
 			StringBuilder builder = new StringBuilder();

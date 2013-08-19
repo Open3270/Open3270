@@ -57,14 +57,14 @@ namespace Open3270.TN3270
 
 
 		byte[] supported_replies = new byte[] {
-												  see.QR_SUMMARY,		/* 0x80 */
-												  see.QR_USABLE_AREA,		/* 0x81 */
-												  see.QR_ALPHA_PART,		/* 0x84 */
-												  see.QR_CHARSETS,		/* 0x85 */
-												  see.QR_COLOR,		/* 0x86 */
-												  see.QR_HIGHLIGHTING,	/* 0x87 */
-												  see.QR_REPLY_MODES,		/* 0x88 */
-												  see.QR_IMP_PART		/* 0xa6 */
+												  See.QR_SUMMARY,		/* 0x80 */
+												  See.QR_USABLE_AREA,		/* 0x81 */
+												  See.QR_ALPHA_PART,		/* 0x84 */
+												  See.QR_CHARSETS,		/* 0x85 */
+												  See.QR_COLOR,		/* 0x86 */
+												  See.QR_HIGHLIGHTING,	/* 0x87 */
+												  See.QR_REPLY_MODES,		/* 0x88 */
+												  See.QR_IMP_PART		/* 0xa6 */
 											  };
 		//private int byteNSR;//	(sizeof(supported_replies)/sizeof(byte))
 		int NSR;
@@ -233,14 +233,14 @@ namespace Open3270.TN3270
 						if (buflen < 7) 
 						{
 							telnet.Trace.trace_ds(")\n");
-							do_query_reply(obptr, see.QR_NULL);
+							do_query_reply(obptr, See.QR_NULL);
 						} 
 						else 
 						{
 							for (i = 6; i < buflen; i++) 
 							{
 								telnet.Trace.trace_ds("%s%s", comma,
-									see.see_qcode(buf[i]));
+									See.GetQCodeode(buf[i]));
 								comma = ",";
 							}
 							telnet.Trace.trace_ds(")\n");
@@ -261,7 +261,7 @@ namespace Open3270.TN3270
 							}
 							if (any==0) 
 							{
-								do_query_reply(obptr, see.QR_NULL);
+								do_query_reply(obptr, See.QR_NULL);
 							}
 						}
 						break;
@@ -269,7 +269,7 @@ namespace Open3270.TN3270
 						telnet.Trace.trace_ds("Equivlent+List(");
 						for (i = 6; i < buflen; i++) 
 						{
-							telnet.Trace.trace_ds("%s%s", comma, see.see_qcode(buf[i]));
+							telnet.Trace.trace_ds("%s%s", comma, See.GetQCodeode(buf[i]));
 							comma = ",";
 						}
 						telnet.Trace.trace_ds(")\n");
@@ -391,7 +391,7 @@ namespace Open3270.TN3270
 				for (i = 5; i < buflen; i++) 
 				{
 					telnet.Controller.CrmAttributes[i - 5] = buf[i];
-					telnet.Trace.trace_ds("%s%s", comma, see.see_efa_only(buf[i]));
+					telnet.Trace.trace_ds("%s%s", comma, See.GetEfaOnly(buf[i]));
 					comma = ",";
 				}
 				telnet.Trace.trace_ds("%s\n", (telnet.Controller.CrmnAttribute!=0) ? ")" : "");
@@ -644,11 +644,11 @@ namespace Open3270.TN3270
 
 			//space3270out(4);
 			obptr.Add16(0); // Length - set later
-			obptr.Add(see.SFID_QREPLY);
+			obptr.Add(See.SFID_QREPLY);
 			obptr.Add(code);
 			switch (code) 
 			{
-				case see.QR_CHARSETS:
+				case See.QR_CHARSETS:
 					telnet.Trace.trace_ds("> QueryReply(CharacterSets)\n");
 					//space3270out(23);
 					obptr.Add(0x82);	/* flags: GE, CGCSGID present */
@@ -669,7 +669,7 @@ namespace Open3270.TN3270
                     // TODO: Missing font stuff for extended font information
 					break;
 
-				case see.QR_IMP_PART:
+				case See.QR_IMP_PART:
 					telnet.Trace.trace_ds("> QueryReply(ImplicitPartition)\n");
 //					space3270out(13);
 					obptr.Add(0x0);		/* reserved */
@@ -683,24 +683,24 @@ namespace Open3270.TN3270
 					obptr.Add16(telnet.Controller.MaxRows);	/* alternate width */
 					break;
 
-				case see.QR_NULL:
+				case See.QR_NULL:
 					telnet.Trace.trace_ds("> QueryReply(Null)\n");
 					break;
 
-				case see.QR_SUMMARY:
+				case See.QR_SUMMARY:
 					telnet.Trace.trace_ds("> QueryReply(Summary(");
 //					space3270out(NSR);
 					for (i = 0; i < NSR; i++) 
 					{
 						telnet.Trace.trace_ds("%s%s", comma,
-							see.see_qcode(supported_replies[i]));
+							See.GetQCodeode(supported_replies[i]));
 						comma = ",";
 						obptr.Add(supported_replies[i]);
 					}
 					telnet.Trace.trace_ds("))\n");
 					break;
 
-				case see.QR_USABLE_AREA:
+				case See.QR_USABLE_AREA:
 					telnet.Trace.trace_ds("> QueryReply(UsableArea)\n");
 //					space3270out(19);
 					obptr.Add(0x01);	/* 12/14-bit addressing */
@@ -731,13 +731,13 @@ namespace Open3270.TN3270
 					obptr.Add16(telnet.Controller.MaxColumns*telnet.Controller.MaxRows);	/* buffer, questionable */
 					break;
 
-				case see.QR_COLOR:
+				case See.QR_COLOR:
 					telnet.Trace.trace_ds("> QueryReply(Color)\n");
 //					space3270out(4 + 2*15);
 					obptr.Add(0x00);	/* no options */
 					obptr.Add(telnet.Appres.color8? 8: 16); /* report on 8 or 16 colors */
 					obptr.Add(0x00);	/* default color: */
-					obptr.Add(0xf0 + see.COLOR_GREEN);	/*  green */
+					obptr.Add(0xf0 + See.COLOR_GREEN);	/*  green */
 					for (i = 0xf1; i <= (telnet.Appres.color8? 0xf8: 0xff); i++) 
 					{
 						obptr.Add(i);
@@ -748,23 +748,23 @@ namespace Open3270.TN3270
 					}
 					break;
 
-				case see.QR_HIGHLIGHTING:
+				case See.QR_HIGHLIGHTING:
 					telnet.Trace.trace_ds("> QueryReply(Highlighting)\n");
 //					space3270out(11);
 					obptr.Add(5);		/* report on 5 pairs */
-					obptr.Add(see.XAH_DEFAULT);	/* default: */
-					obptr.Add(see.XAH_NORMAL);	/*  normal */
-					obptr.Add(see.XAH_BLINK);	/* blink: */
-					obptr.Add(see.XAH_BLINK);	/*  blink */
-					obptr.Add(see.XAH_REVERSE);	/* reverse: */
-					obptr.Add(see.XAH_REVERSE);	/*  reverse */
-					obptr.Add(see.XAH_UNDERSCORE); /* underscore: */
-					obptr.Add(see.XAH_UNDERSCORE); /*  underscore */
-					obptr.Add(see.XAH_INTENSIFY); /* intensify: */
-					obptr.Add(see.XAH_INTENSIFY); /*  intensify */
+					obptr.Add(See.XAH_DEFAULT);	/* default: */
+					obptr.Add(See.XAH_NORMAL);	/*  normal */
+					obptr.Add(See.XAH_BLINK);	/* blink: */
+					obptr.Add(See.XAH_BLINK);	/*  blink */
+					obptr.Add(See.XAH_REVERSE);	/* reverse: */
+					obptr.Add(See.XAH_REVERSE);	/*  reverse */
+					obptr.Add(See.XAH_UNDERSCORE); /* underscore: */
+					obptr.Add(See.XAH_UNDERSCORE); /*  underscore */
+					obptr.Add(See.XAH_INTENSIFY); /* intensify: */
+					obptr.Add(See.XAH_INTENSIFY); /*  intensify */
 					break;
 
-				case see.QR_REPLY_MODES:
+				case See.QR_REPLY_MODES:
 					telnet.Trace.trace_ds("> QueryReply(ReplyModes)\n");
 //					space3270out(3);
 					obptr.Add(SF_SRM_FIELD);
@@ -772,7 +772,7 @@ namespace Open3270.TN3270
 					obptr.Add(SF_SRM_CHAR);
 					break;
 
-				case see.QR_ALPHA_PART:
+				case See.QR_ALPHA_PART:
 					telnet.Trace.trace_ds("> QueryReply(AlphanumericPartitions)\n");
 //					space3270out(4);
 					obptr.Add(0);		/* 1 partition */

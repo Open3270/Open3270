@@ -31,6 +31,7 @@ namespace Open3270.TN3270
 												 AID.F13, AID.F14, AID.F15, AID.F16, AID.F17, AID.F18,
 												 AID.F19, AID.F20, AID.F21, AID.F22, AID.F23, AID.F24
 											 };
+
 		public static byte[] PaTranslation = new byte[]  { 
 												  AID.PA1, AID.PA2, AID.PA3
 											  };

@@ -40,7 +40,7 @@ namespace Open3270.TN3270
 
 			telnet = tn;
 			actions = new XtActionRec[] {
-					new XtActionRec( "printtext",	false,	new ActionDelegate(telnet.Print.PrintText_action )),
+					new XtActionRec( "printtext",	false,	new ActionDelegate(telnet.Print.PrintTextAction )),
 					new XtActionRec( "flip",		false,	new ActionDelegate(telnet.Keyboard.FlipAction )),
 					new XtActionRec( "ascii",		false,	new ActionDelegate(telnet.Controller.AsciiAction )),
 					new XtActionRec( "dumpxml",		false,	new ActionDelegate(telnet.Controller.DumpXMLAction )),

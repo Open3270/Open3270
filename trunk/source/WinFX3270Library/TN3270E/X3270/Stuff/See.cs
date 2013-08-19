@@ -25,12 +25,11 @@ using System;
 
 namespace Open3270.TN3270
 {
-	/// <summary>
-	/// Summary description for see.
-	/// </summary>
-	internal class see
+
+	internal class See
 	{
-		/* Extended attributes */
+
+		// Extended attributes
 		public const byte XA_ALL		= 0x00;
 		public const byte XA_3270		= 0xc0;
 		public const byte XA_VALIDATION	= 0xc1;
@@ -60,7 +59,7 @@ namespace Open3270.TN3270
 		public const byte  XAT_OPAQUE	= 0xff;
 
 
-		/* 3270 orders */
+		// 3270 orders
 		public const byte ORDER_PT	= 0x05;	/* program tab */
 		public const byte ORDER_GE	= 0x08;	/* graphic escape */
 		public const byte ORDER_SBA	= 0x11;	/* set buffer address */
@@ -83,7 +82,8 @@ namespace Open3270.TN3270
 		public const byte FCORDER_SUB	= 0x3f;	/*		   substitute */
 		public const byte FCORDER_EO	= 0xff;	/*		   eight ones */
 
-		/* SCS control code, some overlap orders */
+
+		// SCS control code, some overlap orders
 		public const byte SCS_BS      	= 0x16;	/* Back Space  */
 		public const byte SCS_BEL		= 0x2f;	/* Bell Function */
 		public const byte SCS_CR      	= 0x0d;	/* Carriage Return */
@@ -104,7 +104,8 @@ namespace Open3270.TN3270
 		public const byte SCS_VCS		= 0x04;	/* Vertical Channel Select */
 		public const byte SCS_VT		= 0x0b;	/* Vertical Tab */
 
-		/* Structured fields */
+
+		// Structured fields
 		public const byte SF_READ_PART	= 0x01;	/* read partition */
 		public const byte  SF_RP_QUERY	= 0x02;	/*  query */
 		public const byte  SF_RP_QLIST	= 0x03;	/*  query list */
@@ -125,7 +126,8 @@ namespace Open3270.TN3270
 		public const byte SF_OUTBOUND_DS	= 0x40;	/* outbound 3270 DS */
 		public const byte SF_TRANSFER_DATA = 0xd0;   /* file transfer open request */
 
-		/* Query replies */
+
+		// Query replies
 		public const byte QR_SUMMARY	= 0x80;	/* summary */
 		public const byte QR_USABLE_AREA	= 0x81;	/* usable area */
 		public const byte QR_ALPHA_PART	= 0x84;	/* alphanumeric partitions */
@@ -138,14 +140,16 @@ namespace Open3270.TN3270
 		public const byte QR_IMP_PART	= 0xa6;	/* implicit partition */
 		public const byte QR_NULL		= 0xff;	/* null */
 
-		/* WCC definitions */
+
+		// WCC definitions
 		static public bool WCC_RESET(byte c)		{ return (c & 0x40)!=0; }
 		static public bool WCC_START_PRINTER(byte c)	{ return (c & 0x08)!=0; }
 		static public bool WCC_SOUND_ALARM(byte c)	{return (c & 0x04)!=0; }
 		static public bool WCC_KEYBOARD_RESTORE(byte c)	{return (c & 0x02)!=0; }
 		static public bool WCC_RESET_MDT(byte c)	{return (c & 0x01)!=0;}
-	/* AIDs */
-	public const byte AID_NO		= 0x60;	/* no AID generated */
+
+	// Attention Identifiers
+	public const byte AID_NO		= 0x60;	// No AID generated
 	public const byte AID_QREPLY	= 0x61;
 	public const byte AID_ENTER		= 0x7d;
 	public const byte AID_PF1		= 0xf1;
@@ -184,7 +188,7 @@ namespace Open3270.TN3270
 	public const byte AID_SF		= 0x88;
 	public const byte SFID_QREPLY	= 0x81;
 
-	/* Colors */
+	// Colors
 	public const byte COLOR_NEUTRAL_BLACK	=0;
 	public const byte COLOR_BLUE		=1;
 	public const byte COLOR_RED		=2;
@@ -204,12 +208,12 @@ namespace Open3270.TN3270
 
 
 
-	static public string unknown(byte vvalue)
+	static public string FormatUnknown(byte vvalue)
 {
 	return "unknown[= 0x"+vvalue+"]";
 }
 
-	static public string see_ebc(byte ch)
+	static public string GetEbc(byte ch)
 {
 	switch (ch) 
 {
@@ -238,7 +242,7 @@ namespace Open3270.TN3270
 	return ""+System.Convert.ToChar(ch);
 }
 
-		static public string see_aid(byte code)
+		static public string GetAidFromCode(byte code)
 		{
 			switch (code) 
 			{
@@ -313,32 +317,32 @@ namespace Open3270.TN3270
 				case AID_QREPLY:
 					return "QueryReplyAID";
 				default: 
-					return unknown(code);
+					return FormatUnknown(code);
 			}
 		}
 
-		static public string see_attr(byte fa)
+		static public string GetSeeAttribute(byte fa)
 		{
-			string see_attr_buf = "";
+			string seeAttributeBuffer = "";
 			string paren = "(";
 
 
 			if ((fa & 0x04) !=0)
 			{
-				see_attr_buf+=paren;
-				see_attr_buf+="protected";
+				seeAttributeBuffer+=paren;
+				seeAttributeBuffer+="protected";
 				paren = ",";
 				if ((fa & 0x08) !=0)
 				{
-					see_attr_buf+=paren;
-					see_attr_buf+="skip";
+					seeAttributeBuffer+=paren;
+					seeAttributeBuffer+="skip";
 					paren = ",";
 				}
 			} 
 			else if ((fa & 0x08) !=0)
 			{
-				see_attr_buf+=paren;
-				see_attr_buf+="numeric";
+				seeAttributeBuffer+=paren;
+				seeAttributeBuffer+="numeric";
 				paren = ",";
 			}
 			switch (fa & 0x03)
@@ -346,40 +350,40 @@ namespace Open3270.TN3270
 				case 0:
 					break;
 				case 1:
-					see_attr_buf+=paren;
-					see_attr_buf+="detectable";
+					seeAttributeBuffer+=paren;
+					seeAttributeBuffer+="detectable";
 					paren = ",";
 					break;
 				case 2:
-					see_attr_buf+=paren;
-					see_attr_buf+="intensified";
+					seeAttributeBuffer+=paren;
+					seeAttributeBuffer+="intensified";
 					paren = ",";
 					break;
 				case 3:
-					see_attr_buf+=paren;
-					see_attr_buf+="nondisplay";
+					seeAttributeBuffer+=paren;
+					seeAttributeBuffer+="nondisplay";
 					paren = ",";
 					break;
 			}
 			if ((fa & 0x20) !=0 )
 			{
-				see_attr_buf+=paren;
-				see_attr_buf+="modified";
+				seeAttributeBuffer+=paren;
+				seeAttributeBuffer+="modified";
 				paren = ",";
 			}
 			if (paren != "(")
 			{
-				see_attr_buf+=")";
+				seeAttributeBuffer+=")";
 			}
 			else
 			{
-				see_attr_buf+="(default)";
+				seeAttributeBuffer+="(default)";
 			}
 
-			return see_attr_buf;
+			return seeAttributeBuffer;
 		}
 
-		static public string see_highlight(byte setting)
+		static public string GetHighlight(byte setting)
 		{
 			switch (setting) 
 			{
@@ -396,13 +400,13 @@ namespace Open3270.TN3270
 				case XAH_INTENSIFY:
 					return "intensify";
 				default:
-					return unknown(setting);
+					return FormatUnknown(setting);
 			}
 		}
 
-		static public string see_color(byte setting)
+		static public string GetColor(byte setting)
 		{
-			string[] color_name = new string[] {
+			string[] colorName = new string[] {
 												   "neutralBlack",
 												   "blue",
 												   "red",
@@ -422,14 +426,20 @@ namespace Open3270.TN3270
 											   };
 
 			if (setting == XAC_DEFAULT)
+			{
 				return "default";
+			}
 			else if (setting < 0xf0 || setting > 0xff)
-				return unknown(setting);
+			{
+				return FormatUnknown(setting);
+			}
 			else
-				return color_name[setting - 0xf0];
+			{
+				return colorName[setting - 0xf0];
+			}
 		}
 
-		static public string see_transparency(byte setting)
+		static public string GetTransparency(byte setting)
 		{
 			switch (setting) 
 			{
@@ -442,11 +452,11 @@ namespace Open3270.TN3270
 				case XAT_OPAQUE:
 					return "opaque";
 				default:
-					return unknown(setting);
+					return FormatUnknown(setting);
 			}
 		}
 
-		static public string see_validation(byte setting)
+		static public string GetValidation(byte setting)
 		{
 			string see_validation_buf="";
 			string paren = "(";
@@ -457,118 +467,135 @@ namespace Open3270.TN3270
 				see_validation_buf+="fill";
 				paren = ",";
 			}
+
 			if ((setting & XAV_ENTRY) !=0)
 			{
 				see_validation_buf+=paren;
 				see_validation_buf+="entry";
 				paren = ",";
 			}
+
 			if ((setting & XAV_TRIGGER) !=0)
 			{
 				see_validation_buf+=paren;
 				see_validation_buf+="trigger";
 				paren = ",";
 			}
-			if (paren!="(")
-				see_validation_buf+=")";
+
+			if (paren != "(")
+			{
+				see_validation_buf += ")";
+			}
 			else
-				see_validation_buf+="(none)";
+			{
+				see_validation_buf += "(none)";
+			}
+
 			return see_validation_buf;
 		}
 
-		static public string see_outline(byte setting)
+		static public string GetOutline(byte setting)
 		{
-			string see_outline_buf = "";
+			string seeOutlineBuffer = "";
 			string paren = "(";
 
 			if ((setting & XAO_UNDERLINE) !=0)
 			{
-				see_outline_buf+=see_outline_buf+=paren;
-				see_outline_buf+="underline";
+				seeOutlineBuffer+=seeOutlineBuffer+=paren;
+				seeOutlineBuffer+="underline";
 				paren = ",";
 			}
+
 			if ((setting & XAO_RIGHT) !=0)
 			{
-				see_outline_buf+=paren;
-				see_outline_buf+="right";
+				seeOutlineBuffer+=paren;
+				seeOutlineBuffer+="right";
 				paren = ",";
 			}
+
 			if ((setting & XAO_OVERLINE) !=0)
 			{
-				see_outline_buf+=paren;
-				see_outline_buf+="overline";
+				seeOutlineBuffer+=paren;
+				seeOutlineBuffer+="overline";
 				paren = ",";
 			}
+
 			if ((setting & XAO_LEFT) !=0)
 			{
-				see_outline_buf+=paren;
-				see_outline_buf+="left";
+				seeOutlineBuffer+=paren;
+				seeOutlineBuffer+="left";
 				paren = ",";
 			}
+
 			if (paren != "(")
-				see_outline_buf+=")";
+			{
+				seeOutlineBuffer += ")";
+			}
 			else
-				see_outline_buf+="(none)";
-			return see_outline_buf;
+			{
+				seeOutlineBuffer += "(none)";
+			}
+
+			return seeOutlineBuffer;
 		}
 
-		static public string see_efa(byte efa, byte vvalue)
+		static public string GetEfa(byte efa, byte value)
 		{
 
 			switch (efa) 
 			{
 				case XA_ALL:
-					return " all("+vvalue+")";
+					return " all("+value+")";
 				case XA_3270:
-					return " 3270"+see_attr(vvalue);
+					return " 3270"+GetSeeAttribute(value);
 				case XA_VALIDATION:
-					return " validation"+see_validation(vvalue);
+					return " validation"+GetValidation(value);
 				case XA_OUTLINING:
-					return " outlining("+see_outline(vvalue)+")";
+					return " outlining("+GetOutline(value)+")";
 				case XA_HIGHLIGHTING:
-					return " highlighting("+see_highlight(vvalue)+")";
+					return " highlighting("+GetHighlight(value)+")";
 				case XA_FOREGROUND:
-					return " foreground("+see_color(vvalue)+")";
+					return " foreground("+GetColor(value)+")";
 				case XA_CHARSET:
-					return " charset("+vvalue+")";
+					return " charset("+value+")";
 				case XA_BACKGROUND:
-					return " background("+see_color(vvalue)+")";
+					return " background("+GetColor(value)+")";
 				case XA_TRANSPARENCY:
-					return " transparency("+see_transparency(vvalue)+")";
+					return " transparency("+GetTransparency(value)+")";
 				default:
-					return " "+unknown(efa)+"[0x"+vvalue+"]";
+					return " "+FormatUnknown(efa)+"[0x"+value+"]";
 			}
 		}
 
-		static public string see_efa_unformatted(byte efa, byte vvalue)
+		static public string GetEfaUnformatted(byte efa, byte vvalue)
 		{
 			switch (efa) 
 			{
 				case XA_ALL:
 					return ""+vvalue;
 				case XA_3270:
-					return " 3270"+see_attr(vvalue);
+					return " 3270"+GetSeeAttribute(vvalue);
 				case XA_VALIDATION:
-					return see_validation(vvalue);
+					return GetValidation(vvalue);
 				case XA_OUTLINING:
-					return see_outline(vvalue);
+					return GetOutline(vvalue);
 				case XA_HIGHLIGHTING:
-					return see_highlight(vvalue);
+					return GetHighlight(vvalue);
 				case XA_FOREGROUND:
-					return see_color(vvalue);
+					return GetColor(vvalue);
 				case XA_CHARSET:
 					return ""+vvalue;
 				case XA_BACKGROUND:
-					return see_color(vvalue);
+					return GetColor(vvalue);
 				case XA_TRANSPARENCY:
-					return see_transparency(vvalue);
+					return GetTransparency(vvalue);
 				default:
-					return unknown(efa)+"[0x"+vvalue+"]";
+					return FormatUnknown(efa)+"[0x"+vvalue+"]";
 			}
 		}
 
 
-		static public string see_efa_only(byte efa)
+		static public string GetEfaOnly(byte efa)
 		{
 			switch (efa) 
 			{
@@ -591,11 +618,11 @@ namespace Open3270.TN3270
 				case XA_TRANSPARENCY:
 					return "transparency";
 				default:
-					return unknown(efa);
+					return FormatUnknown(efa);
 			}
 		}
 
-		static public string see_qcode(byte id)
+		static public string GetQCodeode(byte id)
 		{
 			switch (id) 
 			{

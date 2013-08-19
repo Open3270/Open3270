@@ -156,19 +156,19 @@
     <Compile Include="TN3270E\X3270\NetBuffer.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\actions.cs">
+    <Compile Include="TN3270E\X3270\Stuff\Actions.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\AID.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\ansi.cs">
+    <Compile Include="TN3270E\X3270\Stuff\Ansi.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\Appres.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\CFormat.cs">
+    <Compile Include="TN3270E\X3270\Stuff\TraceFormatter.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\CharacterGenerator.cs">
@@ -189,19 +189,19 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\KeyboardConstants.cs" />
-    <Compile Include="TN3270E\X3270\Stuff\print.cs">
+    <Compile Include="TN3270E\X3270\Stuff\Print.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\see.cs">
+    <Compile Include="TN3270E\X3270\Stuff\See.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\sf.cs">
+    <Compile Include="TN3270E\X3270\Stuff\SF.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\Tables.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\tn3270e_header.cs">
+    <Compile Include="TN3270E\X3270\Stuff\Tn3270e_header.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\Util.cs">

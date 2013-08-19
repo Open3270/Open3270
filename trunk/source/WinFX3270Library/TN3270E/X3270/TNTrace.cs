@@ -88,14 +88,14 @@ namespace Open3270.TN3270
 			if (!optionTraceDS)
 				return;
 			
-			TraceEvent(TraceType.DS, CFormat.Format(fmt,args));
+			TraceEvent(TraceType.DS, TraceFormatter.Format(fmt,args));
 		}
 		// TN bytes in english
 		public void trace_dsn(string fmt, params object[] args)
 		{
 			if (!optionTraceDSN)
 				return;
-			TraceEvent(TraceType.DSN, CFormat.Format(fmt,args));
+			TraceEvent(TraceType.DSN, TraceFormatter.Format(fmt,args));
 		}
 		// TN characters (in ansi mode)
 		public void trace_char(char c)
@@ -109,7 +109,7 @@ namespace Open3270.TN3270
 		{
 			if (!optionTraceEvent)
 				return;
-			TraceEvent(TraceType.Event, CFormat.Format(fmt,args));
+			TraceEvent(TraceType.Event, TraceFormatter.Format(fmt,args));
 		}
 		// TN bytes in hex
 		public void trace_netdata(char direction, byte[] buf, int len)

@@ -25,13 +25,18 @@ using System;
 
 namespace Open3270.TN3270
 {
-	internal enum enum_state 
+	internal enum AnsiState 
 	{
-		DATA = 0, ESC = 1, CSDES = 2,
-		N1 = 3, DECP = 4, TEXT = 5, TEXT2 = 6
+		DATA = 0, 
+		ESC = 1, 
+		CSDES = 2,
+		N1 = 3, 
+		DECP = 4, 
+		TEXT = 5, 
+		TEXT2 = 6
 	};
 
-	internal delegate enum_state AnsiDelegate(int ig1, int ig2);
+	internal delegate AnsiState AnsiDelegate(int ig1, int ig2);
 
 
 	/// <summary>
@@ -386,18 +391,18 @@ namespace Open3270.TN3270
         public int cs_to_change;
         public bool held_wrap = false;
 
-        public enum_state state;
+        public AnsiState state;
 
 
 
         //static void	ansi_scroll();
 
-        enum_state ansi_data_mode(int ig1, int ig2)
+        AnsiState ansi_data_mode(int ig1, int ig2)
         {
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_save_cursor(int ig1, int ig2)
+        AnsiState dec_save_cursor(int ig1, int ig2)
         {
             int i;
 
@@ -408,10 +413,10 @@ namespace Open3270.TN3270
             saved_fg = fg;
             saved_bg = bg;
             saved_gr = gr;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_restore_cursor(int ig1, int ig2)
+        AnsiState dec_restore_cursor(int ig1, int ig2)
         {
             int i;
 
@@ -423,10 +428,10 @@ namespace Open3270.TN3270
             gr = saved_gr;
             telnet.Controller.SetCursorAddress(saved_cursor);
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_newline(int ig1, int ig2)
+        AnsiState ansi_newline(int ig1, int ig2)
         {
             int nc;
 
@@ -437,10 +442,10 @@ namespace Open3270.TN3270
             else
                 ansi_scroll();
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cursor_up(int nn, int ig2)
+        AnsiState ansi_cursor_up(int nn, int ig2)
         {
             int rr;
 
@@ -452,21 +457,21 @@ namespace Open3270.TN3270
             else
                 telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - (nn * telnet.Controller.ColumnCount));
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_esc2(int ig1, int ig2)
+        AnsiState ansi_esc2(int ig1, int ig2)
         {
             int i;
 
             for (i = 0; i < NN; i++)
                 n[i] = 0;
             nx = 0;
-            return enum_state.N1;
+            return AnsiState.N1;
         }
 
         bool ansi_reset__first = false;
-        enum_state ansi_reset(int ig1, int ig2)
+        AnsiState ansi_reset(int ig1, int ig2)
         {
             int i;
             //static Boolean first = true;
@@ -513,10 +518,10 @@ namespace Open3270.TN3270
                 //screen_80();
             }
             ansi_reset__first = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_insert_chars(int nn, int ig2)
+        AnsiState ansi_insert_chars(int nn, int ig2)
         {
             int cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;	/* current col */
             int mc = telnet.Controller.ColumnCount - cc;		/* max chars that can be inserted */
@@ -534,10 +539,10 @@ namespace Open3270.TN3270
 
             /* Clear the middle of the line */
             telnet.Controller.EraseRegion(telnet.Controller.CursorAddress, nn, true);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cursor_down(int nn, int ig2)
+        AnsiState ansi_cursor_down(int nn, int ig2)
         {
             int rr;
 
@@ -549,10 +554,10 @@ namespace Open3270.TN3270
             else
                 telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress + (nn * telnet.Controller.ColumnCount));
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cursor_right(int nn, int ig2)
+        AnsiState ansi_cursor_right(int nn, int ig2)
         {
             int cc;
 
@@ -560,35 +565,35 @@ namespace Open3270.TN3270
                 nn = 1;
             cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
             if (cc == telnet.Controller.ColumnCount - 1)
-                return enum_state.DATA;
+                return AnsiState.DATA;
             if (cc + nn >= telnet.Controller.ColumnCount)
                 nn = telnet.Controller.ColumnCount - 1 - cc;
             telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress + nn);
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cursor_left(int nn, int ig2)
+        AnsiState ansi_cursor_left(int nn, int ig2)
         {
             int cc;
 
             if (held_wrap)
             {
                 held_wrap = false;
-                return enum_state.DATA;
+                return AnsiState.DATA;
             }
             if (nn < 1)
                 nn = 1;
             cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
             if (cc == 0)
-                return enum_state.DATA;
+                return AnsiState.DATA;
             if (nn > cc)
                 nn = cc;
             telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - nn);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cursor_motion(int n1, int n2)
+        AnsiState ansi_cursor_motion(int n1, int n2)
         {
             if (n1 < 1) n1 = 1;
             if (n1 > telnet.Controller.RowCount) n1 = telnet.Controller.RowCount;
@@ -596,10 +601,10 @@ namespace Open3270.TN3270
             if (n2 > telnet.Controller.ColumnCount) n2 = telnet.Controller.ColumnCount;
             telnet.Controller.SetCursorAddress((n1 - 1) * telnet.Controller.ColumnCount + (n2 - 1));
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_erase_in_display(int nn, int ig2)
+        AnsiState ansi_erase_in_display(int nn, int ig2)
         {
             switch (nn)
             {
@@ -617,10 +622,10 @@ namespace Open3270.TN3270
                     telnet.Controller.EraseRegion(0, telnet.Controller.RowCount * telnet.Controller.ColumnCount, true);
                     break;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_erase_in_line(int nn, int ig2)
+        AnsiState ansi_erase_in_line(int nn, int ig2)
         {
             int nc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
 
@@ -636,10 +641,10 @@ namespace Open3270.TN3270
                     telnet.Controller.EraseRegion(telnet.Controller.CursorAddress - nc, telnet.Controller.ColumnCount, true);
                     break;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_insert_lines(int nn, int ig2)
+        AnsiState ansi_insert_lines(int nn, int ig2)
         {
             int rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;	/* current row */
             int mr = scroll_bottom - rr;	/* rows left at and below this one */
@@ -647,7 +652,7 @@ namespace Open3270.TN3270
 
             /* If outside of the scrolling region, do nothing */
             if (rr < scroll_top - 1 || rr >= scroll_bottom)
-                return enum_state.DATA;
+                return AnsiState.DATA;
 
             if (nn < 1)
                 nn = 1;
@@ -661,10 +666,10 @@ namespace Open3270.TN3270
 
             /* Clear the middle of the screen */
             telnet.Controller.EraseRegion(rr * telnet.Controller.ColumnCount, nn * telnet.Controller.ColumnCount, true);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_delete_lines(int nn, int ig2)
+        AnsiState ansi_delete_lines(int nn, int ig2)
         {
             int rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;	/* current row */
             int mr = scroll_bottom - rr;	/* max rows that can be deleted */
@@ -672,7 +677,7 @@ namespace Open3270.TN3270
 
             /* If outside of the scrolling region, do nothing */
             if (rr < scroll_top - 1 || rr >= scroll_bottom)
-                return enum_state.DATA;
+                return AnsiState.DATA;
 
             if (nn < 1)
                 nn = 1;
@@ -686,10 +691,10 @@ namespace Open3270.TN3270
 
             /* Clear the rest of the screen */
             telnet.Controller.EraseRegion((rr + ns) * telnet.Controller.ColumnCount, nn * telnet.Controller.ColumnCount, true);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_delete_chars(int nn, int ig2)
+        AnsiState ansi_delete_chars(int nn, int ig2)
         {
             int cc = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;	/* current col */
             int mc = telnet.Controller.ColumnCount - cc;		/* max chars that can be deleted */
@@ -707,10 +712,10 @@ namespace Open3270.TN3270
 
             /* Clear the end of the line */
             telnet.Controller.EraseRegion(telnet.Controller.CursorAddress + ns, nn, true);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_sgr(int ig1, int ig2)
+        AnsiState ansi_sgr(int ig1, int ig2)
         {
             int i;
 
@@ -790,27 +795,27 @@ namespace Open3270.TN3270
                         break;
                 }
 
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_bell(int ig1, int ig2)
+        AnsiState ansi_bell(int ig1, int ig2)
         {
             //ring_bell();
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_newpage(int ig1, int ig2)
+        AnsiState ansi_newpage(int ig1, int ig2)
         {
             telnet.Controller.Clear(false);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_backspace(int ig1, int ig2)
+        AnsiState ansi_backspace(int ig1, int ig2)
         {
             if (held_wrap)
             {
                 held_wrap = false;
-                return enum_state.DATA;
+                return AnsiState.DATA;
             }
             if (rev_wraparound_mode)
             {
@@ -822,20 +827,20 @@ namespace Open3270.TN3270
                 if ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) != 0)
                     telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - 1);
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cr(int ig1, int ig2)
+        AnsiState ansi_cr(int ig1, int ig2)
         {
             if ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) != 0)
                 telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - (telnet.Controller.CursorAddress % telnet.Controller.ColumnCount));
             if (auto_newline_mode)
                 ansi_lf(0, 0);
             held_wrap = false;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_lf(int ig1, int ig2)
+        AnsiState ansi_lf(int ig1, int ig2)
         {
             int nc = telnet.Controller.CursorAddress + telnet.Controller.ColumnCount;
 
@@ -846,39 +851,39 @@ namespace Open3270.TN3270
             {
                 if (nc < telnet.Controller.RowCount * telnet.Controller.ColumnCount)
                     telnet.Controller.SetCursorAddress(nc);
-                return enum_state.DATA;
+                return AnsiState.DATA;
             }
 
             if (nc < scroll_bottom * telnet.Controller.ColumnCount)
                 telnet.Controller.SetCursorAddress(nc);
             else
                 ansi_scroll();
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_htab(int ig1, int ig2)
+        AnsiState ansi_htab(int ig1, int ig2)
         {
             int col = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
             int i;
 
             held_wrap = false;
             if (col == telnet.Controller.ColumnCount - 1)
-                return enum_state.DATA;
+                return AnsiState.DATA;
             for (i = col + 1; i < telnet.Controller.ColumnCount - 1; i++)
                 if ((tabs[i / 8] & 1 << (i % 8)) != 0)
                     break;
             telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress - col + i);
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_escape(int ig1, int ig2)
+        AnsiState ansi_escape(int ig1, int ig2)
         {
-            return enum_state.ESC;
+            return AnsiState.ESC;
         }
 
-        enum_state ansi_nop(int ig1, int ig2)
+        AnsiState ansi_nop(int ig1, int ig2)
         {
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
         private void PWRAP(ref int nc)
         {
@@ -898,7 +903,7 @@ namespace Open3270.TN3270
         }
 
 
-        enum_state ansi_printing(int ig1, int ig2)
+        AnsiState ansi_printing(int ig1, int ig2)
         {
             int nc = 0;
 
@@ -962,24 +967,24 @@ namespace Open3270.TN3270
                 if ((telnet.Controller.CursorAddress % telnet.Controller.ColumnCount) != (telnet.Controller.ColumnCount - 1))
                     telnet.Controller.SetCursorAddress(telnet.Controller.CursorAddress + 1);
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_semicolon(int ig1, int ig2)
+        AnsiState ansi_semicolon(int ig1, int ig2)
         {
             if (nx >= NN)
-                return enum_state.DATA;
+                return AnsiState.DATA;
             nx++;
             return state;
         }
 
-        enum_state ansi_digit(int ig1, int ig2)
+        AnsiState ansi_digit(int ig1, int ig2)
         {
             n[nx] = (n[nx] * 10) + (ansi_ch - '0');
             return state;
         }
 
-        enum_state ansi_reverse_index(int ig1, int ig2)
+        AnsiState ansi_reverse_index(int ig1, int ig2)
         {
             int rr = telnet.Controller.CursorAddress / telnet.Controller.ColumnCount;	/* current row */
             int np = (scroll_top - 1) - rr;	/* number of rows in the scrolling
@@ -994,7 +999,7 @@ namespace Open3270.TN3270
             if (np < 0)
             {
                 ansi_cursor_up(nn, 0);
-                return enum_state.DATA;
+                return AnsiState.DATA;
             }
 
             /* Split the number of lines to scroll into ns */
@@ -1014,22 +1019,22 @@ namespace Open3270.TN3270
             if (ns != 0)
                 ansi_insert_lines(ns, 0);
 
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_send_attributes(int nn, int ig2)
+        AnsiState ansi_send_attributes(int nn, int ig2)
         {
             if (nn == 0)
                 telnet.SendString("\033[?1;2c");
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_return_terminal_id(int ig1, int ig2)
+        AnsiState dec_return_terminal_id(int ig1, int ig2)
         {
             return ansi_send_attributes(0, 0);
         }
 
-        enum_state ansi_set_mode(int nn, int ig2)
+        AnsiState ansi_set_mode(int nn, int ig2)
         {
             switch (nn)
             {
@@ -1040,10 +1045,10 @@ namespace Open3270.TN3270
                     auto_newline_mode = true;
                     break;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_reset_mode(int nn, int ig2)
+        AnsiState ansi_reset_mode(int nn, int ig2)
         {
             switch (nn)
             {
@@ -1054,10 +1059,10 @@ namespace Open3270.TN3270
                     auto_newline_mode = false;
                     break;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_status_report(int nn, int ig2)
+        AnsiState ansi_status_report(int nn, int ig2)
         {
             string ansi_status_cpr;
 
@@ -1071,63 +1076,63 @@ namespace Open3270.TN3270
                     telnet.SendString(ansi_status_cpr);
                     break;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_cs_designate(int ig1, int ig2)
+        AnsiState ansi_cs_designate(int ig1, int ig2)
         {
             cs_to_change = gnnames.IndexOf((char)ansi_ch);//strchr(gnnames, ansi_ch) - gnnames;
-            return enum_state.CSDES;
+            return AnsiState.CSDES;
         }
 
-        enum_state ansi_cs_designate2(int ig1, int ig2)
+        AnsiState ansi_cs_designate2(int ig1, int ig2)
         {
             csd[cs_to_change] = csnames.IndexOf((char)ansi_ch);//strchr(csnames, ansi_ch) - csnames;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_select_g0(int ig1, int ig2)
+        AnsiState ansi_select_g0(int ig1, int ig2)
         {
             cset = CS_G0;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_select_g1(int ig1, int ig2)
+        AnsiState ansi_select_g1(int ig1, int ig2)
         {
             cset = CS_G1;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_select_g2(int ig1, int ig2)
+        AnsiState ansi_select_g2(int ig1, int ig2)
         {
             cset = CS_G2;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_select_g3(int ig1, int ig2)
+        AnsiState ansi_select_g3(int ig1, int ig2)
         {
             cset = CS_G3;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_one_g2(int ig1, int ig2)
+        AnsiState ansi_one_g2(int ig1, int ig2)
         {
             once_cset = CS_G2;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_one_g3(int ig1, int ig2)
+        AnsiState ansi_one_g3(int ig1, int ig2)
         {
             once_cset = CS_G3;
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_esc3(int ig1, int ig2)
+        AnsiState ansi_esc3(int ig1, int ig2)
         {
-            return enum_state.DECP;
+            return AnsiState.DECP;
         }
 
-        enum_state dec_set(int ig1, int ig2)
+        AnsiState dec_set(int ig1, int ig2)
         {
             int i;
 
@@ -1160,10 +1165,10 @@ namespace Open3270.TN3270
                         telnet.Controller.SwapAltBuffers(true);
                         break;
                 }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_reset(int ig1, int ig2)
+        AnsiState dec_reset(int ig1, int ig2)
         {
             int i;
 
@@ -1193,10 +1198,10 @@ namespace Open3270.TN3270
                         telnet.Controller.SwapAltBuffers(false);
                         break;
                 }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_save(int ig1, int ig2)
+        AnsiState dec_save(int ig1, int ig2)
         {
             int i;
 
@@ -1222,10 +1227,10 @@ namespace Open3270.TN3270
                         saved_altbuffer = telnet.Controller.IsAltBuffer;
                         break;
                 }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_restore(int ig1, int ig2)
+        AnsiState dec_restore(int ig1, int ig2)
         {
             int i;
 
@@ -1254,10 +1259,10 @@ namespace Open3270.TN3270
                         telnet.Controller.SwapAltBuffers(saved_altbuffer);
                         break;
                 }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state dec_scrolling_region(int top, int bottom)
+        AnsiState dec_scrolling_region(int top, int bottom)
         {
             if (top < 1)
                 top = 1;
@@ -1274,23 +1279,23 @@ namespace Open3270.TN3270
                 scroll_top = 1;
                 scroll_bottom = telnet.Controller.RowCount;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state xterm_text_mode(int ig1, int ig2)
+        AnsiState xterm_text_mode(int ig1, int ig2)
         {
             nx = 0;
             n[0] = 0;
-            return enum_state.TEXT;
+            return AnsiState.TEXT;
         }
 
-        enum_state xterm_text_semicolon(int ig1, int ig2)
+        AnsiState xterm_text_semicolon(int ig1, int ig2)
         {
             tx = 0;
-            return enum_state.TEXT2;
+            return AnsiState.TEXT2;
         }
 
-        enum_state xterm_text(int ig1, int ig2)
+        AnsiState xterm_text(int ig1, int ig2)
         {
             if (tx < NT)
             {
@@ -1300,20 +1305,20 @@ namespace Open3270.TN3270
             return state;
         }
 
-        enum_state xterm_text_do(int ig1, int ig2)
+        AnsiState xterm_text_do(int ig1, int ig2)
         {
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_htab_set(int ig1, int ig2)
+        AnsiState ansi_htab_set(int ig1, int ig2)
         {
             int col = telnet.Controller.CursorAddress % telnet.Controller.ColumnCount;
 
             tabs[col / 8] = (byte)(tabs[col / 8] | 1 << (col % 8));
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
-        enum_state ansi_htab_clear(int nn, int ig2)
+        AnsiState ansi_htab_clear(int nn, int ig2)
         {
             int col, i;
 
@@ -1328,7 +1333,7 @@ namespace Open3270.TN3270
                         tabs[i] = 0;
                     break;
             }
-            return enum_state.DATA;
+            return AnsiState.DATA;
         }
 
         /*
@@ -1382,7 +1387,7 @@ namespace Open3270.TN3270
             ansi_ch = (char)c;
 
 
-            if (telnet.Appres.toggled(Appres.SCREEN_TRACE))
+            if (telnet.Appres.Toggled(Appres.SCREEN_TRACE))
             {
                 telnet.Trace.trace_char((char)c);
             }

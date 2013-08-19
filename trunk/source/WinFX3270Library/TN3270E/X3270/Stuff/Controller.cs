@@ -766,7 +766,7 @@ namespace Open3270.TN3270
 				{
 					trace.trace_ds("'");
 				}
-				trace.trace_ds(" SetAttribute(%s)", see.see_efa(attr, vValue));
+				trace.trace_ds(" SetAttribute(%s)", See.GetEfa(attr, vValue));
 				anyp = false;
 			}
 		}
@@ -781,15 +781,15 @@ namespace Open3270.TN3270
 				bool foundXACharset = false;
 				for (i = 0; i < crmnAttribute; i++)
 				{
-					if (crmAttributes[i] == see.XA_FOREGROUND)
+					if (crmAttributes[i] == See.XA_FOREGROUND)
 					{
 						foundXAForeground = true;
 					}
-					if (crmAttributes[i] == see.XA_HIGHLIGHTING)
+					if (crmAttributes[i] == See.XA_HIGHLIGHTING)
 					{
 						foundXAHighlighting = true;
 					}
-					if (crmAttributes[i] == see.XA_CHARSET)
+					if (crmAttributes[i] == See.XA_CHARSET)
 					{
 						foundXACharset = true;
 					}
@@ -797,7 +797,7 @@ namespace Open3270.TN3270
 
 				if (foundXAForeground)
 				{
-					this.InsertSaAttribtutes(obptr, see.XA_FOREGROUND, extendedAttributes[baddr].fg, ref current_fgp, ref anyp);
+					this.InsertSaAttribtutes(obptr, See.XA_FOREGROUND, extendedAttributes[baddr].fg, ref current_fgp, ref anyp);
 				}
 
 				if (foundXAHighlighting)
@@ -809,7 +809,7 @@ namespace Open3270.TN3270
 					{
 						gr |= 0xf0;
 					}
-					this.InsertSaAttribtutes(obptr, see.XA_HIGHLIGHTING, gr, ref current_grp, ref anyp);
+					this.InsertSaAttribtutes(obptr, See.XA_HIGHLIGHTING, gr, ref current_grp, ref anyp);
 				}
 
 				if (foundXACharset)
@@ -821,7 +821,7 @@ namespace Open3270.TN3270
 					{
 						cs |= 0xf0;
 					}
-					this.InsertSaAttribtutes(obptr, see.XA_CHARSET, cs, ref current_csp, ref anyp);
+					this.InsertSaAttribtutes(obptr, See.XA_CHARSET, cs, ref current_csp, ref anyp);
 				}
 			}
 		}
@@ -880,7 +880,7 @@ namespace Open3270.TN3270
 						if (!telnet.IsSscp)
 						{
 							obptr.Add(attentionIDbyte);
-							trace.trace_ds(see.see_aid(attentionIDbyte));
+							trace.trace_ds(See.GetAidFromCode(attentionIDbyte));
 							if (shortRead)
 							{
 								goto rm_done;
@@ -901,7 +901,7 @@ namespace Open3270.TN3270
 						if (!telnet.IsSscp)
 						{
 							obptr.Add(attentionIDbyte);
-							trace.trace_ds(see.see_aid(attentionIDbyte));
+							trace.trace_ds(See.GetAidFromCode(attentionIDbyte));
 							if (shortRead)
 							{
 								goto rm_done;
@@ -915,7 +915,7 @@ namespace Open3270.TN3270
 					if (!telnet.IsSscp)
 					{
 						obptr.Add(attentionIDbyte);
-						trace.trace_ds(see.see_aid(attentionIDbyte));
+						trace.trace_ds(See.GetAidFromCode(attentionIDbyte));
 						if (shortRead)
 							goto rm_done;
 						Util.EncodeBaddress(obptr, cursorAddress);
@@ -974,7 +974,7 @@ namespace Open3270.TN3270
 								{
 									trace.trace_ds(" '");
 								}
-								trace.trace_ds("%s", see.see_ebc(Tables.Cg2Ebc[screenBuffer[baddr]]));
+								trace.trace_ds("%s", See.GetEbc(Tables.Cg2Ebc[screenBuffer[baddr]]));
 								any = true;
 							}
 							this.IncrementAddress(ref baddr);
@@ -1029,7 +1029,7 @@ namespace Open3270.TN3270
 						{
 							trace.trace_ds("'");
 						}
-						trace.trace_ds(see.see_ebc(Tables.Cg2Ebc[screenBuffer[baddr]]));
+						trace.trace_ds(See.GetEbc(Tables.Cg2Ebc[screenBuffer[baddr]]));
 						any = true;
 						nBytes++;
 					}
@@ -1101,7 +1101,7 @@ namespace Open3270.TN3270
 			NetBuffer obptr = new NetBuffer();
 			obptr.Add(attentionIDbyte);
 			Util.EncodeBaddress(obptr, cursorAddress);
-			trace.trace_ds("%s%s", see.see_aid(attentionIDbyte), trace.rcba(cursorAddress));
+			trace.trace_ds("%s%s", See.GetAidFromCode(attentionIDbyte), trace.rcba(cursorAddress));
 
 			baddr = 0;
 			do
@@ -1117,7 +1117,7 @@ namespace Open3270.TN3270
 						obptr.Add(ControllerConstant.ORDER_SFE);
 						attr_count = obptr.Index;
 						obptr.Add(1); /* for now */
-						obptr.Add(see.XA_3270);
+						obptr.Add(See.XA_3270);
 					}
 
 					fa = CalculateFA(screenBuffer[baddr]);
@@ -1130,29 +1130,29 @@ namespace Open3270.TN3270
 
 					trace.trace_ds(" StartField%s%s%s",
 						(replyMode == ControllerConstant.SF_SRM_FIELD) ? "" : "Extended",
-						trace.rcba(baddr), see.see_attr(fa));
+						trace.rcba(baddr), See.GetSeeAttribute(fa));
 
 					if (replyMode != ControllerConstant.SF_SRM_FIELD)
 					{
 						if (extendedAttributes[baddr].fg != 0)
 						{
-							obptr.Add(see.XA_FOREGROUND);
+							obptr.Add(See.XA_FOREGROUND);
 							obptr.Add(extendedAttributes[baddr].fg);
-							trace.trace_ds("%s", see.see_efa(see.XA_FOREGROUND, extendedAttributes[baddr].fg));
+							trace.trace_ds("%s", See.GetEfa(See.XA_FOREGROUND, extendedAttributes[baddr].fg));
 							obptr.IncrementAt(attr_count, 1);
 						}
 						if (extendedAttributes[baddr].gr != 0)
 						{
-							obptr.Add(see.XA_HIGHLIGHTING);
+							obptr.Add(See.XA_HIGHLIGHTING);
 							obptr.Add(extendedAttributes[baddr].gr | 0xf0);
-							trace.trace_ds("%s", see.see_efa(see.XA_HIGHLIGHTING, (byte)(extendedAttributes[baddr].gr | 0xf0)));
+							trace.trace_ds("%s", See.GetEfa(See.XA_HIGHLIGHTING, (byte)(extendedAttributes[baddr].gr | 0xf0)));
 							obptr.IncrementAt(attr_count, 1);
 						}
 						if ((extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK) != 0)
 						{
-							obptr.Add(see.XA_CHARSET);
+							obptr.Add(See.XA_CHARSET);
 							obptr.Add((extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK) | 0xf0);
-							trace.trace_ds("%s", see.see_efa(see.XA_CHARSET, (byte)((extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK) | 0xf0)));
+							trace.trace_ds("%s", See.GetEfa(See.XA_CHARSET, (byte)((extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK) | 0xf0)));
 							obptr.IncrementAt(attr_count, 1);
 						}
 					}
@@ -1183,14 +1183,14 @@ namespace Open3270.TN3270
 							trace.trace_ds("'");
 						}
 
-						trace.trace_ds(" %s", see.see_ebc(Tables.Cg2Ebc[screenBuffer[baddr]]));
+						trace.trace_ds(" %s", See.GetEbc(Tables.Cg2Ebc[screenBuffer[baddr]]));
 						any = false;
 					}
 					else
 					{
 						if (!any)
 							trace.trace_ds(" '");
-						trace.trace_ds("%s", see.see_ebc(Tables.Cg2Ebc[screenBuffer[baddr]]));
+						trace.trace_ds("%s", See.GetEbc(Tables.Cg2Ebc[screenBuffer[baddr]]));
 						any = true;
 					}
 				}
@@ -1228,24 +1228,24 @@ namespace Open3270.TN3270
 					obptr.Add(ControllerConstant.ORDER_SFE);
 					attr_count = obptr.Index;//obptr - obuf;
 					obptr.Add(1); /* for now */
-					obptr.Add(see.XA_3270);
+					obptr.Add(See.XA_3270);
 					obptr.Add(ControllerConstant.CodeTable[CalculateFA(screenBuffer[baddr])]);
 					if (extendedAttributes[baddr].fg != 0)
 					{
 						//space3270out(2);
-						obptr.Add(see.XA_FOREGROUND);
+						obptr.Add(See.XA_FOREGROUND);
 						obptr.Add(extendedAttributes[baddr].fg);
 						obptr.IncrementAt(attr_count, 1);
 					}
 					if (extendedAttributes[baddr].gr != 0)
 					{
-						obptr.Add(see.XA_HIGHLIGHTING);
+						obptr.Add(See.XA_HIGHLIGHTING);
 						obptr.Add(extendedAttributes[baddr].gr | 0xf0);
 						obptr.IncrementAt(attr_count, 1);
 					}
 					if ((extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK) != 0)
 					{
-						obptr.Add(see.XA_CHARSET);
+						obptr.Add(See.XA_CHARSET);
 						obptr.Add((extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK) | 0xf0);
 						obptr.IncrementAt(attr_count, 1);
 					}
@@ -1257,7 +1257,7 @@ namespace Open3270.TN3270
 					{
 						current_fg = av;
 						obptr.Add(ControllerConstant.ORDER_SA);
-						obptr.Add(see.XA_FOREGROUND);
+						obptr.Add(See.XA_FOREGROUND);
 						obptr.Add(av);
 					}
 					av = extendedAttributes[baddr].gr;
@@ -1267,7 +1267,7 @@ namespace Open3270.TN3270
 					{
 						current_gr = av;
 						obptr.Add(ControllerConstant.ORDER_SA);
-						obptr.Add(see.XA_HIGHLIGHTING);
+						obptr.Add(See.XA_HIGHLIGHTING);
 						obptr.Add(av);
 					}
 					av = (byte)(extendedAttributes[baddr].cs & ExtendedAttribute.CS_MASK);
@@ -1277,7 +1277,7 @@ namespace Open3270.TN3270
 					{
 						current_cs = av;
 						obptr.Add(ControllerConstant.ORDER_SA);
-						obptr.Add(see.XA_CHARSET);
+						obptr.Add(See.XA_CHARSET);
 						obptr.Add(av);
 					}
 					if ((extendedAttributes[baddr].cs & ControllerConstant.CS_GE) != 0)
@@ -1430,7 +1430,7 @@ namespace Open3270.TN3270
 			AddCharacter(bufferAddress, fa, 0);
 			SetForegroundColor(bufferAddress, 0);
 			ctlr_add_gr(bufferAddress, 0);
-			trace.trace_ds(see.see_attr(fa));
+			trace.trace_ds(See.GetSeeAttribute(fa));
 			isFormatted = true;
 		}
 
@@ -1500,7 +1500,7 @@ namespace Open3270.TN3270
 			}
 
 			bufferAddress = cursorAddress;
-			if (see.WCC_RESET(buf[start + 1]))
+			if (See.WCC_RESET(buf[start + 1]))
 			{
 				if (erase)
 				{
@@ -1509,14 +1509,14 @@ namespace Open3270.TN3270
 				trace.trace_ds("%sreset", paren);
 				paren = ",";
 			}
-			wccSoundAlarm = see.WCC_SOUND_ALARM(buf[start + 1]);
+			wccSoundAlarm = See.WCC_SOUND_ALARM(buf[start + 1]);
 
 			if (wccSoundAlarm)
 			{
 				trace.trace_ds("%salarm", paren);
 				paren = ",";
 			}
-			wccKeyboardRestore = see.WCC_KEYBOARD_RESTORE(buf[start + 1]);
+			wccKeyboardRestore = See.WCC_KEYBOARD_RESTORE(buf[start + 1]);
 
 			if (wccKeyboardRestore)
 			{
@@ -1530,7 +1530,7 @@ namespace Open3270.TN3270
 				paren = ",";
 			}
 
-			if (see.WCC_RESET_MDT(buf[start + 1]))
+			if (See.WCC_RESET_MDT(buf[start + 1]))
 			{
 				trace.trace_ds("%sresetMDT", paren);
 				paren = ",";
@@ -1689,7 +1689,7 @@ namespace Open3270.TN3270
 							{
 								trace.trace_ds("'");
 							}
-							trace.trace_ds("%s", see.see_ebc(buf[cp + start]));
+							trace.trace_ds("%s", See.GetEbc(buf[cp + start]));
 							if (buf[cp + start] != 0)
 							{
 								trace.trace_ds("'");
@@ -1776,7 +1776,7 @@ namespace Open3270.TN3270
 							{
 								trace.trace_ds("'");
 							}
-							trace.trace_ds("%s", see.see_ebc(buf[cp + start]));
+							trace.trace_ds("%s", See.GetEbc(buf[cp + start]));
 							if (buf[cp + start] != 0)
 							{
 								trace.trace_ds("'");
@@ -1808,34 +1808,34 @@ namespace Open3270.TN3270
 								for (int i = 0; i < (int)na; i++)
 								{
 									cp++;
-									if (buf[cp + start] == see.XA_3270)
+									if (buf[cp + start] == See.XA_3270)
 									{
 										trace.trace_ds(" 3270");
 										cp++;
 										newAttr = AttributeToFA(buf[cp + start]);
 										this.AddCharacter(bufferAddress, newAttr, 0);
-										trace.trace_ds(see.see_attr(newAttr));
+										trace.trace_ds(See.GetSeeAttribute(newAttr));
 									}
-									else if (buf[cp + start] == see.XA_FOREGROUND)
+									else if (buf[cp + start] == See.XA_FOREGROUND)
 									{
-										trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+										trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 										cp++;
 										if (appres.m3279)
 										{
 											this.SetForegroundColor(bufferAddress, buf[cp + start]);
 										}
 									}
-									else if (buf[cp + start] == see.XA_HIGHLIGHTING)
+									else if (buf[cp + start] == See.XA_HIGHLIGHTING)
 									{
-										trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+										trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 										cp++;
 										this.ctlr_add_gr(bufferAddress, (byte)(buf[cp + start] & 0x07));
 									}
-									else if (buf[cp + start] == see.XA_CHARSET)
+									else if (buf[cp + start] == See.XA_CHARSET)
 									{
 										int cs = 0;
 
-										trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+										trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 										cp++;
 										if (buf[cp + start] == 0xf1)
 										{
@@ -1843,14 +1843,14 @@ namespace Open3270.TN3270
 										}
 										this.AddCharacter(bufferAddress, screenBuffer[bufferAddress], (byte)cs);
 									}
-									else if (buf[cp + start] == see.XA_ALL)
+									else if (buf[cp + start] == See.XA_ALL)
 									{
-										trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+										trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 										cp++;
 									}
 									else
 									{
-										trace.trace_ds("%s[unsupported]", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+										trace.trace_ds("%s[unsupported]", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 										cp++;
 									}
 								}
@@ -1881,45 +1881,45 @@ namespace Open3270.TN3270
 							for (int i = 0; i < (int)na; i++)
 							{
 								cp++;
-								if (buf[cp + start] == see.XA_3270)
+								if (buf[cp + start] == See.XA_3270)
 								{
 									trace.trace_ds(" 3270");
 									cp++;
 									this.StartFieldWithAttribute(buf[cp + start]);
 									anyFA++;
 								}
-								else if (buf[cp + start] == see.XA_FOREGROUND)
+								else if (buf[cp + start] == See.XA_FOREGROUND)
 								{
-									trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+									trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 									cp++;
 									if (appres.m3279)
 									{
 										efaFG = buf[cp + start];
 									}
 								}
-								else if (buf[cp + start] == see.XA_HIGHLIGHTING)
+								else if (buf[cp + start] == See.XA_HIGHLIGHTING)
 								{
-									trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+									trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 									cp++;
 									efaGR = (byte)(buf[cp + start] & 0x07);
 								}
-								else if (buf[cp + start] == see.XA_CHARSET)
+								else if (buf[cp + start] == See.XA_CHARSET)
 								{
-									trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+									trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 									cp++;
 									if (buf[cp + start] == 0xf1)
 									{
 										efaCS = 1;
 									}
 								}
-								else if (buf[cp + start] == see.XA_ALL)
+								else if (buf[cp + start] == See.XA_ALL)
 								{
-									trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+									trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 									cp++;
 								}
 								else
 								{
-									trace.trace_ds("%s[unsupported]", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+									trace.trace_ds("%s[unsupported]", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 									cp++;
 								}
 							}
@@ -1941,33 +1941,33 @@ namespace Open3270.TN3270
 							this.EndText("SetAttribtue");
 							previous = PreviousEnum.Order;
 							cp++;
-							if (buf[cp + start] == see.XA_FOREGROUND)
+							if (buf[cp + start] == See.XA_FOREGROUND)
 							{
-								trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+								trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 								if (appres.m3279)
 								{
 									defaultFg = buf[cp + start + 1];
 								}
 							}
-							else if (buf[cp + start] == see.XA_HIGHLIGHTING)
+							else if (buf[cp + start] == See.XA_HIGHLIGHTING)
 							{
-								trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+								trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 								defaultGr = (byte)(buf[cp + start + 1] & 0x07);
 							}
-							else if (buf[cp + start] == see.XA_ALL)
+							else if (buf[cp + start] == See.XA_ALL)
 							{
-								trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+								trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 								defaultFg = 0;
 								defaultGr = 0;
 								defaultCs = 0;
 							}
-							else if (buf[cp + start] == see.XA_CHARSET)
+							else if (buf[cp + start] == See.XA_CHARSET)
 							{
-								trace.trace_ds("%s", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+								trace.trace_ds("%s", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 								defaultCs = (buf[cp + start + 1] == 0xf1) ? (byte)1 : (byte)0;
 							}
 							else
-								trace.trace_ds("%s[unsupported]", see.see_efa(buf[cp + start], buf[cp + start + 1]));
+								trace.trace_ds("%s[unsupported]", See.GetEfa(buf[cp + start], buf[cp + start + 1]));
 							cp++;
 							lastCommand = true;
 							lastZpt = false;
@@ -1983,7 +1983,7 @@ namespace Open3270.TN3270
 					case ControllerConstant.FCORDER_EM:
 					case ControllerConstant.FCORDER_EO:
 						{
-							this.EndText(see.see_ebc(buf[cp + start]));
+							this.EndText(See.GetEbc(buf[cp + start]));
 							previous = PreviousEnum.Order;
 							this.AddCharacter(bufferAddress, Tables.Ebc2Cg[buf[cp + start]], defaultCs);
 							this.SetForegroundColor(bufferAddress, defaultFg);
@@ -2011,7 +2011,7 @@ namespace Open3270.TN3270
 							if (buf[cp + start] <= 0x3F)
 							{
 								this.EndText("ILLEGAL_ORDER");
-								trace.trace_ds("%s", see.see_ebc(buf[cp + start]));
+								trace.trace_ds("%s", See.GetEbc(buf[cp + start]));
 								lastCommand = true;
 								lastZpt = false;
 								break;
@@ -2019,7 +2019,7 @@ namespace Open3270.TN3270
 							if (previous != PreviousEnum.Text)
 								trace.trace_ds(" '");
 							previous = PreviousEnum.Text;
-							trace.trace_ds("%s", see.see_ebc(buf[cp + start]));
+							trace.trace_ds("%s", See.GetEbc(buf[cp + start]));
 							this.AddCharacter(bufferAddress, Tables.Ebc2Cg[buf[cp + start]], defaultCs);
 							this.SetForegroundColor(bufferAddress, defaultFg);
 							this.ctlr_add_gr(bufferAddress, defaultGr);
@@ -2140,7 +2140,7 @@ namespace Open3270.TN3270
 						cp++;
 						i++;
 						fa = AttributeToFA(buf[cp]);
-						trace.trace_ds(" StartField" + trace.rcba(bufferAddress) + " " + see.see_attr(fa) + " [translated to space]\n");
+						trace.trace_ds(" StartField" + trace.rcba(bufferAddress) + " " + See.GetSeeAttribute(fa) + " [translated to space]\n");
 						this.AddCharacter(bufferAddress, CharacterGenerator.Space, defaultCs);
 						this.SetForegroundColor(bufferAddress, defaultFg);
 						this.ctlr_add_gr(bufferAddress, defaultGr);
@@ -2279,7 +2279,7 @@ namespace Open3270.TN3270
 			/* Snap any data that is about to be lost into the trace file. */
 			if (this.StreamHasData)
 			{
-				if (can_snap && !traceSkipping && appres.toggled(Appres.SCREEN_TRACE))
+				if (can_snap && !traceSkipping && appres.Toggled(Appres.SCREEN_TRACE))
 				{
 					trace.trace_screen();
 				}
@@ -2345,7 +2345,7 @@ namespace Open3270.TN3270
 			{
 				if (tracePrimed && !IsBlank(oc))
 				{
-					if (appres.toggled(Appres.SCREEN_TRACE))
+					if (appres.Toggled(Appres.SCREEN_TRACE))
 					{
 						trace.trace_screen();
 					}
@@ -3137,19 +3137,19 @@ namespace Open3270.TN3270
 				{
 					if (ea.fg != 0)
 					{
-						temp += " Foreground=\"" + see.see_efa_unformatted(see.XA_FOREGROUND, ea.fg) + "\"";
+						temp += " Foreground=\"" + See.GetEfaUnformatted(See.XA_FOREGROUND, ea.fg) + "\"";
 					}
 					if (ea.bg != 0)
 					{
-						temp += " Background=\"" + see.see_efa_unformatted(see.XA_BACKGROUND, ea.bg) + "\"";
+						temp += " Background=\"" + See.GetEfaUnformatted(See.XA_BACKGROUND, ea.bg) + "\"";
 					}
 					if (ea.gr != 0)
 					{
-						temp += " Highlighting=\"" + see.see_efa_unformatted(see.XA_HIGHLIGHTING, (byte)(ea.bg | 0xf0)) + "\"";
+						temp += " Highlighting=\"" + See.GetEfaUnformatted(See.XA_HIGHLIGHTING, (byte)(ea.bg | 0xf0)) + "\"";
 					}
 					if ((ea.cs & ExtendedAttribute.CS_MASK) != 0)
 					{
-						temp += " Mask=\"" + see.see_efa_unformatted(see.XA_CHARSET, (byte)((ea.cs & ExtendedAttribute.CS_MASK) | 0xf0)) + "\"";
+						temp += " Mask=\"" + See.GetEfaUnformatted(See.XA_CHARSET, (byte)((ea.cs & ExtendedAttribute.CS_MASK) | 0xf0)) + "\"";
 					}
 				}
 

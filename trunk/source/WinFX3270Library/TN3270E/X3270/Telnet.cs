@@ -525,11 +525,11 @@ namespace Open3270.TN3270
 			//Handle initial toggle settings.
 			if (!appres.debug_tracing)
 			{
-				this.appres.settoggle(Appres.DS_TRACE, false);
-				this.appres.settoggle(Appres.EVENT_TRACE, false);
+				this.appres.SetToggle(Appres.DS_TRACE, false);
+				this.appres.SetToggle(Appres.EVENT_TRACE, false);
 			}
 
-			this.appres.settoggle(Appres.DS_TRACE, true);
+			this.appres.SetToggle(Appres.DS_TRACE, true);
 
 			if (connectionConfig.LogFile != null)
 			{
@@ -1228,7 +1228,7 @@ namespace Open3270.TN3270
 			if (length > 0)
 			{
 				//Trace the data.
-				if (appres.toggled(Appres.DS_TRACE))
+				if (appres.Toggled(Appres.DS_TRACE))
 				{
 					int i;
 
@@ -2174,7 +2174,7 @@ namespace Open3270.TN3270
 		/// <param name="len"></param>
 		void SendCookedOut(byte[] buf, int len)
 		{
-			if (appres.toggled(Appres.DS_TRACE))
+			if (appres.Toggled(Appres.DS_TRACE))
 			{
 				int i;
 

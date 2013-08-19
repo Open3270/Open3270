@@ -145,7 +145,7 @@ namespace Open3270.TN3270
 					data[datapos] = v;
 
 					if (datapos==0)
-						Console.WriteLine(see.see_aid(v));
+						Console.WriteLine(See.GetAidFromCode(v));
 					if (datapos==2)
 						Console.WriteLine(Util.DecodeBaddress(data[1], data[2]));
 
@@ -161,7 +161,7 @@ namespace Open3270.TN3270
 					}
 
 					if (datapos>5)
-						Console.WriteLine(see.see_ebc(Tables.Cg2Ebc[data[datapos]]));
+						Console.WriteLine(See.GetEbc(Tables.Cg2Ebc[data[datapos]]));
 
 
 					datapos++;

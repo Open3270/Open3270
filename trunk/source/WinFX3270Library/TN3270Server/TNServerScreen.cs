@@ -264,7 +264,7 @@ namespace Open3270.TN3270Server
 						to+=FlushBlanks(buffer,to,blankCount,currentOffset);
 						blankCount = 0;
 					}
-					buffer[to++] = Open3270.TN3270.see.ORDER_SF;
+					buffer[to++] = Open3270.TN3270.See.ORDER_SF;
 					switch (mScreenBytes[from])
 					{
 						case ATTR_NORM:
@@ -314,9 +314,9 @@ namespace Open3270.TN3270Server
 			//
 			if (fFormatted)
 			{
-				buffer[to++]=Open3270.TN3270.see.ORDER_SBA;
+				buffer[to++]=Open3270.TN3270.See.ORDER_SBA;
 				to+=Create12BitAddress(buffer, to, currentCursorPosition);
-				buffer[to++]=Open3270.TN3270.see.ORDER_IC;
+				buffer[to++]=Open3270.TN3270.See.ORDER_IC;
 			}
 			//
 			// End of buffer
@@ -346,7 +346,7 @@ namespace Open3270.TN3270Server
 			}
 			else
 			{
-				data[to+offset] = Open3270.TN3270.see.ORDER_RA;
+				data[to+offset] = Open3270.TN3270.See.ORDER_RA;
 				offset++;
 				offset += this.Create12BitAddress(data, to+offset, currentOffset);
 				data[to+offset] = 0x00;
