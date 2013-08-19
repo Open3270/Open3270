@@ -22,138 +22,140 @@
  */
 #endregion
 using System;
+using System.Threading;
 
 namespace Open3270.TN3270
 {
 	/// <summary>
 	/// Summary description for Idle.
 	/// </summary>
-	internal class Idle:IDisposable
+	internal class Idle : IDisposable
 	{
-		System.Threading.Timer idle_id = null;
-		Telnet telnet;
 
-		bool idle_was_in3270 = false;
-		//bool idle_enabled = false;
-		//string idle_command= null;
-		//string idle_timeout_string = null;
-		int idle_ms;
-		bool idle_randomize = false;
-		bool idle_ticking = false;
+		// 7 minutes
+		const int IdleMilliseconds = (7 * 60 * 1000);
+
+
+		Timer idleTimer = null;
+		Telnet telnet;
+		Random rand;
+
+		bool idleWasIn3270 = false;
+		bool randomize = false;
+		bool isTicking = false;
+
+		int milliseconds;
 
 		internal Idle(Telnet tn)
 		{
 			telnet = tn;
 		}
-		/*
-		 *	idle.c
-		 *		This module handles the idle command.
-		 */
 
-
-		/* Macros. */
-		const int IDLE_MS		= (7 * 60 * 1000);	/* 7 minutes */
-
-
-		//#define BN	(bool *)NULL
-
-
-		Random rand;
-
-		/* Initialization. */
-		void idle_init()
+		// Initialization
+		void Initialize()
 		{
-			/* Register for state changes. */
+			// Register for state changes.
 			this.telnet.Connected3270 += telnet_Connected3270;
 
-			/* Seed the random number generator (we seem to be the only user). */
-			rand = new Random();
+			// Seed the random number generator (we seem to be the only user).
+			this.rand = new Random();
 		}
 
 		void telnet_Connected3270(object sender, Connected3270EventArgs e)
 		{
-			this.idle_in3270(e.Is3270);
+			this.IdleIn3270(e.Is3270);
 		}
 
-		/* Process a timeout value. */
-		int  process_timeout_value(string t)
+		/// <summary>
+		/// Process a timeout value.
+		/// </summary>
+		/// <param name="t"></param>
+		/// <returns></returns>
+		int ProcessTimeoutValue(string t)
 		{
-			//int idle_n;
-
-			if (t==null || t.Length==0) 
+			if (t == null || t.Length == 0)
 			{
-				idle_ms = IDLE_MS;
-				idle_randomize = true;
+				this.milliseconds = IdleMilliseconds;
+				this.randomize = true;
 				return 0;
 			}
 
-			if (t[0] == '~') 
+			if (t[0] == '~')
 			{
-				idle_randomize = true;
+				randomize = true;
 				t = t.Substring(1);
 			}
 			throw new ApplicationException("process_timeout_value not implemented");
 		}
 
-		/* Called when a host connects or disconnects. */
-		void idle_in3270(bool in3270)
+
+		/// <summary>
+		/// Called when a host connects or disconnects.
+		/// </summary>
+		/// <param name="in3270"></param>
+		void IdleIn3270(bool in3270)
 		{
-			if (in3270 && !idle_was_in3270) 
+			if (in3270 && !this.idleWasIn3270)
 			{
-				idle_was_in3270 = true;
-			} 
-			else 
+				this.idleWasIn3270 = true;
+			}
+			else
 			{
-				if (idle_ticking) 
+				if (this.isTicking)
 				{
-					telnet.Controller.RemoveTimeOut(idle_id);
-					idle_ticking = false;
+					this.telnet.Controller.RemoveTimeOut(idleTimer);
+					this.isTicking = false;
 				}
-				idle_was_in3270 = false;
+				this.idleWasIn3270 = false;
 			}
 		}
 
-		/*
-		 * Idle timeout.
-		 */
-		void idle_timeout(object state)
+
+		void TimedOut(object state)
 		{
-			lock (telnet)
+			lock (this.telnet)
 			{
-				telnet.Trace.trace_event("Idle timeout\n");
+				this.telnet.Trace.trace_event("Idle timeout\n");
 				//Console.WriteLine("PUSH MACRO ignored (BUGBUG)");
 				//push_macro(idle_command, false);
-				reset_idle_timer();
+				this.ResetIdleTimer();
 			}
 		}
 
-		/*
-		 * Reset (and re-enable) the idle timer.  Called when the user presses an AID
-		 * key.
-		 */
-		public void reset_idle_timer()
-		{
-			if (idle_ms!=0) 
-			{
-				int idle_ms_now;
 
-				if (idle_ticking) 
+		/// <summary>
+		/// Reset (and re-enable) the idle timer.  Called when the user presses an AID key.
+		/// </summary>
+		public void ResetIdleTimer()
+		{
+			if (this.milliseconds != 0)
+			{
+				int idleMsNow;
+
+				if (this.isTicking)
 				{
-					telnet.Controller.RemoveTimeOut(idle_id);
-					idle_ticking = false;
+					this.telnet.Controller.RemoveTimeOut(this.idleTimer);
+					this.isTicking = false;
 				}
-				idle_ms_now = idle_ms;
-				if (idle_randomize) 
+
+				idleMsNow = this.milliseconds;
+
+				if (randomize)
 				{
-					idle_ms_now = idle_ms;
-					if ((rand.Next(100) % 2)!=0)
-						idle_ms_now += rand.Next(idle_ms / 10);
+					idleMsNow = this.milliseconds;
+					if ((rand.Next(100) % 2) != 0)
+					{
+						idleMsNow += rand.Next(this.milliseconds / 10);
+					}
 					else
-						idle_ms_now -= rand.Next(idle_ms / 10);
+					{
+						idleMsNow -= rand.Next(this.milliseconds / 10);
+					}
 				}
-				telnet.Trace.trace_event("Setting idle timeout to "+idle_ms_now);
-				idle_id = telnet.Controller.AddTimeout(idle_ms_now, new System.Threading.TimerCallback(idle_timeout));
-				idle_ticking = true;
+
+				this.telnet.Trace.trace_event("Setting idle timeout to " + idleMsNow);
+				this.idleTimer = telnet.Controller.AddTimeout(idleMsNow, new System.Threading.TimerCallback(TimedOut));
+				this.isTicking = true;
 			}
 		}
 
@@ -165,7 +167,7 @@ namespace Open3270.TN3270
 			{
 				this.telnet.Connected3270 -= telnet_Connected3270;
 			}
-			
+
 		}
 	}
 }

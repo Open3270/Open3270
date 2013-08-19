@@ -25,9 +25,7 @@ using System;
 
 namespace Open3270.TN3270
 {
-	/// <summary>
-	/// Summary description for Appres.
-	/// </summary>
+
 	internal class Appres
 	{
 		enum ToggleType
@@ -56,28 +54,29 @@ namespace Open3270.TN3270
 			}
 		}
 
-		public const int MONOCASE = 0;
-		public const int ALT_CURSOR = 1;
-		public const int CURSOR_BLINK = 2;
-		public const int SHOW_TIMING = 3;
-		public const int CURSOR_POS = 4;
-		public const int DS_TRACE = 5;
-		public const int SCROLL_BAR = 6;
+
+		public const int MonoCase = 0;
+		public const int AltCursor = 1;
+		public const int CursorBlink = 2;
+		public const int ShowTiming = 3;
+		public const int CursorPos = 4;
+		public const int DSTrace = 5;
+		public const int ScrollBar = 6;
 		public const int LINE_WRAP = 7;
-		public const int BLANK_FILL = 8;
-		public const int SCREEN_TRACE = 9;
-		public const int EVENT_TRACE = 10;
-		public const int MARGINED_PASTE = 11;
-		public const int RECTANGLE_SELECT = 12;
-		private const int N_TOGGLES = 14;
+		public const int BlankFill = 8;
+		public const int ScreenTrace = 9;
+		public const int EventTrace = 10;
+		public const int MarginedPaste = 11;
+		public const int RectangleSelect = 12;
+		private const int NToggles = 14;
 
 
 		Toggle[] toggles;
 		public Appres()
 		{
-			toggles = new Toggle[N_TOGGLES];
+			toggles = new Toggle[NToggles];
 			int i;
-			for (i = 0; i < N_TOGGLES; i++)
+			for (i = 0; i < NToggles; i++)
 			{
 				toggles[i] = new Toggle();
 			}

@@ -482,7 +482,7 @@ namespace Open3270.TN3270
 				//Console.WriteLine("**BUGBUG** KL_OIA_LOCKED REMOVED");
 				KeyboardLockSet(KeyboardConstants.OiaTWait | KeyboardConstants.OiaLocked, "key_AID");
 			}
-			this.telnet.Idle.reset_idle_timer();
+			this.telnet.Idle.ResetIdleTimer();
 			this.telnet.Controller.AttentionID = aidCode;
 			this.telnet.Controller.ProcessReadModifiedCommand(this.telnet.Controller.AttentionID, false);
 		}
@@ -668,7 +668,7 @@ namespace Open3270.TN3270
 				} while (endAddress != address);
 
 				//Pretend a trailing blank is a null, if desired.
-				if (this.telnet.Appres.Toggled(Appres.BLANK_FILL) && last_blank != -1)
+				if (this.telnet.Appres.Toggled(Appres.BlankFill) && last_blank != -1)
 				{
 					this.telnet.Controller.IncrementAddress(ref last_blank);
 					if (last_blank == endAddress)
@@ -712,7 +712,7 @@ namespace Open3270.TN3270
 			}
 
 			// Replace leading nulls with blanks, if desired.
-			if (this.telnet.Controller.Formatted && this.telnet.Appres.Toggled(Appres.BLANK_FILL))
+			if (this.telnet.Controller.Formatted && this.telnet.Appres.Toggled(Appres.BlankFill))
 			{
 				int addresSof = fa;//fa - this.telnet.tnctlr.screen_buf;
 				int addressFill = address;
@@ -891,7 +891,7 @@ namespace Open3270.TN3270
 		/// <returns></returns>
 		public bool MonoCaseAction(params object[] args)
 		{
-			this.telnet.Appres.ToggleTheValue(Appres.MONOCASE);
+			this.telnet.Appres.ToggleTheValue(Appres.MonoCase);
 			return true;
 		}
 
@@ -2780,7 +2780,7 @@ namespace Open3270.TN3270
 					}
 
 					// Jump cursor over left margin.
-					if (this.telnet.Appres.Toggled(Appres.MARGINED_PASTE) &&
+					if (this.telnet.Appres.Toggled(Appres.MarginedPaste) &&
 						this.telnet.Controller.AddressToColumn(this.telnet.Controller.CursorAddress) < originalColumn)
 					{
 						if (!RemarginCursor(originalColumn))

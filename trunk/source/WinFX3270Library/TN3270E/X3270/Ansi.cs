@@ -1387,7 +1387,7 @@ namespace Open3270.TN3270
             ansi_ch = (char)c;
 
 
-            if (telnet.Appres.Toggled(Appres.SCREEN_TRACE))
+            if (telnet.Appres.Toggled(Appres.ScreenTrace))
             {
                 telnet.Trace.trace_char((char)c);
             }

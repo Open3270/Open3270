@@ -80,7 +80,7 @@ namespace Open3270.TN3270
 		Telnet telnet;
 		TNTrace trace;
 		Appres appres;
-		SF sf;
+		StructuredField sf;
 		
 		PreviousEnum previous = PreviousEnum.None;
 
@@ -244,7 +244,7 @@ namespace Open3270.TN3270
 
 		internal Controller(Telnet tn, Appres appres)
 		{
-			this.sf = new SF(tn);
+			this.sf = new StructuredField(tn);
 			crmAttributes = new byte[16];
 			crmnAttribute = 0;
 			this.telnet = tn;
@@ -728,7 +728,7 @@ namespace Open3270.TN3270
 			{
 				//Write structured field
 				trace.trace_ds("WriteStructuredField");
-				return sf.write_structured_field(buf, start, bufferLength /*buflen*/);
+				return sf.WriteStructuredField(buf, start, bufferLength /*buflen*/);
 			}
 			else if (buf[start] == ControllerConstant.CMD_EWA)
 			{
@@ -2279,7 +2279,7 @@ namespace Open3270.TN3270
 			/* Snap any data that is about to be lost into the trace file. */
 			if (this.StreamHasData)
 			{
-				if (can_snap && !traceSkipping && appres.Toggled(Appres.SCREEN_TRACE))
+				if (can_snap && !traceSkipping && appres.Toggled(Appres.ScreenTrace))
 				{
 					trace.trace_screen();
 				}
@@ -2345,7 +2345,7 @@ namespace Open3270.TN3270
 			{
 				if (tracePrimed && !IsBlank(oc))
 				{
-					if (appres.Toggled(Appres.SCREEN_TRACE))
+					if (appres.Toggled(Appres.ScreenTrace))
 					{
 						trace.trace_screen();
 					}
