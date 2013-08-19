@@ -157,55 +157,55 @@
     <Compile Include="TN3270E\X3270\NetBuffer.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Actions.cs">
+    <Compile Include="TN3270E\X3270\Actions.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\AID.cs">
+    <Compile Include="TN3270E\X3270\AID.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Ansi.cs">
+    <Compile Include="TN3270E\X3270\Ansi.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Appres.cs">
+    <Compile Include="TN3270E\X3270\Appres.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\TraceFormatter.cs">
+    <Compile Include="TN3270E\X3270\TraceFormatter.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\CharacterGenerator.cs">
+    <Compile Include="TN3270E\X3270\CharacterGenerator.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\ControllerConstants.cs" />
-    <Compile Include="TN3270E\X3270\Stuff\Controller.cs">
+    <Compile Include="TN3270E\X3270\ControllerConstants.cs" />
+    <Compile Include="TN3270E\X3270\Controller.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\ExtendedAttribute.cs">
+    <Compile Include="TN3270E\X3270\ExtendedAttribute.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\FieldAttribute.cs" />
-    <Compile Include="TN3270E\X3270\Stuff\Idle.cs">
+    <Compile Include="TN3270E\X3270\FieldAttribute.cs" />
+    <Compile Include="TN3270E\X3270\Idle.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Keyboard.cs">
+    <Compile Include="TN3270E\X3270\Keyboard.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\KeyboardConstants.cs" />
-    <Compile Include="TN3270E\X3270\Stuff\Print.cs">
+    <Compile Include="TN3270E\X3270\KeyboardConstants.cs" />
+    <Compile Include="TN3270E\X3270\Print.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\See.cs">
+    <Compile Include="TN3270E\X3270\See.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\SF.cs">
+    <Compile Include="TN3270E\X3270\SF.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Tables.cs">
+    <Compile Include="TN3270E\X3270\Tables.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Tn3270eHeader.cs">
+    <Compile Include="TN3270E\X3270\Tn3270eHeader.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\Util.cs">
+    <Compile Include="TN3270E\X3270\Util.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Telnet.cs">
@@ -227,22 +227,22 @@
     <Compile Include="TN3270Server\TNServerScreen.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WinFX.NET\Audit.cs">
+    <Compile Include="CommFramework\Audit.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WinFX.NET\ByteHandler.cs">
+    <Compile Include="CommFramework\ByteHandler.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WinFX.NET\ClientSocket.cs">
+    <Compile Include="CommFramework\ClientSocket.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WinFX.NET\Message.cs">
+    <Compile Include="CommFramework\Message.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WinFX.NET\Semaphore.cs">
+    <Compile Include="CommFramework\Semaphore.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="WinFX.NET\ServerSocket.cs">
+    <Compile Include="CommFramework\ServerSocket.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -265,6 +265,9 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TN3270E\X3270\Stuff\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

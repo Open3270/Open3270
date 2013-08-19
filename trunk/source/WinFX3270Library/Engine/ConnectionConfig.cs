@@ -38,46 +38,46 @@ namespace Open3270
 	{
 		public ConnectionConfig()
 		{
-			_hostName = null;
-			_hostPort = 23;
-			_hostLU   = null;
-			_termType = null;
+			hostName = null;
+			hostPort = 23;
+			hostLU = null;
+			termType = null;
 		}
-		private bool _FastScreenMode = false;
-		private StreamReader _LogFile = null;
-		private bool _IgnoreSequenceCount = false;
-		private bool _IdentificationEngineOn = false;
-		private bool _AlwaysSkipToUnprotected = true;
-		private bool _LockScreenOnWriteToUnprotected = false;
-		private bool _ThrowExceptionOnLockedScreen = true;
-		private int _DefaultTimeout = 40000;
-		private string _hostName;
-		private int    _hostPort;
-		private string _hostLU;
-		private string _termType;
-		private bool   _AlwaysRefreshWhenWaiting = false;
-		private bool   _SubmitAllKeyboardCommands = false;
-		private bool   _RefuseTN3270E = false;
+		private bool fastScreenMode = false;
+		private StreamReader logFile = null;
+		private bool ignoreSequenceCount = false;
+		private bool identificationEngineOn = false;
+		private bool alwaysSkipToUnprotected = true;
+		private bool lockScreenOnWriteToUnprotected = false;
+		private bool throwExceptionOnLockedScreen = true;
+		private int defaultTimeout = 40000;
+		private string hostName;
+		private int hostPort;
+		private string hostLU;
+		private string termType;
+		private bool alwaysRefreshWhenWaiting = false;
+		private bool submitAllKeyboardCommands = false;
+		private bool refuseTN3270E = false;
 		private bool useSSL = false;
 
 
 		internal void Dump(IAudit sout)
 		{
-			if (sout==null) return;
-			sout.WriteLine("Config.FastScreenMode "+_FastScreenMode);
-			sout.WriteLine("Config.IgnoreSequenceCount "+_IgnoreSequenceCount);
-			sout.WriteLine("Config.IdentificationEngineOn "+_IdentificationEngineOn);
-			sout.WriteLine("Config.AlwaysSkipToUnprotected "+_AlwaysSkipToUnprotected);
-			sout.WriteLine("Config.LockScreenOnWriteToUnprotected "+_LockScreenOnWriteToUnprotected);
-			sout.WriteLine("Config.ThrowExceptionOnLockedScreen "+_ThrowExceptionOnLockedScreen);
-			sout.WriteLine("Config.DefaultTimeout "+_DefaultTimeout);
-			sout.WriteLine("Config.hostName "+_hostName);
-			sout.WriteLine("Config.hostPort "+_hostPort);
-			sout.WriteLine("Config.hostLU "+_hostLU);
-			sout.WriteLine("Config.termType "+_termType);
-			sout.WriteLine("Config.AlwaysRefreshWhenWaiting "+_AlwaysRefreshWhenWaiting);
-			sout.WriteLine("Config.SubmitAllKeyboardCommands "+_SubmitAllKeyboardCommands);
-			sout.WriteLine("Config.RefuseTN3270E "+_RefuseTN3270E);
+			if (sout == null) return;
+			sout.WriteLine("Config.FastScreenMode " + fastScreenMode);
+			sout.WriteLine("Config.IgnoreSequenceCount " + ignoreSequenceCount);
+			sout.WriteLine("Config.IdentificationEngineOn " + identificationEngineOn);
+			sout.WriteLine("Config.AlwaysSkipToUnprotected " + alwaysSkipToUnprotected);
+			sout.WriteLine("Config.LockScreenOnWriteToUnprotected " + lockScreenOnWriteToUnprotected);
+			sout.WriteLine("Config.ThrowExceptionOnLockedScreen " + throwExceptionOnLockedScreen);
+			sout.WriteLine("Config.DefaultTimeout " + defaultTimeout);
+			sout.WriteLine("Config.hostName " + hostName);
+			sout.WriteLine("Config.hostPort " + hostPort);
+			sout.WriteLine("Config.hostLU " + hostLU);
+			sout.WriteLine("Config.termType " + termType);
+			sout.WriteLine("Config.AlwaysRefreshWhenWaiting " + alwaysRefreshWhenWaiting);
+			sout.WriteLine("Config.SubmitAllKeyboardCommands " + submitAllKeyboardCommands);
+			sout.WriteLine("Config.RefuseTN3270E " + refuseTN3270E);
 		}
 
 		/// <summary>
@@ -85,32 +85,32 @@ namespace Open3270
 		/// </summary>
 		public string HostName
 		{
-			get { return _hostName;  }
-			set { _hostName = value; }
+			get { return hostName; }
+			set { hostName = value; }
 		}
 		/// <summary>
 		/// Host Port
 		/// </summary>
 		public int HostPort
 		{
-			get { return _hostPort;  }
-			set { _hostPort = value; }
+			get { return hostPort; }
+			set { hostPort = value; }
 		}
 		/// <summary>
 		/// Host LU, null for none
 		/// </summary>
 		public string HostLU
 		{
-			get { return _hostLU;  }
-			set { _hostLU = value; }
+			get { return hostLU; }
+			set { hostLU = value; }
 		}
 		/// <summary>
 		/// Terminal type for host
 		/// </summary>
 		public string TermType
 		{
-			get { return _termType;  }
-			set { _termType = value; }
+			get { return termType; }
+			set { termType = value; }
 
 		}
 
@@ -123,10 +123,10 @@ namespace Open3270
 		/// <summary>
 		/// Is the internal screen identification engine turned on? Default false.
 		/// </summary>
-		public bool IdentificationEngineOn 
-		{ 
-			get { return _IdentificationEngineOn; } 
-			set { _IdentificationEngineOn = value; }
+		public bool IdentificationEngineOn
+		{
+			get { return identificationEngineOn; }
+			set { identificationEngineOn = value; }
 		}
 
 		/// <summary>
@@ -135,8 +135,8 @@ namespace Open3270
 		/// </summary>
 		public bool AlwaysSkipToUnprotected
 		{
-			get { return _AlwaysSkipToUnprotected; }
-			set { _AlwaysSkipToUnprotected = value; }
+			get { return alwaysSkipToUnprotected; }
+			set { alwaysSkipToUnprotected = value; }
 		}
 
 		/// <summary>
@@ -144,8 +144,8 @@ namespace Open3270
 		/// </summary>
 		public bool LockScreenOnWriteToUnprotected
 		{
-			get { return _LockScreenOnWriteToUnprotected; }
-			set { _LockScreenOnWriteToUnprotected = value; }
+			get { return lockScreenOnWriteToUnprotected; }
+			set { lockScreenOnWriteToUnprotected = value; }
 		}
 
 		/// <summary>
@@ -153,8 +153,8 @@ namespace Open3270
 		/// </summary>
 		public int DefaultTimeout
 		{
-			get { return _DefaultTimeout; }
-			set { _DefaultTimeout = value; }
+			get { return defaultTimeout; }
+			set { defaultTimeout = value; }
 		}
 
 		/// <summary>
@@ -163,8 +163,8 @@ namespace Open3270
 		/// </summary>
 		public bool ThrowExceptionOnLockedScreen
 		{
-			get { return _ThrowExceptionOnLockedScreen; }
-			set { _ThrowExceptionOnLockedScreen = value; }
+			get { return throwExceptionOnLockedScreen; }
+			set { throwExceptionOnLockedScreen = value; }
 		}
 
 		/// <summary>
@@ -172,8 +172,8 @@ namespace Open3270
 		/// </summary>
 		public bool IgnoreSequenceCount
 		{
-			get { return _IgnoreSequenceCount; }
-			set { _IgnoreSequenceCount = value; }
+			get { return ignoreSequenceCount; }
+			set { ignoreSequenceCount = value; }
 		}
 
 		/// <summary>
@@ -182,8 +182,8 @@ namespace Open3270
 		/// </summary>
 		public StreamReader LogFile
 		{
-			get { return _LogFile; }
-			set { _LogFile = value;}
+			get { return logFile; }
+			set { logFile = value; }
 		}
 
 		/// <summary>
@@ -192,8 +192,8 @@ namespace Open3270
 		/// </summary>
 		public bool FastScreenMode
 		{
-			get { return _FastScreenMode; }
-			set { _FastScreenMode = value; }
+			get { return fastScreenMode; }
+			set { fastScreenMode = value; }
 		}
 
 
@@ -202,8 +202,8 @@ namespace Open3270
 		/// </summary>
 		public bool AlwaysRefreshWhenWaiting
 		{
-			get { return _AlwaysRefreshWhenWaiting; }
-			set { _AlwaysRefreshWhenWaiting = value; }
+			get { return alwaysRefreshWhenWaiting; }
+			set { alwaysRefreshWhenWaiting = value; }
 		}
 
 
@@ -212,8 +212,8 @@ namespace Open3270
 		/// </summary>
 		public bool SubmitAllKeyboardCommands
 		{
-			get { return _SubmitAllKeyboardCommands; }
-			set { _SubmitAllKeyboardCommands = value;}
+			get { return submitAllKeyboardCommands; }
+			set { submitAllKeyboardCommands = value; }
 		}
 
 		/// <summary>
@@ -221,12 +221,10 @@ namespace Open3270
 		/// </summary>
 		public bool RefuseTN3270E
 		{
-			get { return _RefuseTN3270E; }
-			set { _RefuseTN3270E = value;}
+			get { return refuseTN3270E; }
+			set { refuseTN3270E = value; }
 		}
-		//
 
 
-		
 	}
 }
