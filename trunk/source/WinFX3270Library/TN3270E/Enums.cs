@@ -244,6 +244,37 @@ namespace Open3270.TN3270
 		First 
 	};
 
+
+	public enum EIState 
+	{ 
+		Base, 
+		Backslash, 
+		BackX, 
+		BackP, 
+		BackPA, 
+		BackPF, 
+		Octal, 
+		Hex, 
+		XGE 
+	};
+
+	internal enum EIAction
+	{
+		String,
+		Paste,
+		Redraw,
+		Keypad,
+		Default,
+		Key,
+		Macro,
+		Script,
+		Peek,
+		TypeAhead,
+		FT,
+		Command,
+		KeyMap
+	};
+
 	internal delegate void TelnetDataDelegate(object parentData, TNEvent eventType, string text);
 
 	internal delegate void SChangeDelegate(bool option);

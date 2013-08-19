@@ -61,12 +61,12 @@ namespace Open3270.TN3270
 					ns = 0;
 				}
 				e = telnet.Controller.ScreenBuffer[i];
-				if (FA.IsFA(e)) 
+				if (FieldAttribute.IsFA(e)) 
 				{
 					c = (byte)' ';
 					fa = telnet.Controller.ScreenBuffer[i];
 				}
-				if (FA.IsZero(fa))
+				if (FieldAttribute.IsZero(fa))
 					c = (byte)' ';
 				else
 					c = Tables.Cg2Ascii[e];
@@ -107,7 +107,7 @@ namespace Open3270.TN3270
 
 			if (args.Length != 1)
 			{
-				telnet.Events.popup_an_error("PrintText_action: requires streamwriter parameter");
+				telnet.Events.ShowError("PrintText_action: requires streamwriter parameter");
 				return false;
 			}
 			StreamWriter f = (StreamWriter)args[0];

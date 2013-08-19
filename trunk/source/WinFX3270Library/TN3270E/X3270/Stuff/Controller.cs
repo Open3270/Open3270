@@ -206,7 +206,7 @@ namespace Open3270.TN3270
 
 		public bool IsBlank(byte c)
 		{
-			return ((c == CG.CG_null) || (c == CG.CG_space));
+			return ((c == CharacterGenerator.Null) || (c == CharacterGenerator.Space));
 		}
 
 
@@ -224,7 +224,7 @@ namespace Open3270.TN3270
 				for (i = 0; i < this.rowCount * this.columnCount; i++)
 				{
 					oc = this.screenBuffer[c++];
-					if (!FA.IsFA(oc) && !IsBlank(oc))
+					if (!FieldAttribute.IsFA(oc) && !IsBlank(oc))
 					{
 						return true;
 					}
@@ -474,7 +474,7 @@ namespace Open3270.TN3270
 				default:
 					{
 						defmod = 4;
-						telnet.Events.popup_an_error("Unknown model: %d\nDefaulting to %d", mn, defmod);
+						telnet.Events.ShowError("Unknown model: %d\nDefaulting to %d", mn, defmod);
 						this.SetRowsAndColumns(defmod, ovc, ovr);
 						return;
 					}
@@ -503,7 +503,7 @@ namespace Open3270.TN3270
 			baddr = 0;
 			do
 			{
-				if (FA.IsFA(screenBuffer[baddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
 					isFormatted = true;
 					break;
@@ -532,7 +532,7 @@ namespace Open3270.TN3270
 			sbaddr = baddr;
 			do
 			{
-				if (FA.IsFA(screenBuffer[baddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 					return baddr;//&(screen_buf[baddr]);
 				DecrementAddress(ref baddr);
 			}
@@ -563,7 +563,7 @@ namespace Open3270.TN3270
 			sbaddr = bAddr;
 			do
 			{
-				if (FA.IsFA(screenBuffer[bAddr]))
+				if (FieldAttribute.IsFA(screenBuffer[bAddr]))
 				{
 					faOutIndex = bAddr;
 					return true;
@@ -599,9 +599,9 @@ namespace Open3270.TN3270
 			{
 				baddr = nbaddr;
 				IncrementAddress(ref nbaddr);
-				if (FA.IsFA(screenBuffer[baddr]) &&
-					!FA.IsProtected(screenBuffer[baddr]) &&
-					!FA.IsFA(screenBuffer[nbaddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]) &&
+					!FieldAttribute.IsProtected(screenBuffer[baddr]) &&
+					!FieldAttribute.IsFA(screenBuffer[nbaddr]))
 				{
 					return nbaddr;
 				}
@@ -739,7 +739,7 @@ namespace Open3270.TN3270
 			else
 			{
 				//Unknown 3270 command
-				telnet.Events.popup_an_error("Unknown 3270 Data Stream command: 0x%X\n", buf[start]);
+				telnet.Events.ShowError("Unknown 3270 Data Stream command: 0x%X\n", buf[start]);
 				return PDS.BadCommand;
 			}
 		}
@@ -930,7 +930,7 @@ namespace Open3270.TN3270
 				//Find first field attribute
 				do
 				{
-					if (FA.IsFA(screenBuffer[baddr]))
+					if (FieldAttribute.IsFA(screenBuffer[baddr]))
 					{
 						break;
 					}
@@ -941,7 +941,7 @@ namespace Open3270.TN3270
 				sbaddr = baddr;
 				do
 				{
-					if (FA.IsModified(screenBuffer[baddr]))
+					if (FieldAttribute.IsModified(screenBuffer[baddr]))
 					{
 						bool any = false;
 
@@ -949,7 +949,7 @@ namespace Open3270.TN3270
 						obptr.Add(ControllerConstant.ORDER_SBA);
 						Util.EncodeBaddress(obptr, baddr);
 						trace.trace_ds(" SetBufferAddress%s", trace.rcba(baddr));
-						while (!FA.IsFA(screenBuffer[baddr]))
+						while (!FieldAttribute.IsFA(screenBuffer[baddr]))
 						{
 							if (sendData && screenBuffer[baddr] != 0)
 							{
@@ -990,7 +990,7 @@ namespace Open3270.TN3270
 						do
 						{
 							this.IncrementAddress(ref baddr);
-						} while (!FA.IsFA(screenBuffer[baddr]));
+						} while (!FieldAttribute.IsFA(screenBuffer[baddr]));
 					}
 				} while (baddr != sbaddr);
 			}
@@ -1065,15 +1065,15 @@ namespace Open3270.TN3270
 		{
 			byte r = 0x00;
 
-			if (FA.IsProtected(fa))
+			if (FieldAttribute.IsProtected(fa))
 			{
 				r |= 0x20;
 			}
-			if (FA.IsNumeric(fa))
+			if (FieldAttribute.IsNumeric(fa))
 			{
 				r |= 0x10;
 			}
-			if (FA.IsModified(fa))
+			if (FieldAttribute.IsModified(fa))
 			{
 				r |= 0x01;
 			}
@@ -1106,7 +1106,7 @@ namespace Open3270.TN3270
 			baddr = 0;
 			do
 			{
-				if (FA.IsFA(screenBuffer[baddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
 					if (replyMode == ControllerConstant.SF_SRM_FIELD)
 					{
@@ -1223,7 +1223,7 @@ namespace Open3270.TN3270
 
 			do
 			{
-				if (FA.IsFA(screenBuffer[baddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
 					obptr.Add(ControllerConstant.ORDER_SFE);
 					attr_count = obptr.Index;//obptr - obuf;
@@ -1346,7 +1346,7 @@ namespace Open3270.TN3270
 				baddr = 0;
 				do
 				{
-					if (FA.IsFA(screenBuffer[baddr]))
+					if (FieldAttribute.IsFA(screenBuffer[baddr]))
 					{
 						break;
 					}
@@ -1358,7 +1358,7 @@ namespace Open3270.TN3270
 				do
 				{
 					fa = screenBuffer[baddr];
-					if (!FA.IsProtected(fa))
+					if (!FieldAttribute.IsProtected(fa))
 					{
 						this.MDTClear(screenBuffer, baddr);
 						do
@@ -1369,18 +1369,18 @@ namespace Open3270.TN3270
 								SetCursorAddress(baddr);
 								f = true;
 							}
-							if (!FA.IsFA(screenBuffer[baddr]))
+							if (!FieldAttribute.IsFA(screenBuffer[baddr]))
 							{
-								this.AddCharacter(baddr, CG.CG_null, 0);
+								this.AddCharacter(baddr, CharacterGenerator.Null, 0);
 							}
-						} while (!FA.IsFA(screenBuffer[baddr]));
+						} while (!FieldAttribute.IsFA(screenBuffer[baddr]));
 					}
 					else
 					{
 						do
 						{
 							this.IncrementAddress(ref baddr);
-						} while (!FA.IsFA(screenBuffer[baddr]));
+						} while (!FieldAttribute.IsFA(screenBuffer[baddr]));
 					}
 				} while (baddr != sbaddr);
 				if (!f)
@@ -1542,7 +1542,7 @@ namespace Open3270.TN3270
 
 				do
 				{
-					if (FA.IsFA(screenBuffer[baddr]))
+					if (FieldAttribute.IsFA(screenBuffer[baddr]))
 					{
 						MDTClear(screenBuffer, baddr);
 					}
@@ -1626,7 +1626,7 @@ namespace Open3270.TN3270
 							this.EndText("ProgramTab");
 							previous = PreviousEnum.Order;
 							//If the buffer address is the field attribute of of an unprotected field, simply advance one position.
-							if (FA.IsFA(screenBuffer[bufferAddress]) && !FA.IsProtected(screenBuffer[bufferAddress]))
+							if (FieldAttribute.IsFA(screenBuffer[bufferAddress]) && !FieldAttribute.IsProtected(screenBuffer[bufferAddress]))
 							{
 								this.IncrementAddress(ref bufferAddress);
 								lastZpt = false;
@@ -1646,9 +1646,9 @@ namespace Open3270.TN3270
 							if (!lastCommand || lastZpt)
 							{
 								trace.trace_ds("(nulling)");
-								while ((bufferAddress != baddr) && (!FA.IsFA(screenBuffer[bufferAddress])))
+								while ((bufferAddress != baddr) && (!FieldAttribute.IsFA(screenBuffer[bufferAddress])))
 								{
-									this.AddCharacter(bufferAddress, CG.CG_null, 0);
+									this.AddCharacter(bufferAddress, CharacterGenerator.Null, 0);
 									this.IncrementAddress(ref bufferAddress);
 								}
 								if (baddr == 0)
@@ -1748,13 +1748,13 @@ namespace Open3270.TN3270
 							}
 							do
 							{
-								if (FA.IsFA(screenBuffer[bufferAddress]))
+								if (FieldAttribute.IsFA(screenBuffer[bufferAddress]))
 								{
 									currentFaIndex = bufferAddress;
 								}
-								else if (!FA.IsProtected(screenBuffer[currentFaIndex]))
+								else if (!FieldAttribute.IsProtected(screenBuffer[currentFaIndex]))
 								{
-									this.AddCharacter(bufferAddress, CG.CG_null, 0);
+									this.AddCharacter(bufferAddress, CharacterGenerator.Null, 0);
 								}
 
 								this.IncrementAddress(ref bufferAddress);
@@ -1803,7 +1803,7 @@ namespace Open3270.TN3270
 							previous = PreviousEnum.Order;
 							cp++;
 							na = buf[cp + start];
-							if (FA.IsFA(screenBuffer[bufferAddress]))
+							if (FieldAttribute.IsFA(screenBuffer[bufferAddress]))
 							{
 								for (int i = 0; i < (int)na; i++)
 								{
@@ -2141,7 +2141,7 @@ namespace Open3270.TN3270
 						i++;
 						fa = AttributeToFA(buf[cp]);
 						trace.trace_ds(" StartField" + trace.rcba(bufferAddress) + " " + see.see_attr(fa) + " [translated to space]\n");
-						this.AddCharacter(bufferAddress, CG.CG_space, defaultCs);
+						this.AddCharacter(bufferAddress, CharacterGenerator.Space, defaultCs);
 						this.SetForegroundColor(bufferAddress, defaultFg);
 						this.ctlr_add_gr(bufferAddress, defaultGr);
 						this.IncrementAddress(ref bufferAddress);
@@ -2161,7 +2161,7 @@ namespace Open3270.TN3270
 						if (++i >= buflen)
 							break;
 						if (buf[cp] <= 0x40)
-							c = CG.CG_space;
+							c = CharacterGenerator.Space;
 						else
 							c = Tables.Ebc2Cg0[buf[cp]];
 						AddCharacter(bufferAddress, c, ControllerConstant.CS_GE);
@@ -2172,15 +2172,15 @@ namespace Open3270.TN3270
 
 					default:
 						if (buf[cp] == ControllerConstant.FCORDER_NULL)
-							c = CG.CG_space;
+							c = CharacterGenerator.Space;
 						else if (buf[cp] == ControllerConstant.FCORDER_FM)
-							c = CG.CG_asterisk;
+							c = CharacterGenerator.Asterisk;
 						else if (buf[cp] == ControllerConstant.FCORDER_DUP)
-							c = CG.CG_semicolon;
+							c = CharacterGenerator.Semicolon;
 						else if (buf[cp] < 0x40)
 						{
 							trace.trace_ds(" X'" + buf[cp] + "') [translated to space]\n");
-							c = CG.CG_space; /* technically not necessary */
+							c = CharacterGenerator.Space; /* technically not necessary */
 						}
 						else
 							c = Tables.Ebc2Cg[buf[cp]];
@@ -2319,7 +2319,7 @@ namespace Open3270.TN3270
 			int i;
 			for (i = 0; i < rowCount * columnCount; i++)
 			{
-				screenBuffer[i] = CG.CG_space;
+				screenBuffer[i] = CharacterGenerator.Space;
 			}
 			OnAllChanged();
 			SetCursorAddress(0);
@@ -2662,7 +2662,7 @@ namespace Open3270.TN3270
 			int i;
 			for (i = 0; i < rowCount * columnCount; i++)
 			{
-				screenBuffer[i] = debuggingFont ? CG.CG_space : CG.CG_null;
+				screenBuffer[i] = debuggingFont ? CharacterGenerator.Space : CharacterGenerator.Null;
 			}
 			OnAllChanged();
 			//	screen_disp(false);
@@ -2777,7 +2777,7 @@ namespace Open3270.TN3270
 						{
 							bAddress = cursorAddress;
 							this.DecrementAddress(ref bAddress);
-							if (FA.IsFA(screenBuffer[bAddress]))
+							if (FieldAttribute.IsFA(screenBuffer[bAddress]))
 							{
 								//At beginning of field
 								this.DecrementAddress(ref bAddress);
@@ -2787,9 +2787,9 @@ namespace Open3270.TN3270
 							{
 								nbAddress = bAddress;
 								this.IncrementAddress(ref nbAddress);
-								if (FA.IsFA(screenBuffer[bAddress])
-									&& !FA.IsProtected(screenBuffer[bAddress])
-									&& !FA.IsFA(screenBuffer[nbAddress]))
+								if (FieldAttribute.IsFA(screenBuffer[bAddress])
+									&& !FieldAttribute.IsProtected(screenBuffer[bAddress])
+									&& !FieldAttribute.IsFA(screenBuffer[nbAddress]))
 								{
 									break;
 								}
@@ -2982,7 +2982,7 @@ namespace Open3270.TN3270
 					}
 				default:
 					{
-						this.telnet.Events.popup_an_error(name + " requires 0, 1, 3 or 4 arguments");
+						this.telnet.Events.ShowError(name + " requires 0, 1, 3 or 4 arguments");
 						return false;
 					}
 			}
@@ -2994,7 +2994,7 @@ namespace Open3270.TN3270
 				col + cols > relColumns || row + rows > relRows))
 				)
 			{
-				this.telnet.Events.popup_an_error(name + ": Invalid argument", name);
+				this.telnet.Events.ShowError(name + ": Invalid argument", name);
 				return false;
 			}
 
@@ -3025,7 +3025,7 @@ namespace Open3270.TN3270
 
 			if (!isFormatted)
 			{
-				telnet.Events.popup_an_error(name + ": Screen is not formatted");
+				telnet.Events.ShowError(name + ": Screen is not formatted");
 				return false;
 			}
 			faIndex = GetFieldAttribute(cursorAddress);
@@ -3034,7 +3034,7 @@ namespace Open3270.TN3270
 			baddr = start;
 			do
 			{
-				if (FA.IsFA(screenBuffer[baddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
 					break;
 				}
@@ -3065,7 +3065,7 @@ namespace Open3270.TN3270
 
 			do
 			{
-				if (FA.IsFA(screenBuffer[baddr]))
+				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
 
 					if (extendedAttributes[baddr].fg != 0) 
@@ -3115,21 +3115,21 @@ namespace Open3270.TN3270
 				string temp = "";
 				temp += "<Attributes Base=\"" + fa + "\"";
 
-				if (FA.IsProtected(fa))
+				if (FieldAttribute.IsProtected(fa))
 				{
 					temp += " Protected=\"true\"";
 				}
 				else
 					temp += " Protected=\"false\"";
-				if (FA.IsZero(fa))
+				if (FieldAttribute.IsZero(fa))
 				{
 					temp += " FieldType=\"Hidden\"";
 				}
-				else if (FA.IsHigh(fa))
+				else if (FieldAttribute.IsHigh(fa))
 				{
 					temp += " FieldType=\"High\"";
 				}
-				else if (FA.IsIntense(fa))
+				else if (FieldAttribute.IsIntense(fa))
 				{
 					temp += " FieldType=\"Intense\"";
 				}

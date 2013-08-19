@@ -1045,7 +1045,7 @@ namespace Open3270.TN3270
 
 									//this.currentLUIndex=0;
 									/* None of the LUs worked. */
-									events.popup_an_error("Cannot connect to specified LU");
+									events.ShowError("Cannot connect to specified LU");
 									return -1;
 								}
 

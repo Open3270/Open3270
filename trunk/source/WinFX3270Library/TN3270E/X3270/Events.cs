@@ -81,7 +81,7 @@ namespace Open3270.TN3270
 				return false;
 		}
 		
-		public void popup_an_error(string error, params object[] args)
+		public void ShowError(string error, params object[] args)
 		{
 			events.Add(new EventNotification(error, args));
 			Console.WriteLine("ERROR"+CFormat.Format(error,args));

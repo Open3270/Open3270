@@ -104,9 +104,6 @@
     <Reference Include="System.Data">
       <Name>System.Data</Name>
     </Reference>
-    <Reference Include="System.Runtime.Serialization.Formatters.Soap">
-      <Name>system.runtime.serialization.formatters.soap</Name>
-    </Reference>
     <Reference Include="System.Xml">
       <Name>System.XML</Name>
     </Reference>
@@ -174,7 +171,7 @@
     <Compile Include="TN3270E\X3270\Stuff\CFormat.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\CG.cs">
+    <Compile Include="TN3270E\X3270\Stuff\CharacterGenerator.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="TN3270E\X3270\Stuff\ControllerConstants.cs" />
@@ -184,7 +181,7 @@
     <Compile Include="TN3270E\X3270\Stuff\ExtendedAttribute.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270E\X3270\Stuff\FA.cs" />
+    <Compile Include="TN3270E\X3270\Stuff\FieldAttribute.cs" />
     <Compile Include="TN3270E\X3270\Stuff\Idle.cs">
       <SubType>Code</SubType>
     </Compile>

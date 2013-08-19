@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Open3270.TN3270
 {
-	public static class FA
+	public static class FieldAttribute
 	{
 		public static bool IsFA(byte c)
 		{
@@ -14,7 +14,7 @@ namespace Open3270.TN3270
 		public static bool IsNumeric(byte c) { return (c & ControllerConstant.FA_NUMERIC) != 0; }
 		public static bool IsProtected(byte c) { return (c & ControllerConstant.FA_PROTECT) != 0; }
 		public static bool IsProtectedAt(byte[] buffer, int index) { return (buffer[index] & ControllerConstant.FA_PROTECT) != 0; }
-		public static bool IsSkip(byte c) { return (FA.IsNumeric(c) && FA.IsProtected(c)); }
+		public static bool IsSkip(byte c) { return (FieldAttribute.IsNumeric(c) && FieldAttribute.IsProtected(c)); }
 		public static bool IsZero(byte c) { return ((c & ControllerConstant.FA_INTENSITY) == ControllerConstant.FA_INT_ZERO_NSEL); }
 		public static bool IsHigh(byte c) { return ((c & ControllerConstant.FA_INTENSITY) == ControllerConstant.FA_INT_HIGH_SEL); }
 		public static bool IsNormal(byte c)
