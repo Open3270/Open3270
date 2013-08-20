@@ -111,6 +111,24 @@ namespace TerminalDemo
 
 
 
+		int caretIndex;
+
+		public int CaretIndex
+		{
+			get
+			{
+				return this.caretIndex;
+			}
+			set
+			{
+				this.caretIndex = value;
+				this.OnPropertyChanged("CaretIndex");
+			}
+		}
+
+
+
+
 		#region INotifyPropertyChanged
 
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -136,6 +154,7 @@ namespace TerminalDemo
 		{
 			this.emu.SendText(text);
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
+			this.UpdateCaretIndex();
 		}
 
 
@@ -147,7 +166,7 @@ namespace TerminalDemo
 		public void SendKey(TnKey key)
 		{
 			this.emu.SendKey(true, key, 2000);
-
+			this.UpdateCaretIndex();
 			if (key != TnKey.Tab && key != TnKey.BackTab)
 			{
 				this.Refresh();
@@ -159,8 +178,14 @@ namespace TerminalDemo
 		/// </summary>
 		public void Refresh()
 		{
-			this.emu.Refresh(true, 100);
+			this.emu.Refresh(true, 150);
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
+			this.UpdateCaretIndex();
+		}
+
+		public void UpdateCaretIndex()
+		{
+			this.CaretIndex = this.emu.CursorY * 81 + this.emu.CursorX;
 		}
 
 

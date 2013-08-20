@@ -114,7 +114,7 @@
 					Command="{x:Static local:MainWindow.OpenSettings}"/>
 		</StackPanel>
 
-		<TextBox FontFamily="Consolas" HorizontalAlignment="Stretch"  Margin="10,10,0,0" TextWrapping="Wrap" IsReadOnly="True" IsReadOnlyCaretVisible="True"  Text="{Binding ScreenText}" VerticalAlignment="Stretch" Background="Black" Foreground="Green" FontSize="10" />
+		<TextBox x:Name="Console" FontFamily="Consolas" HorizontalAlignment="Stretch" CaretBrush="Cyan" local:AttachedProperties.CaretLocation="{Binding CaretIndex}" Margin="10,10,0,0" TextWrapping="Wrap" IsReadOnly="True" IsReadOnlyCaretVisible="True"  Text="{Binding ScreenText}" VerticalAlignment="Stretch" Background="Black" Foreground="Green" FontSize="10" />
 
 	</Grid>
 </Window>

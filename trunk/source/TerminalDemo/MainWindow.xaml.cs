@@ -29,6 +29,10 @@ namespace TerminalDemo
 		public MainWindow()
 		{
 			InitializeComponent();
+			
+			//This odd event handler is needed because the TextBox control eats that spacebar, so we have to intercept an already-handled event.
+			this.Console.AddHandler(TextBox.KeyDownEvent, new KeyEventHandler(Console_KeyDown), true);
+
 		}
 
 
@@ -89,6 +93,9 @@ namespace TerminalDemo
 		void ExecuteConnect(object sender, ExecutedRoutedEventArgs args)
 		{
 			this.Terminal.Connect();
+
+			//The caret won't show up in the textbox until it receives focus.
+			this.Console.Focus();
 		}
 
 		#endregion Connect Command
@@ -157,9 +164,20 @@ namespace TerminalDemo
 			{
 				this.Terminal.SendText(e.Text);
 			}
-
 		}
-	
+
+
+		private void Console_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key == Key.Space)
+			{
+				if (this.Terminal.IsConnected)
+				{
+					this.Terminal.SendText(" ");
+				}
+			}
+		}
+
 		
 	}
 }
