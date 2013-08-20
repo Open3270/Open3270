@@ -8,7 +8,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleConsole", "Sample\Sam
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E582422F-6081-48BE-892D-AAA75999EDC0}"
 	ProjectSection(SolutionItems) = preProject
-		Docs\3270\Library.one = Docs\3270\Library.one
+		Docs\3270\ToDo.one = Docs\3270\ToDo.one
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWPF", "TerminalDemo\SampleWPF.csproj", "{347F533E-6248-48F9-B9A4-4686729823E2}"

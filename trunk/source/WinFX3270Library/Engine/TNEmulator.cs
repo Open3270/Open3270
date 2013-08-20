@@ -30,6 +30,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using Open3270.TN3270;
 using Open3270.Library;
+using System.Linq;
 
 namespace Open3270
 {
@@ -64,43 +65,41 @@ namespace Open3270
 	/// </summary>
 	public class TNEmulator : IDisposable
 	{
-		private static bool mFirstTime = true;
-
-		bool mDebug = false;
-        bool isDisposed = false;
-
-		//
-		private object mObjectState;
-		public object ObjectState 
-		{
-			get { return mObjectState; }
-			set { mObjectState = value; }
-		}
 		/// <summary>
 		/// Event fired when the host disconnects. Note - this must be set before you connect to the host.
 		/// </summary>
 		public event OnDisconnectDelegate Disconnected;
-		//
-		IXMLScreen _currentScreenXML; // don't access me directly, use helper
-		private string mScreenName = null;
-		private IAudit sout = null;
-        private bool mUseSSL = false;
-		private ConnectionConfig mConnectionConfiguration = null;
+
+
+
+		static bool firstTime = true;
+
+		bool debug = false;
+        bool isDisposed = false;
+		MySemaphore semaphore = new MySemaphore(0, 9999);
+		private object objectState;
+
+		IXMLScreen currentScreenXML; // don't access me directly, use helper
+		string mScreenName = null;
+		IAudit sout = null;
+        bool mUseSSL = false;
+		ConnectionConfig mConnectionConfiguration = null;
 		TN3270API currentConnection = null;
-		//
-		//
-		/// <summary>
-		/// Constructor for TNEmulator
-		/// </summary>
+
+
+
+		public object ObjectState
+		{
+			get { return objectState; }
+			set { objectState = value; }
+		}
+
+
 		public TNEmulator()
 		{
-			_currentScreenXML = null;
-			//
+			currentScreenXML = null;
 			currentConnection = null;
-			//
-			//
 			this.mConnectionConfiguration = new ConnectionConfig();
-			//
 		}
 
         public string DisconnectReason
@@ -171,9 +170,9 @@ namespace Open3270
 
                     DisposeOfCurrentScreenXML();
 
-                    if (mObjectState != null)
+                    if (objectState != null)
                     {
-                        mObjectState = null;
+                        objectState = null;
                     }
                     if (mConnectionConfiguration != null)
                     {
@@ -198,16 +197,16 @@ namespace Open3270
 
         protected void DisposeOfCurrentScreenXML()
         {
-            if (_currentScreenXML != null)
+            if (currentScreenXML != null)
             {
-                IDisposable disposeXML = _currentScreenXML as IDisposable;
+                IDisposable disposeXML = currentScreenXML as IDisposable;
                 if (disposeXML != null)
                     disposeXML.Dispose();
-                _currentScreenXML = null;
+                currentScreenXML = null;
             }
         }
 
-		MySemaphore mre = new MySemaphore(0,9999);
+
 		private void currentConnection_RunScriptEvent(string where)
 		{
 			lock (this)
@@ -215,9 +214,95 @@ namespace Open3270
                 DisposeOfCurrentScreenXML();
 
 				if (sout != null && Debug) sout.WriteLine("mre.Release(1) from location "+where);
-				mre.Release(1);
+				semaphore.Release(1);
 			}
 		}
+
+
+		public bool SendKey(bool waitForScreenToUpdate, TnKey key, int timeout)
+		{
+			
+			bool triggerSubmit = false;
+			bool success = false;
+			string command;
+
+			//This is only used as a parameter for other methods when we're using function keys.
+			//e.g. F1 yields a command of "PF" and a functionInteger of 1.
+			int functionInteger = -1;
+			
+
+			if (sout != null && Debug == true)
+			{
+				sout.WriteLine("SendKeyFromText(" + waitForScreenToUpdate + ", \"" + key.ToString() + "\", " + timeout + ")");
+			}
+
+			if (currentConnection == null)
+			{
+				throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection", null);
+			}
+
+
+			//Get the command name and accompanying int parameter, if applicable
+				if (Constants.FunctionKeys.Contains(key))
+				{
+					command = "PF";
+					functionInteger = Constants.FunctionKeyIntLUT[key];
+				}
+				else if (Constants.AKeys.Contains(key))
+				{
+					command = "PA";
+					functionInteger = Constants.FunctionKeyIntLUT[key];
+				}
+				else
+				{
+					command = key.ToString();
+				}
+
+				//Should this action be followed by a submit?
+				triggerSubmit = this.Config.SubmitAllKeyboardCommands || this.currentConnection.KeyboardCommandCausesSubmit(command);
+
+				if (triggerSubmit)
+			{
+				lock (this)
+				{
+					this.DisposeOfCurrentScreenXML();
+					currentScreenXML = null;
+
+					if (sout != null && Debug)
+					{
+						sout.WriteLine("mre.Reset. Count was " + semaphore.Count);
+					}
+
+					// Clear to initial count (0)
+					semaphore.Reset();
+				}
+			}
+
+			success = this.currentConnection.ExecuteAction(triggerSubmit, command, functionInteger);
+
+
+			if (sout != null && Debug)
+			{
+				sout.WriteLine("SendKeyFromText - submit = " + triggerSubmit + " ok=" + success);
+			}
+
+			if (triggerSubmit && success)
+			{
+				// Wait for a valid screen to appear
+				if (waitForScreenToUpdate)
+				{
+					success = this.Refresh(true, timeout);
+				}
+				else
+				{
+					success = true;
+				}
+			}
+
+			return success;
+
+		}
+
 		/// <summary>
 		/// Sends a key to the host. Key names are:
 		/// Attn, Backspace,BackTab,CircumNot,Clear,CursorSelect,Delete,DeleteField,
@@ -225,12 +310,13 @@ namespace Open3270
 		/// FieldMark,FieldExit,Home,Insert,Interrupt,Key,Left,Left2,Newline,NextWord,
 		/// PAnn, PFnn, PreviousWord,Reset,Right,Right2,SysReq,Tab,Toggle,ToggleInsert,ToggleReverse,Up
 		/// </summary>
-		/// <param name="WaitForScreenToUpdate"></param>
+		/// <param name="waitForScreenToUpdate"></param>
 		/// <param name="text"></param>
 		/// <returns></returns>
-		public bool SendKeyFromText(bool WaitForScreenToUpdate, string text)
+		[Obsolete("This method has been deprecated.  Please use SendKey instead. This method is only included for backwards compatibiity and might not exist in future releases.")]
+		public bool SendKeyFromText(bool waitForScreenToUpdate, string text)
 		{
-			return SendKeyFromText(WaitForScreenToUpdate, text, Config.DefaultTimeout);
+			return SendKeyFromText(waitForScreenToUpdate, text, Config.DefaultTimeout);
 		}
 
 
@@ -241,76 +327,108 @@ namespace Open3270
 		/// FieldMark,FieldExit,Home,Insert,Interrupt,Key,Left,Left2,Newline,NextWord,
 		/// PAnn, PFnn, PreviousWord,Reset,Right,Right2,SysReq,Tab,Toggle,ToggleInsert,ToggleReverse,Up
 		/// </summary>
-		/// <param name="WaitForScreenToUpdate"></param>
+		/// <param name="waitForScreenToUpdate"></param>
 		/// <param name="text">Key to send</param>
 		/// <param name="timeout">Timeout in seconds</param>
 		/// <returns></returns>
-		public bool SendKeyFromText(bool WaitForScreenToUpdate, string text, int timeout)
+		[Obsolete("This method has been deprecated.  Please use SendKey instead.  This method is only included for backwards compatibiity and might not exist in future releases.")]
+		public bool SendKeyFromText(bool waitForScreenToUpdate, string text, int timeout)
 		{
 
-			if (sout != null && Debug==true)
-				sout.WriteLine("SendKeyFromText("+WaitForScreenToUpdate+", \""+text+"\", "+timeout+")");
-			//
-			if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
-			//
+			bool submit = false;
+			bool success = false;
+
+			if (sout != null && Debug == true)
+			{
+				sout.WriteLine("SendKeyFromText(" + waitForScreenToUpdate + ", \"" + text + "\", " + timeout + ")");
+			}
+
+			if (currentConnection == null)
+			{
+				throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection", null);
+			}
 
 			if (text.Length < 2)
-				return false; // no keys are less than 2 characters.
-			//
-			bool submit = false;
-			if (Config.SubmitAllKeyboardCommands)
+			{
+				// No keys are less than 2 characters.
+				return false; 
+			}
+
+
+			if (this.Config.SubmitAllKeyboardCommands)
+			{
 				submit = true;
+			}
 			else
 			{
-				if (text.Substring(0,2)=="PF")
+				if (text.Substring(0, 2) == "PF")
 				{
-					submit = this.currentConnection.KeyboardCommandCausesSubmit("PF", System.Convert.ToInt32(text.Substring(2,2)));
+					submit = this.currentConnection.KeyboardCommandCausesSubmit("PF");
 				}
-				else if (text.Substring(0,2)=="PA")
+				else if (text.Substring(0, 2) == "PA")
 				{
-					submit = this.currentConnection.KeyboardCommandCausesSubmit("PA", System.Convert.ToInt32(text.Substring(2,2)));
+					submit = this.currentConnection.KeyboardCommandCausesSubmit("PA");
 				}
 				else
+				{
 					submit = this.currentConnection.KeyboardCommandCausesSubmit(text);
+				}
 			}
-			bool ok = false;
+
+			
 			if (submit)
 			{
 				lock (this)
 				{
-                    DisposeOfCurrentScreenXML();
-					_currentScreenXML = null;
-					if (sout != null && Debug) sout.WriteLine("mre.Reset. Count was "+mre.Count);
-                    mre.Reset(); // clear to initial count (0)
+					this.DisposeOfCurrentScreenXML();
+					currentScreenXML = null;
+
+					if (sout != null && Debug) sout.WriteLine("mre.Reset. Count was " + semaphore.Count);
+					{
+						// Clear to initial count (0)
+						semaphore.Reset();
+					}
 				}
-				//
+				
 			}
-			//
+			
 			
 			if (text.Substring(0,2)=="PF")
 			{
-				ok = this.currentConnection.ExecuteAction(submit, "PF", System.Convert.ToInt32(text.Substring(2,2)));
+				success = this.currentConnection.ExecuteAction(submit, "PF", System.Convert.ToInt32(text.Substring(2,2)));
 			}
-			else if (text.Substring(0,2)=="PA")
+			else if (text.Substring(0, 2) == "PA")
 			{
-				ok = this.currentConnection.ExecuteAction(submit, "PA", System.Convert.ToInt32(text.Substring(2,2)));
+				success = this.currentConnection.ExecuteAction(submit, "PA", System.Convert.ToInt32(text.Substring(2, 2)));
 			}
 			else
-				ok = this.currentConnection.ExecuteAction(submit, text);
-		
-			if (sout != null && Debug==true) sout.WriteLine("SendKeyFromText - submit = "+submit+" ok="+ok);
+			{
+				success = this.currentConnection.ExecuteAction(submit, text);
+			}
 
-			if (submit && ok)
+			if (sout != null && Debug)
 			{
-				// wait for a valid screen to appear
-				if (WaitForScreenToUpdate)
-					return Refresh(true,timeout);
+				sout.WriteLine("SendKeyFromText - submit = " + submit + " ok=" + success);
+			}
+
+			if (submit && success)
+			{
+				// Wait for a valid screen to appear
+				if (waitForScreenToUpdate)
+				{
+					return Refresh(true, timeout);
+				}
 				else
+				{
 					return true;
+				}
 			}
 			else
-				return ok;
+			{
+				return success;
+			}
 		}
+
 
         /// <summary>
         /// Wait until the keyboard unlocks, up until timeoutms
@@ -325,6 +443,7 @@ namespace Open3270
                 Thread.Sleep(10); // Wait 1/100th of a second
             }
         }
+
 
 		/// <summary>
 		/// Refresh the current screen.  If timeout > 0, it will wait for 
@@ -358,8 +477,8 @@ namespace Open3270
 						timeout = (int)(end-(DateTime.Now.Ticks/10000));
 						if (timeout>0)
 						{
-							if (sout != null && this.Debug) sout.WriteLine("Refresh::Acquire("+timeout+" milliseconds). unsafe Count is currently "+mre.Count);
-							run = mre.Acquire(Math.Min(timeout,1000));
+							if (sout != null && this.Debug) sout.WriteLine("Refresh::Acquire("+timeout+" milliseconds). unsafe Count is currently "+semaphore.Count);
+							run = semaphore.Acquire(Math.Min(timeout,1000));
 							//Console.WriteLine("run = "+run);
 							if (!IsConnected)
 							{
@@ -383,7 +502,7 @@ namespace Open3270
 					// Store screen in screen database and identify it
 					//
                     DisposeOfCurrentScreenXML();
-					_currentScreenXML = null; // force a refresh
+					currentScreenXML = null; // force a refresh
 					if (sout != null && this.Debug) 
                         sout.WriteLine("Refresh::Timeout, but since keyboard is not locked or fastmode=true, return true anyway");
 					return true;
@@ -467,7 +586,7 @@ namespace Open3270
 			lock (this)
 			{
                 DisposeOfCurrentScreenXML();
-				_currentScreenXML = null;
+				currentScreenXML = null;
 			}
 			return currentConnection.ExecuteAction(false, "String", text);
 		}
@@ -505,7 +624,7 @@ namespace Open3270
 			}
 			currentConnection.ExecuteAction(false, "FieldSet", index, text);
             DisposeOfCurrentScreenXML();
-			_currentScreenXML = null;
+			currentScreenXML = null;
 		}
 		public void SetField(FieldInfo field, string text)
 		{
@@ -614,11 +733,11 @@ namespace Open3270
 			try
 			{
 				
-                mre.Reset();
+                semaphore.Reset();
                 
 				currentConnection = null;
 				currentConnection = new TN3270API();
-				currentConnection.Debug = mDebug;
+				currentConnection.Debug = debug;
 				currentConnection.RunScriptRequested += new RunScriptDelegate(currentConnection_RunScriptEvent);
                 apiOnDisconnectDelegate = new OnDisconnectDelegate(currentConnection_OnDisconnect);
                 currentConnection.Disconnected += apiOnDisconnectDelegate;
@@ -631,9 +750,9 @@ namespace Open3270
                     sout.WriteLine("(c) 2004-2006 Mike Warriner (mikewarriner@gmail.com). All rights reserved");
                     sout.WriteLine("");
                     
-                    if (mFirstTime)
+                    if (firstTime)
 					{
-						mFirstTime = false;
+						firstTime = false;
 					}
 					if (Debug)
 					{
@@ -664,7 +783,7 @@ namespace Open3270
 
 				currentConnection.WaitForConnect(-1);
                 DisposeOfCurrentScreenXML();
-				_currentScreenXML = null; 
+				currentScreenXML = null; 
 				// Force refresh 
 				// GetScreenAsXML();
 			}
@@ -746,7 +865,7 @@ namespace Open3270
 				lock (this)
 				{
                     DisposeOfCurrentScreenXML();
-					this._currentScreenXML = null;
+					this.currentScreenXML = null;
 				}
 			}
 			do
@@ -775,7 +894,7 @@ namespace Open3270
 					lock (this)
 					{
                         DisposeOfCurrentScreenXML();
-						this._currentScreenXML = null;
+						this.currentScreenXML = null;
 					}
 				}
 				Refresh(true, 1000);
@@ -793,8 +912,8 @@ namespace Open3270
 		/// </summary>
 		public bool Debug
 		{
-			get { return mDebug; }
-			set { mDebug = value; }
+			get { return debug; }
+			set { debug = value; }
 
 		}
 
@@ -829,7 +948,7 @@ namespace Open3270
 			lock (this)
 			{
                 DisposeOfCurrentScreenXML();
-				_currentScreenXML = null;
+				currentScreenXML = null;
 			}
 		}
 		/// <summary>
@@ -840,22 +959,22 @@ namespace Open3270
 			get 
 			{ 
 
-				if (this._currentScreenXML==null)
+				if (this.currentScreenXML==null)
 				{
 					if (sout != null && Debug==true)
 					{
 						sout.WriteLine("CurrentScreenXML reloading by calling GetScreenAsXML()");
-						_currentScreenXML = GetScreenAsXML();
-						_currentScreenXML.Dump(sout);
+						currentScreenXML = GetScreenAsXML();
+						currentScreenXML.Dump(sout);
 					}
 					else
 					{
 						//
-						_currentScreenXML = GetScreenAsXML();
+						currentScreenXML = GetScreenAsXML();
 					}
 				}
 				//
-				return this._currentScreenXML; 
+				return this.currentScreenXML; 
 			}
 		}
 

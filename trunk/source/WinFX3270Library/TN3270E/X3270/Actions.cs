@@ -202,15 +202,15 @@ namespace Open3270.TN3270
 			else
 				return null;
 		}
-		public bool KeyboardCommandCausesSubmit(string name, params object[] args)
+		public bool KeyboardCommandCausesSubmit(string name)
 		{
 			XtActionRec rec = actionLookup[name.ToLower()] as XtActionRec;
 			if (rec != null)
 			{
 				return rec.CausesSubmit;
 			}
-			int i;
-			for (i = 0; i < actions.Length; i++)
+
+			for (int i = 0; i < actions.Length; i++)
 			{
 				if (actions[i].name.ToLower() == name.ToLower())
 				{
@@ -218,6 +218,7 @@ namespace Open3270.TN3270
 					return actions[i].CausesSubmit;
 				}
 			}
+
 			throw new ApplicationException("Sorry, action '" + name + "' is not known");
 		}
 		public bool Execute(bool submit, string name, params object[] args)

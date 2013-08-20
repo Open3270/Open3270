@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:local ="clr-namespace:TerminalDemo"
+		xmlns:telnet="clr-namespace:Open3270;assembly=Open3270"
         Title="MainWindow" Height="350" Width="590"
 		TextInput="Window_TextInput" >
 	
@@ -52,31 +53,31 @@
 	
 	<Window.InputBindings>
 		
-		<KeyBinding Key="F1" CommandParameter="PF01" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F2" CommandParameter="PF02" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F3" CommandParameter="PF03" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F4" CommandParameter="PF04" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F5" CommandParameter="PF05" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F6" CommandParameter="PF06" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F7" CommandParameter="PF07" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F8" CommandParameter="PF08" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F9" CommandParameter="PF09" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F10" CommandParameter="PF10" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F11" CommandParameter="PF11" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="F12" CommandParameter="PF12" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F1" CommandParameter="{x:Static telnet:TnKey.F1}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F2" CommandParameter="{x:Static telnet:TnKey.F2}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F3" CommandParameter="{x:Static telnet:TnKey.F3}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F4" CommandParameter="{x:Static telnet:TnKey.F4}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F5" CommandParameter="{x:Static telnet:TnKey.F5}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F6" CommandParameter="{x:Static telnet:TnKey.F6}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F7" CommandParameter="{x:Static telnet:TnKey.F7}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F8" CommandParameter="{x:Static telnet:TnKey.F8}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F9" CommandParameter="{x:Static telnet:TnKey.F9}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F10" CommandParameter="{x:Static telnet:TnKey.F10}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F11" CommandParameter="{x:Static telnet:TnKey.F11}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="F12" CommandParameter="{x:Static telnet:TnKey.F12}" Command="{x:Static local:MainWindow.SendCommand}" />
 
-		<KeyBinding Key="Tab" CommandParameter="Tab" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Tab" Modifiers="Shift" CommandParameter="Backtab" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Enter" CommandParameter="Enter" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Clear" CommandParameter="Clear" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Pause" CommandParameter="Clear" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Back" CommandParameter="Erase" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Delete" CommandParameter="Delete" Command="{x:Static local:MainWindow.SendCommand}" />
-		
-		<KeyBinding Key="Left" CommandParameter="Left" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Up" CommandParameter="Up" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Right" CommandParameter="Right" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Down" CommandParameter="Down" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Tab" CommandParameter="{x:Static telnet:TnKey.Tab}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Tab" Modifiers="Shift" CommandParameter="{x:Static telnet:TnKey.BackTab}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Enter" CommandParameter="{x:Static telnet:TnKey.Enter}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Clear" CommandParameter="{x:Static telnet:TnKey.Clear}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Pause" CommandParameter="{x:Static telnet:TnKey.Clear}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Back" CommandParameter="{x:Static telnet:TnKey.Erase}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Delete" CommandParameter="{x:Static telnet:TnKey.Delete}" Command="{x:Static local:MainWindow.SendCommand}" />
+
+		<KeyBinding Key="Left" CommandParameter="{x:Static telnet:TnKey.Left}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Up" CommandParameter="{x:Static telnet:TnKey.Up}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Right" CommandParameter="{x:Static telnet:TnKey.Right}" Command="{x:Static local:MainWindow.SendCommand}" />
+		<KeyBinding Key="Down" CommandParameter="{x:Static telnet:TnKey.Down}" Command="{x:Static local:MainWindow.SendCommand}" />
 		
 	</Window.InputBindings>
 
@@ -101,7 +102,7 @@
 			</Button>
 
 			<Button Content="Clear" Margin="0,0,0,5" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Height="22" Focusable="False"
-				Command="{x:Static local:MainWindow.SendCommand}" CommandParameter="Clear" />
+				Command="{x:Static local:MainWindow.SendCommand}" CommandParameter="{x:Static telnet:TnKey.Clear}" />
 	
 			<Button Content="Refresh" Margin="0,0,0,5"  HorizontalAlignment="Stretch"  VerticalAlignment="Bottom"  Focusable="False"
 				Command="{x:Static local:MainWindow.Refresh}"/>

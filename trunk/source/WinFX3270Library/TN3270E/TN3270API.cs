@@ -247,9 +247,9 @@ namespace Open3270.TN3270
 		}
 
 
-		public bool KeyboardCommandCausesSubmit(string name, params object[] args)
+		public bool KeyboardCommandCausesSubmit(string name)
 		{
-			return this.tn.Action.KeyboardCommandCausesSubmit(name, args);
+			return this.tn.Action.KeyboardCommandCausesSubmit(name);
 		}
 
 

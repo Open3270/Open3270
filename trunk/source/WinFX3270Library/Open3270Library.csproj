@@ -11,7 +11,7 @@
     </ApplicationIcon>
     <AssemblyKeyContainerName>
     </AssemblyKeyContainerName>
-    <AssemblyName>WinFX3270Library</AssemblyName>
+    <AssemblyName>Open3270</AssemblyName>
     <AssemblyOriginatorKeyFile>
     </AssemblyOriginatorKeyFile>
     <DefaultClientScript>JScript</DefaultClientScript>
@@ -19,7 +19,7 @@
     <DefaultTargetSchema>IE50</DefaultTargetSchema>
     <DelaySign>false</DelaySign>
     <OutputType>Library</OutputType>
-    <RootNamespace>WinFX3270Library</RootNamespace>
+    <RootNamespace>Open3270</RootNamespace>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     <StartupObject>
     </StartupObject>
@@ -31,7 +31,7 @@
     <SccLocalPath>SAK</SccLocalPath>
     <SccAuxPath>SAK</SccAuxPath>
     <SccProvider>SAK</SccProvider>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <OldToolsVersion>2.0</OldToolsVersion>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -48,6 +48,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath>bin\Debug\</OutputPath>
@@ -145,6 +146,7 @@
     <Compile Include="LogParser\TN3270HostParser.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="TN3270E\Constants.cs" />
     <Compile Include="TN3270E\Delegates.cs" />
     <Compile Include="TN3270E\EventArgs.cs" />
     <Compile Include="TN3270E\TN3270API.cs">
@@ -215,16 +217,16 @@
     <Compile Include="TN3270E\X3270\TNTrace.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270Server\TN3270Server.cs">
+    <Compile Include="Server\TN3270Server.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270Server\TN3270ServerEmulationBase.cs">
+    <Compile Include="Server\TN3270ServerEmulationBase.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270Server\TN3270ServerException.cs">
+    <Compile Include="Server\TN3270ServerException.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="TN3270Server\TNServerScreen.cs">
+    <Compile Include="Server\TNServerScreen.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CommFramework\Audit.cs">
@@ -266,9 +268,7 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="TN3270E\X3270\Stuff\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>

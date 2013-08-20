@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Open3270;
+using Open3270.TN3270;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -68,7 +70,7 @@ namespace TerminalDemo
 
 		void ExecuteSendCommand(object sender, ExecutedRoutedEventArgs args)
 		{
-			this.Terminal.SendKey((string)args.Parameter);
+			this.Terminal.SendKey((TnKey)args.Parameter);
 		}
 
 		#endregion SendCommand Command

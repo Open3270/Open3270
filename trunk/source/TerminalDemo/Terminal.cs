@@ -143,23 +143,23 @@ namespace TerminalDemo
 		/// Sends a character to the terminal.
 		/// This is used for special characters like F1, Tab, et cetera.
 		/// </summary>
-		/// <param name="keyName">The *name* of the key to send.  See Open3270 source for valid keys.</param>
-		public void SendKey(string keyName)
+		/// <param name="key">The key to send.</param>
+		public void SendKey(TnKey key)
 		{
-			this.emu.SendKeyFromText(true, keyName, 2000);
-			if (!keyName.ToLower().Contains("tab"))
+			this.emu.SendKey(true, key, 2000);
+
+			if (key != TnKey.Tab && key != TnKey.BackTab)
 			{
-				this.ScreenText = this.emu.CurrentScreenXML.Dump();
+				this.Refresh();
 			}
 		}
-
 
 		/// <summary>
 		/// Forces a refresh and updates the screen display
 		/// </summary>
 		public void Refresh()
 		{
-			this.emu.Refresh();
+			this.emu.Refresh(true, 100);
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
 		}
 

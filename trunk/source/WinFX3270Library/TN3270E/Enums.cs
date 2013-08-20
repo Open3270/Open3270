@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Open3270.TN3270
+namespace Open3270
 {
 
 	internal enum SmsState
@@ -288,6 +288,70 @@ namespace Open3270.TN3270
 		PrintEoj
 	}
 
+	public enum TnKey
+	{
+		F1,
+		F2,
+		F3,
+		F4,
+		F5,
+		F6,
+		F7,
+		F8,
+		F9,
+		F10,
+		F11,
+		F12,
+		Tab,
+		BackTab,
+		Enter,
+		Backspace,
+		Clear,
+		Delete,
+		DeleteField,
+		DeleteWord,
+		Left,
+		Left2,
+		Up,
+		Right,
+		Right2,
+		Down,
+		Attn,
+		CircumNot,
+		CursorSelect,
+		Dup,
+		Erase,
+		EraseEOF,
+		EraseInput,
+		FieldEnd,
+		FieldMark,
+		FieldExit,
+		Home,
+		Insert,
+		Interrupt,
+		Key,
+		Newline,
+		NextWord,
+		PAnn,
+		PreviousWord,
+		Reset,
+		SysReq,
+		Toggle,
+		ToggleInsert,
+		ToggleReverse,
+		PA1,
+		PA2,
+		PA3,
+		PA4,
+		PA5,
+		PA6,
+		PA7,
+		PA8,
+		PA9,
+		PA10,
+		PA11,
+		PA12,
 
+	}
 
 }
