@@ -169,11 +169,48 @@ namespace TerminalDemo
 
 		private void Console_KeyDown(object sender, KeyEventArgs e)
 		{
-			if (e.Key == Key.Space)
+			//The textbox eats several keystrokes, so we can't handle them from keybindings/commands.
+			if (this.Terminal.IsConnected)
 			{
-				if (this.Terminal.IsConnected)
+				switch (e.Key)
 				{
-					this.Terminal.SendText(" ");
+					case Key.Space:
+						{
+							this.Terminal.SendText(" ");
+							break;
+						}
+					case Key.Left:
+						{
+							this.Terminal.SendKey(TnKey.Left);
+							break;
+						}
+					case Key.Right:
+						{
+							this.Terminal.SendKey(TnKey.Right);
+							break;
+						}
+					case Key.Up:
+						{
+							this.Terminal.SendKey(TnKey.Up);
+							break;
+						}
+					case Key.Down:
+						{
+							this.Terminal.SendKey(TnKey.Down);
+							break;
+						}
+					case Key.Back:
+						{
+							this.Terminal.SendKey(TnKey.Backspace);
+							break;
+						}
+					case Key.Delete:
+						{
+							this.Terminal.SendKey(TnKey.Delete);
+							break;
+						}
+					default:
+						break;
 				}
 			}
 		}

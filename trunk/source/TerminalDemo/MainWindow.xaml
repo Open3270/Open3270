@@ -71,13 +71,9 @@
 		<KeyBinding Key="Enter" CommandParameter="{x:Static telnet:TnKey.Enter}" Command="{x:Static local:MainWindow.SendCommand}" />
 		<KeyBinding Key="Clear" CommandParameter="{x:Static telnet:TnKey.Clear}" Command="{x:Static local:MainWindow.SendCommand}" />
 		<KeyBinding Key="Pause" CommandParameter="{x:Static telnet:TnKey.Clear}" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Back" CommandParameter="{x:Static telnet:TnKey.Erase}" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Delete" CommandParameter="{x:Static telnet:TnKey.Delete}" Command="{x:Static local:MainWindow.SendCommand}" />
 
-		<KeyBinding Key="Left" CommandParameter="{x:Static telnet:TnKey.Left}" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Up" CommandParameter="{x:Static telnet:TnKey.Up}" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Right" CommandParameter="{x:Static telnet:TnKey.Right}" Command="{x:Static local:MainWindow.SendCommand}" />
-		<KeyBinding Key="Down" CommandParameter="{x:Static telnet:TnKey.Down}" Command="{x:Static local:MainWindow.SendCommand}" />
+
+
 		
 	</Window.InputBindings>
 
