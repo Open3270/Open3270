@@ -1148,57 +1148,70 @@ namespace Open3270.TN3270
 		/// <returns> Returns "true" if succeeds, "false" otherwise.</returns>
 		bool DeleteCharacter()
 		{
-			int address, andAddress;
+			int address;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
 
 			address = this.telnet.Controller.CursorAddress;
 			faIndex = this.telnet.Controller.GetFieldAttribute(address);
+
 			if (faIndex != -1)
 			{
 				fa = this.telnet.Controller.ScreenBuffer[faIndex];
-			}
-			if (FieldAttribute.IsProtected(fa) || FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]))
-			{
-				this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
-				return false;
-			}
-			//Find next FA
-			if (this.telnet.Controller.Formatted)
-			{
-				andAddress = address;
-				do
-				{
-					this.telnet.Controller.IncrementAddress(ref andAddress);
-					if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[andAddress]))
-						break;
-				} while (andAddress != address);
 
-				this.telnet.Controller.DecrementAddress(ref andAddress);
-			}
-			else
-			{
-				if ((address % this.telnet.Controller.ColumnCount) == this.telnet.Controller.ColumnCount - 1)
+				if (!FieldAttribute.IsProtected(fa))
 				{
+					//We're in an unprotected field, so it's okay to delete.
+					this.telnet.Controller.AddCharacter(address, CharacterGenerator.Null, 0);
 					return true;
 				}
-				andAddress = address + (this.telnet.Controller.ColumnCount - (address % this.telnet.Controller.ColumnCount)) - 1;
 			}
 
-			if (andAddress > address)
-			{
-				this.telnet.Controller.CopyBlock(address + 1, address, andAddress - address, false);
-			}
-			else if (andAddress != address)
-			{
-				this.telnet.Controller.CopyBlock(address + 1, address, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
-				this.telnet.Controller.AddCharacter((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1, this.telnet.Controller.ScreenBuffer[0], 0);
-				this.telnet.Controller.CopyBlock(1, 0, andAddress, false);
-			}
 
-			this.telnet.Controller.AddCharacter(andAddress, CharacterGenerator.Null, 0);
-			this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
-			return true;
+
+
+			//if (FieldAttribute.IsProtected(fa) || FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]))
+			//{
+			//	this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
+			//	return false;
+			//}
+
+			////Find next FA
+			//if (this.telnet.Controller.Formatted)
+			//{
+			//	andAddress = address;
+			//	do
+			//	{
+			//		this.telnet.Controller.IncrementAddress(ref andAddress);
+			//		if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[andAddress]))
+			//			break;
+			//	} while (andAddress != address);
+
+			//	this.telnet.Controller.DecrementAddress(ref andAddress);
+			//}
+			//else
+			//{
+			//	if ((address % this.telnet.Controller.ColumnCount) == this.telnet.Controller.ColumnCount - 1)
+			//	{
+			//		return true;
+			//	}
+			//	andAddress = address + (this.telnet.Controller.ColumnCount - (address % this.telnet.Controller.ColumnCount)) - 1;
+			//}
+
+			//if (andAddress > address)
+			//{
+			//	this.telnet.Controller.CopyBlock(address + 1, address, andAddress - address, false);
+			//}
+			//else if (andAddress != address)
+			//{
+			//	this.telnet.Controller.CopyBlock(address + 1, address, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
+			//	this.telnet.Controller.AddCharacter((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1, this.telnet.Controller.ScreenBuffer[0], 0);
+			//	this.telnet.Controller.CopyBlock(1, 0, andAddress, false);
+			//}
+
+			//this.telnet.Controller.AddCharacter(andAddress, CharacterGenerator.Null, 0);
+			//this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
+			return false;
 		}
 
 
