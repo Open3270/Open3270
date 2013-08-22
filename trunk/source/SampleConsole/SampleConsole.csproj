@@ -66,7 +66,7 @@
     <Compile Include="TheDemo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WinFX3270Library\Open3270Library.csproj">
+    <ProjectReference Include="..\Open3270Library\Open3270Library.csproj">
       <Project>{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}</Project>
       <Name>Open3270Library</Name>
     </ProjectReference>

@@ -125,7 +125,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WinFX3270Library\Open3270Library.csproj">
+    <ProjectReference Include="..\Open3270Library\Open3270Library.csproj">
       <Project>{0c1c4a52-4b1a-49e3-b980-b11c6d8b51ee}</Project>
       <Name>Open3270Library</Name>
     </ProjectReference>
