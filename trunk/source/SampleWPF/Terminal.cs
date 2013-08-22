@@ -178,10 +178,26 @@ namespace TerminalDemo
 		/// </summary>
 		public void Refresh()
 		{
-			this.emu.Refresh(true, 150);
+			this.Refresh(100);
+		}
+
+	
+		/// <summary>
+		/// Forces a refresh and updates the screen display
+		/// </summary>
+		/// <param name="screenCheckInterval">This is the speed in milliseconds at which the library will poll 
+		/// to determine if we have a valid screen of data to display.</param>
+		public void Refresh(int screenCheckInterval)
+		{
+			//This line keeps checking to see when we've received a valid screen of data from the mainframe.
+			//It loops until the TNEmulator.Refresh() method indicates that waiting for the screen did not time out.
+			//This helps prevent blank screens, etc.
+			while (!this.emu.Refresh(true, screenCheckInterval)) { }
+
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
 			this.UpdateCaretIndex();
 		}
+
 
 		public void UpdateCaretIndex()
 		{

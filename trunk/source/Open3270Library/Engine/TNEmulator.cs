@@ -457,7 +457,7 @@ namespace Open3270
 		public bool Refresh(bool waitForValidScreen, int timeoutMS)
 		{
 			long start = DateTime.Now.Ticks/(10*1000);
-			long end   = start + timeoutMS; // timeout
+			long end   = start + timeoutMS;
 
 			if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection",null);
 
@@ -477,17 +477,29 @@ namespace Open3270
 						timeout = (int)(end-(DateTime.Now.Ticks/10000));
 						if (timeout>0)
 						{
-							if (sout != null && this.Debug) sout.WriteLine("Refresh::Acquire("+timeout+" milliseconds). unsafe Count is currently "+semaphore.Count);
+							if (sout != null && this.Debug)
+							{
+								sout.WriteLine("Refresh::Acquire(" + timeout + " milliseconds). unsafe Count is currently " + semaphore.Count);
+							}
+
 							run = semaphore.Acquire(Math.Min(timeout,1000));
-							//Console.WriteLine("run = "+run);
+
 							if (!IsConnected)
 							{
 								throw new TNHostException("The TN3270 connection was lost", this.currentConnection.DisconnectReason, null);
 							}
+
 							if (run)
 							{
-								if (sout != null && this.Debug) sout.WriteLine("Refresh::return true at line 279");
+								if (sout != null && this.Debug)
+								{
+									sout.WriteLine("Refresh::return true at line 279");
+								}
 								return true;
+							}
+							else
+							{
+
 							}
 						}
 
@@ -496,56 +508,49 @@ namespace Open3270
 					if (sout != null && this.Debug) sout.WriteLine("Refresh::Timeout or acquire failed. run= "+run+" timeout="+timeout);
 
 				}
+
 				if (this.mConnectionConfiguration.FastScreenMode || this.KeyboardLocked==0)
 				{
-					//
 					// Store screen in screen database and identify it
-					//
-                    DisposeOfCurrentScreenXML();
-					currentScreenXML = null; // force a refresh
-					if (sout != null && this.Debug) 
-                        sout.WriteLine("Refresh::Timeout, but since keyboard is not locked or fastmode=true, return true anyway");
+                    this.DisposeOfCurrentScreenXML();
+					
+					// Force a refresh
+					currentScreenXML = null; 
+					if (sout != null && this.Debug)
+					{
+						sout.WriteLine("Refresh::Timeout, but since keyboard is not locked or fastmode=true, return true anyway");
+					}
+                        
 					return true;
-					//
-                    // --Screen identification code here--
-                    //
-                    /*
-					if (waitForValidScreen)
-					{
-						if (sout != null) sout.WriteLine("Refresh::waitForValidScreen is true - loop will loop and acquire another mre lock.");
-						// reset screen count to let us then wait for the next transition
-						// wait for the next screen transistion
-						//Console.WriteLine("-- acquire(0), release any pending transactions");
-						//mre.AcquireAll(0);
-						mre.Reset();
-					}
-					else
-					{
-						if (sout != null && this.Debug==true) sout.WriteLine("waitForValidScreen is false. Refresh returned false.");
-						return false;
-					}
-                     */
+                    
 				}
 				else
 					System.Threading.Thread.Sleep(10);
 
 			}
 			while (DateTime.Now.Ticks/10000 < end);
-			//
-			//
-			if (sout != null) sout.WriteLine("Refresh::Timed out (2) waiting for a valid screen. Timeout was "+timeoutMS);
-			if (Config.FastScreenMode==false &&
-				Config.ThrowExceptionOnLockedScreen &&
-				this.KeyboardLocked != 0)
+
+			if (sout != null)
+			{
+				sout.WriteLine("Refresh::Timed out (2) waiting for a valid screen. Timeout was " + timeoutMS);
+			}
+
+			if (Config.FastScreenMode==false && Config.ThrowExceptionOnLockedScreen && this.KeyboardLocked != 0)
 			{
 				throw new ApplicationException("Timeout waiting for new screen with keyboard inhibit false - screen present with keyboard inhibit. Turn off the configuration option 'ThrowExceptionOnLockedScreen' to turn off this exception. Timeout was "+timeoutMS+" and keyboard inhibit is "+this.KeyboardLocked);
 			}
 
 			if (Config.IdentificationEngineOn)
+			{
 				throw new TNIdentificationException(mScreenName, GetScreenAsXML());
+			}
 			else
+			{
 				return false;
+			}
+
 		}
+
 		public bool IsConnected
 		{
 			get 
