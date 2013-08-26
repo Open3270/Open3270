@@ -622,11 +622,7 @@ namespace Open3270
 		/// <returns></returns>
 		public string GetText(int x, int y, int length)
 		{
-			string text = "";
-
-			this.currentScreenXML.GetText(x, y, length);
-
-			return text;
+			return this.CurrentScreenXML.GetText(x, y, length);
 		}
 
 
