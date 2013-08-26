@@ -629,6 +629,34 @@ namespace Open3270
 			return text;
 		}
 
+
+		/// <summary>
+		/// Returns after new screen data has stopped flowing from the host for screenCheckInterval time.
+		/// </summary>
+		/// <param name="screenCheckInterval">The amount of time between screen data comparisons in milliseconds.  
+		/// It's probably impractical for this to be much less than 100 ms.</param>
+		/// <param name="finalTimeout">The absolute longest time we should wait before the method should time out</param>
+		/// <returns>True if data ceased, and false if the operation timed out. </returns>
+		public bool WaitForHostSettle(int screenCheckInterval, int finalTimeout)
+		{
+			bool success = true;
+			//Accumulator for total poll time.  This is less accurate than using an interrupt or DateTime deltas, but it's light weight.
+			int elapsed = 0;
+
+			//This is low tech and slow, but simple to implement right now.
+			while (!this.Refresh(true, screenCheckInterval)) 
+			{
+				if (elapsed > finalTimeout)
+				{
+					success = false;
+					break;
+				}
+				elapsed += screenCheckInterval;
+			}
+
+			return success;
+		}
+
 		/// <summary>
 		/// Returns the last asynchronous error that occured internally
 		/// </summary>
