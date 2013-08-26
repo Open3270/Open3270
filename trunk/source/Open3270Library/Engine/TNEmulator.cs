@@ -597,6 +597,39 @@ namespace Open3270
 		}
 
 		/// <summary>
+		/// Sends a string starting at the indicated screen position
+		/// </summary>
+		/// <param name="text">The text to send</param>
+		/// <param name="x">Column</param>
+		/// <param name="y">Row</param>
+		/// <returns>True for success</returns>
+		public bool PutText(string text, int x, int y)
+		{
+			bool success;
+
+			this.SetCursor(x, y);
+			success = this.SendText(text);
+
+			return success;
+		}
+
+		/// <summary>
+		/// Retrieves text at the specified location on the screen
+		/// </summary>
+		/// <param name="x">Column</param>
+		/// <param name="y">Row</param>
+		/// <param name="length">Length of the text to be returned</param>
+		/// <returns></returns>
+		public string GetText(int x, int y, int length)
+		{
+			string text = "";
+
+			this.currentScreenXML.GetText(x, y, length);
+
+			return text;
+		}
+
+		/// <summary>
 		/// Returns the last asynchronous error that occured internally
 		/// </summary>
 		/// <returns></returns>
@@ -834,6 +867,7 @@ namespace Open3270
 				currentConnection = null;
 			}
 		}
+
 		/// <summary>
 		/// Get the current screen as an XMLScreen data structure
 		/// </summary>
