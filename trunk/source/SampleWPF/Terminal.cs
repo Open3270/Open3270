@@ -22,7 +22,9 @@ namespace TerminalDemo
 		{
 			this.emu = new TNEmulator();
 			this.emu.Disconnected += emu_Disconnected;
+			this.emu.CursorLocationChanged += emu_CursorLocationChanged;
 		}
+
 
 		void emu_Disconnected(TNEmulator where, string Reason)
 		{
@@ -154,7 +156,6 @@ namespace TerminalDemo
 		{
 			this.emu.SendText(text);
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
-			this.UpdateCaretIndex();
 		}
 
 
@@ -166,7 +167,6 @@ namespace TerminalDemo
 		public void SendKey(TnKey key)
 		{
 			this.emu.SendKey(true, key, 2000);
-			this.UpdateCaretIndex();
 			if (key != TnKey.Tab && key != TnKey.BackTab)
 			{
 				this.Refresh();
@@ -201,9 +201,14 @@ namespace TerminalDemo
 
 		public void UpdateCaretIndex()
 		{
+			
 			this.CaretIndex = this.emu.CursorY * 81 + this.emu.CursorX;
 		}
 
+		void emu_CursorLocationChanged(object sender, EventArgs e)
+		{
+			this.UpdateCaretIndex();
+		}
 
 		/// <summary>
 		/// Sends field information to the debug console.

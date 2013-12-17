@@ -1149,6 +1149,7 @@ namespace Open3270.TN3270
 		bool DeleteCharacter()
 		{
 			int address;
+			int endAddress;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
 
@@ -1163,54 +1164,51 @@ namespace Open3270.TN3270
 				{
 					//We're in an unprotected field, so it's okay to delete.
 					this.telnet.Controller.AddCharacter(address, CharacterGenerator.Null, 0);
-					return true;
 				}
 			}
 
 
+			if (FieldAttribute.IsProtected(fa) || FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]))
+			{
+				this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
+				return false;
+			}
 
+			//Find next FA
+			if (this.telnet.Controller.Formatted)
+			{
+				endAddress = address;
+				do
+				{
+					this.telnet.Controller.IncrementAddress(ref endAddress);
+					if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[endAddress]))
+						break;
+				} while (endAddress != address);
 
-			//if (FieldAttribute.IsProtected(fa) || FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]))
-			//{
-			//	this.HandleOperatorError(address, KeyboardConstants.ErrorProtected);
-			//	return false;
-			//}
+				this.telnet.Controller.DecrementAddress(ref endAddress);
+			}
+			else
+			{
+				if ((address % this.telnet.Controller.ColumnCount) == this.telnet.Controller.ColumnCount - 1)
+				{
+					return true;
+				}
+				endAddress = address + (this.telnet.Controller.ColumnCount - (address % this.telnet.Controller.ColumnCount)) - 1;
+			}
 
-			////Find next FA
-			//if (this.telnet.Controller.Formatted)
-			//{
-			//	andAddress = address;
-			//	do
-			//	{
-			//		this.telnet.Controller.IncrementAddress(ref andAddress);
-			//		if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[andAddress]))
-			//			break;
-			//	} while (andAddress != address);
+			if (endAddress > address)
+			{
+				this.telnet.Controller.CopyBlock(address + 1, address, endAddress - address, false);
+			}
+			else if (endAddress != address)
+			{
+				this.telnet.Controller.CopyBlock(address + 1, address, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
+				this.telnet.Controller.AddCharacter((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1, this.telnet.Controller.ScreenBuffer[0], 0);
+				this.telnet.Controller.CopyBlock(1, 0, endAddress, false);
+			}
 
-			//	this.telnet.Controller.DecrementAddress(ref andAddress);
-			//}
-			//else
-			//{
-			//	if ((address % this.telnet.Controller.ColumnCount) == this.telnet.Controller.ColumnCount - 1)
-			//	{
-			//		return true;
-			//	}
-			//	andAddress = address + (this.telnet.Controller.ColumnCount - (address % this.telnet.Controller.ColumnCount)) - 1;
-			//}
-
-			//if (andAddress > address)
-			//{
-			//	this.telnet.Controller.CopyBlock(address + 1, address, andAddress - address, false);
-			//}
-			//else if (andAddress != address)
-			//{
-			//	this.telnet.Controller.CopyBlock(address + 1, address, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
-			//	this.telnet.Controller.AddCharacter((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1, this.telnet.Controller.ScreenBuffer[0], 0);
-			//	this.telnet.Controller.CopyBlock(1, 0, andAddress, false);
-			//}
-
-			//this.telnet.Controller.AddCharacter(andAddress, CharacterGenerator.Null, 0);
-			//this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
+			this.telnet.Controller.AddCharacter(endAddress, CharacterGenerator.Null, 0);
+			this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
 			return false;
 		}
 
@@ -1222,13 +1220,18 @@ namespace Open3270.TN3270
 				this.EnqueueTypeAheadAction(new ActionDelegate(DeleteAction), args);
 				return true;
 			}
+
 			if (this.telnet.IsAnsi)
 			{
 				this.telnet.SendByte(0x7f);
 				return true;
 			}
+
 			if (!this.DeleteCharacter())
+			{
 				return false;
+			}
+
 			if (this.reverseMode)
 			{
 				int address = this.telnet.Controller.CursorAddress;
@@ -1239,6 +1242,7 @@ namespace Open3270.TN3270
 					this.telnet.Controller.SetCursorAddress(address);
 				}
 			}
+
 			return true;
 		}
 

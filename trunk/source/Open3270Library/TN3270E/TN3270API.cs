@@ -16,6 +16,7 @@ namespace Open3270.TN3270
 
 		public event RunScriptDelegate RunScriptRequested;
 		public event OnDisconnectDelegate Disconnected;
+		public event EventHandler CursorLocationChanged;
 
 		#endregion Events
 
@@ -150,6 +151,7 @@ namespace Open3270.TN3270
 		#endregion Ctors, dtors, and clean-up
 
 
+		
 
 
 		#region Public Methods
@@ -183,6 +185,11 @@ namespace Open3270.TN3270
 		/// 
 		public bool Connect(IAudit audit, string host, int port, string lu, ConnectionConfig config)
 		{
+			if (this.tn != null)
+			{
+				this.tn.CursorLocationChanged -= tn_CursorLocationChanged;
+			}
+
 			this.tn = new Telnet(this, audit, config);
 
 			this.tn.Trace.optionTraceAnsi = debug;
@@ -192,6 +199,7 @@ namespace Open3270.TN3270
 			this.tn.Trace.optionTraceNetworkData = debug;
 
 			this.tn.telnetDataEventOccurred += new TelnetDataDelegate(tn_DataEventReceived);
+			this.tn.CursorLocationChanged += tn_CursorLocationChanged;
 
 			if (lu == null || lu.Length == 0)
 			{
@@ -224,6 +232,11 @@ namespace Open3270.TN3270
 			return true;
 		}
 
+		void tn_CursorLocationChanged(object sender, EventArgs e)
+		{
+			this.OnCursorLocationChanged(e);
+		}
+
 
 		/// <summary>
 		/// Disconnects the connected telnet object from the host
@@ -233,6 +246,7 @@ namespace Open3270.TN3270
 			if (this.tn != null)
 			{
 				this.tn.Disconnect();
+				this.tn.CursorLocationChanged -= tn_CursorLocationChanged;
 				this.tn = null;
 			}
 		}
@@ -452,6 +466,15 @@ namespace Open3270.TN3270
 				{
 					Disconnected(null, "Host disconnected session");
 				}
+			}
+		}
+
+
+		protected virtual void OnCursorLocationChanged(EventArgs args)
+		{
+			if (this.CursorLocationChanged != null)
+			{
+				this.CursorLocationChanged(this, args);
 			}
 		}
 

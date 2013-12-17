@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace TerminalDemo
 {
@@ -25,13 +27,16 @@ namespace TerminalDemo
 
 		private static void CaretChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
 		{
-			TextBox tb = d as TextBox;
-			if (tb!= null)
+			//We dispatch here in order to let the textbox finish its processing before we try to change the cursor position
+			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
 			{
-				tb.CaretIndex = (int)e.NewValue;
-			}
+				TextBox tb = d as TextBox;
+				if (tb != null)
+				{
+					tb.CaretIndex = (int)e.NewValue;
+				}
+			}));
+
 		}
-
-
 	}
 }

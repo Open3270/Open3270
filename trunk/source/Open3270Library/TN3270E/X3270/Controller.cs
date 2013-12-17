@@ -2437,15 +2437,34 @@ namespace Open3270.TN3270
 		public void CopyBlock(int fromAddress, int toAddress, int count, bool moveExtendedAttributes)
 		{
 			bool changed = false;
-			int i;
-			for (i = 0; i < count; i++)
+
+			int any = 0;
+			int start, end, inc;
+
+			if (toAddress < fromAddress || fromAddress + count < toAddress)
+			{
+				// Scan forward
+				start = 0;
+				end = count + 1;
+				inc = 1;
+			}
+			else
+			{
+				// Scan backward
+				start = count - 1;
+				end = -1;
+				inc = -1;
+			}
+
+			for (int i = start; i != end; i += inc)
 			{
 				if (screenBuffer[fromAddress + i] != screenBuffer[toAddress + i])
 				{
-					screenBuffer[fromAddress + i] = screenBuffer[toAddress + i];
+					screenBuffer[toAddress + i] = screenBuffer[fromAddress + i];
 					changed = true;
 				}
 			}
+
 			if (changed)
 			{
 				this.OnRegionChanged(toAddress, toAddress + count);
@@ -2459,31 +2478,12 @@ namespace Open3270.TN3270
 				//	unselect(baddr_to, count);
 			}
 
-			/*
-			 * If we aren't supposed to move all the extended attributes, move
-			 * the character sets separately.
-			 */
+			
+			 //If we aren't supposed to move all the extended attributes, move the character sets separately.
+			
 			if (!moveExtendedAttributes)
 			{
-				int any = 0;
-				int start, end, inc;
-
-				if (toAddress < fromAddress || fromAddress + count < toAddress)
-				{
-					/* Scan forward. */
-					start = 0;
-					end = count + 1;
-					inc = 1;
-				}
-				else
-				{
-					/* Scan backward. */
-					start = count - 1;
-					end = -1;
-					inc = -1;
-				}
-
-				for (i = start; i != end; i += inc)
+				for (int i = start; i != end; i += inc)
 				{
 					if (extendedAttributes[toAddress + i].cs != extendedAttributes[fromAddress + i].cs)
 					{
@@ -2496,11 +2496,11 @@ namespace Open3270.TN3270
 				//	unselect(baddr_to, count);
 			}
 
-			//ove extended attributes.
+			//Move extended attributes.
 			if (moveExtendedAttributes)
 			{
 				changed = false;
-				for (i = 0; i < count; i++)
+				for (int i = 0; i < count; i++)
 				{
 					if (extendedAttributes[fromAddress + i] != extendedAttributes[toAddress + i])
 					{
@@ -2677,10 +2677,24 @@ namespace Open3270.TN3270
 			get { return AddresstoRow(cursorAddress); }
 		}
 
+		public event EventHandler CursorLocationChanged;
+		protected virtual void OnCursorLocationChanged()
+		{
+			if (this.CursorLocationChanged != null)
+			{
+				this.CursorLocationChanged(this, EventArgs.Empty);
+			}
+		}
+		
+
 		public void SetCursorAddress(int address)
 		{
-			//Console.WriteLine("cursor_move @"+addr);
-			cursorAddress = address;
+			if (address != cursorAddress)
+			{
+				cursorAddress = address;
+				this.OnCursorLocationChanged();
+			}
+			
 		}
 		public int AddresstoRow(int address)
 		{

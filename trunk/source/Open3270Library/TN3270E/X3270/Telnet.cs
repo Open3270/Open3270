@@ -378,6 +378,8 @@ namespace Open3270.TN3270
 			this.keyboard.Actions = action;
 			this.idle = new Idle(this);
 
+			this.controller.CursorLocationChanged += controller_CursorLocationChanged;
+
 			if (!isValid)
 			{
 				this.vintr = ParseControlCharacter(appres.intr);
@@ -427,6 +429,7 @@ namespace Open3270.TN3270
 				this.Disconnect();
 				if (this.controller != null)
 				{
+					this.controller.CursorLocationChanged-=controller_CursorLocationChanged;
 					this.controller.Dispose();
 				}
 				if (this.Idle != null)
@@ -443,6 +446,7 @@ namespace Open3270.TN3270
 				{
 					this.ansi.Dispose();
 				}
+
 			}
 		}
 
@@ -480,6 +484,7 @@ namespace Open3270.TN3270
 		/// <param name="sourceIP">IP to use as local IP</param>
 		public void Connect(object parameterObjectToSendCallbacks, string hostAddress, int hostPort, string sourceIP)
 		{
+			
 			this.sourceIP = sourceIP;
 			this.Connect(parameterObjectToSendCallbacks, hostAddress, hostPort);
 		}
@@ -637,6 +642,7 @@ namespace Open3270.TN3270
 				}
 			}
 		}
+
 
 
 		public void Disconnect()
@@ -2825,6 +2831,21 @@ namespace Open3270.TN3270
 		{
 			return true;
 		}
+
+		public event EventHandler CursorLocationChanged;
+		protected virtual void OnCursorLocationChanged(EventArgs args)
+		{
+			if (this.CursorLocationChanged != null)
+			{
+				this.CursorLocationChanged(this, args);
+			}
+		}
+		
+		void controller_CursorLocationChanged(object sender, EventArgs e)
+		{
+			this.OnCursorLocationChanged(e);
+		}
+
 
 	}
 }
