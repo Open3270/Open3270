@@ -608,7 +608,7 @@ namespace Open3270.TN3270
 				}
 				else
 				{
-					this.localEndpoint = new IPEndPoint(IPAddress.Any, port);
+					this.localEndpoint = new IPEndPoint(IPAddress.Any, 0);
 				}
 
 				this.disconnectReason = null;

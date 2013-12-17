@@ -831,7 +831,6 @@ namespace Open3270
 
                 currentConnection.UseSSL = this.mUseSSL;
 
-				//this.mConnectionConfiguration.HostName = "lugate-sec.cdc.schwab.com";
 				
                 /// Modified CFCJR Feb/29/2008 to support local IP endpoint
                 if ( ! string.IsNullOrEmpty(_localIP) )
