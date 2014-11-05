@@ -13,7 +13,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Open3270")]
 [assembly: AssemblyProduct("")]
-[assembly: AssemblyCopyright("")]
+[assembly: AssemblyCopyright("Copyright © 2004-2006 Michael Warriner. All rights reserved. Released under the terms of the GNU Lesser General Public License as published by the Free Software Foundation.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]		
 

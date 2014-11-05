@@ -154,7 +154,7 @@ namespace TerminalDemo
 		/// <param name="text">The text to send</param>
 		internal void SendText(string text)
 		{
-			this.emu.SendText(text);
+			this.emu.SetText(text);
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
 		}
 

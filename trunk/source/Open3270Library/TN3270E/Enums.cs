@@ -128,7 +128,7 @@ namespace Open3270
 	}
 
 
-	internal enum KeyboardOp
+	public enum KeyboardOp
 	{
 		Reset,
 		AID,

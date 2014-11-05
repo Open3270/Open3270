@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open3270Library", "Open3270Library\Open3270Library.csproj", "{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}"
 EndProject
@@ -11,18 +11,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E582422F-6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWPF", "SampleWPF\SampleWPF.csproj", "{347F533E-6248-48F9-B9A4-4686729823E2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleForm", "SampleForm\SampleForm.csproj", "{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}"
+EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 3
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://tfs.codeplex.com/tfs/tfs01
-		SccLocalPath0 = .
-		SccProjectUniqueName1 = Open3270Library\\Open3270Library.csproj
-		SccProjectName1 = Open3270Library
-		SccLocalPath1 = Open3270Library
-		SccProjectUniqueName2 = SampleWPF\\SampleWPF.csproj
-		SccProjectName2 = SampleWPF
-		SccLocalPath2 = SampleWPF
+	GlobalSection(SubversionScc) = preSolution
+		Svn-Managed = True
+		Manager = AnkhSVN - Subversion Support for Visual Studio
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +47,16 @@ Global
 		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{347F533E-6248-48F9-B9A4-4686729823E2}.Release|Win32.ActiveCfg = Release|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -8,5 +8,5 @@ namespace Open3270.TN3270
 
 	internal delegate void SChangeDelegate(bool option);
 
-	internal delegate void RunScriptDelegate(string where);
+	public delegate void RunScriptDelegate(string where);
 }

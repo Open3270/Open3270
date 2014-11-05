@@ -9,17 +9,14 @@ using System.Collections.Generic;
 namespace Open3270.TN3270
 {
 
-	internal class TN3270API : IDisposable
+	public class TN3270API : IDisposable
 	{
 
 		#region Events and Delegates
-
 		public event RunScriptDelegate RunScriptRequested;
 		public event OnDisconnectDelegate Disconnected;
 		public event EventHandler CursorLocationChanged;
-
 		#endregion Events
-
 
 
 
@@ -37,82 +34,98 @@ namespace Open3270.TN3270
 
 
 
-
 		#region Properties
-
+        /// <summary>
+        /// Gets or sets whether or not we are using SSL.
+        /// </summary>
 		public bool UseSSL
 		{
 			get { return useSSL; }
 			set { useSSL = value; }
 		}
+        /// <summary>
+        /// Returns whether or not the session is connected.
+        /// </summary>
+        public bool IsConnected
+        {
+            get
+            {
+                if (tn != null && tn.IsSocketConnected)
+                    return true;
+                else
+                    return false;
+            }
+        }
+        /// <summary>
+        /// Sets the value of debug.
+        /// </summary>
+        public bool Debug
+        {
+            set
+            {
+                debug = value;
+            }
+        }
+        /// <summary>
+        /// Returns the state of the keyboard.
+        /// </summary>
+        public int KeyboardLock
+        {
+            get
+            {
+                return tn.Keyboard.keyboardLock;
+            }
+        }
+        /// <summary>
+        /// Returns the cursor's current X position.
+        /// </summary>
+        public int CursorX
+        {
+            get
+            {
+                lock (tn)
+                {
+                    return tn.Controller.CursorX;
+                }
+            }
+        }
+        /// <summary>
+        /// Returns the cursor's current Y positon.
+        /// </summary>
+        public int CursorY
+        {
+            get
+            {
+                lock (tn)
+                {
+                    return tn.Controller.CursorY;
+                }
+            }
+        }
+        /// <summary>
+        /// Returns the text of the last exception thrown.
+        /// </summary>
+        public string LastException
+        {
+            get
+            {
+                return this.tn.Events.GetErrorAsText();
+            }
+        }
 
 		internal TN3270API()
 		{
 			tn = null;
 		}
-
 		internal string DisconnectReason
 		{
 			get { if (this.tn != null) return this.tn.DisconnectReason; else return null; }
 		}
-
-		public bool IsConnected
-		{
-			get
-			{
-				if (tn != null && tn.IsSocketConnected)
-					return true;
-				else
-					return false;
-			}
-		}
-
 		internal bool ShowParseError
 		{
 			set { if (tn != null) tn.ShowParseError = value; }
 		}
-
-		public bool Debug
-		{
-			set
-			{
-				debug = value;
-			}
-		}
-
-
-		public int KeyboardLock
-		{
-			get
-			{
-				return tn.Keyboard.keyboardLock;
-			}
-
-		}
-
-		public int CursorX
-		{
-			get
-			{
-				lock (tn)
-				{
-					return tn.Controller.CursorX;
-				}
-			}
-		}
-		public int CursorY
-		{
-			get
-			{
-				lock (tn)
-				{
-					return tn.Controller.CursorY;
-				}
-			}
-		}
-
 		#endregion Properties
-
 
 
 
@@ -151,12 +164,18 @@ namespace Open3270.TN3270
 		#endregion Ctors, dtors, and clean-up
 
 
-		
+
+        #region Private Methods
+        private void tn_CursorLocationChanged(object sender, EventArgs e)
+        {
+            this.OnCursorLocationChanged(e);
+        }
+        #endregion
 
 
-		#region Public Methods
 
-		/// <summary>
+        #region Public Methods
+        /// <summary>
 		/// Connects to host using a local IP
 		/// If a source IP is given then use it for the local IP
 		/// </summary>
@@ -171,8 +190,6 @@ namespace Open3270.TN3270
 			this.sourceIP = localIP;
 			return Connect(audit, host, port, string.Empty, config);
 		}
-
-
 		/// <summary>
 		/// Connects a Telnet object to the host using the parameters provided
 		/// </summary>
@@ -231,13 +248,6 @@ namespace Open3270.TN3270
 
 			return true;
 		}
-
-		void tn_CursorLocationChanged(object sender, EventArgs e)
-		{
-			this.OnCursorLocationChanged(e);
-		}
-
-
 		/// <summary>
 		/// Disconnects the connected telnet object from the host
 		/// </summary>
@@ -250,23 +260,11 @@ namespace Open3270.TN3270
 				this.tn = null;
 			}
 		}
-
-
-		public bool ExecuteAction(bool submit, string name, params object[] args)
-		{
-			lock (this.tn)
-			{
-				return this.tn.Action.Execute(submit, name, args);
-			}
-		}
-
-
-		public bool KeyboardCommandCausesSubmit(string name)
-		{
-			return this.tn.Action.KeyboardCommandCausesSubmit(name);
-		}
-
-
+        /// <summary>
+        /// Waits for the connection to complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
 		public bool WaitForConnect(int timeout)
 		{
 			bool success = this.tn.WaitFor(SmsState.ConnectWait, timeout);
@@ -279,24 +277,12 @@ namespace Open3270.TN3270
 			}
 			return success;
 		}
-
-
-		public bool Wait(int timeout)
-		{
-			return this.tn.WaitFor(SmsState.KBWait, timeout);
-		}
-
-
-		public string GetStringData(int index)
-		{
-			lock (tn)
-			{
-				return this.tn.Action.GetStringData(index);
-			}
-		}
-
-
-		public string GetAllStringData(bool crlf)
+        /// <summary>
+        /// Gets the entire contents of the screen.
+        /// </summary>
+        /// <param name="crlf"></param>
+        /// <returns></returns>
+		public string GetAllStringData(bool crlf = false)
 		{
 			lock (tn)
 			{
@@ -316,9 +302,12 @@ namespace Open3270.TN3270
 				return builder.ToString();
 			}
 		}
-
-
-		public bool SendKeyOp(KeyboardOp op, string key)
+        /// <summary>
+        /// Sends an operator key to the mainframe.
+        /// </summary>
+        /// <param name="op"></param>
+        /// <returns></returns>
+		public bool SendKeyOp(KeyboardOp op)
 		{
 			bool success = false;
 			lock (tn)
@@ -343,7 +332,7 @@ namespace Open3270.TN3270
 						{
 							case KeyboardOp.AID:
 								{
-									byte v = (byte)typeof(AID).GetField(key).GetValue(null);
+									byte v = (byte)typeof(AID).GetField(op.ToString()).GetValue(null);
 									this.tn.Keyboard.HandleAttentionIdentifierKey(v);
 									success = true;
 									break;
@@ -374,7 +363,7 @@ namespace Open3270.TN3270
 								}
 							default:
 								{
-									throw new ApplicationException("Sorry, key '" + key + "'not known");
+									throw new ApplicationException("Sorry, key '" + op.ToString() + "'not known");
 								}
 						}
 
@@ -383,73 +372,164 @@ namespace Open3270.TN3270
 			}
 			return success;
 		}
-
-
-		public bool SendText(string text, bool paste)
-		{
-			lock (tn)
-			{
-				bool success = true;
-				int i;
-				if (text != null)
-				{
-					for (i = 0; i < text.Length; i++)
-					{
-						success = tn.Keyboard.HandleOrdinaryCharacter(text[i], false, paste);
-						if (!success)
-						{
-							break;
-						}
-					}
-				}
-				return success;
-			}
-		}
-
-
-		/// <summary>
-		/// This method has not been implemented yet
-		/// </summary>
-		/// <param name="x"></param>
-		/// <param name="y"></param>
-		/// <param name="length"></param>
-		/// <returns></returns>
+        /// <summary>
+        /// Gets the text at the specified cursor position.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="length"></param>
+        /// <returns></returns>
 		public string GetText(int x, int y, int length)
 		{
-			throw new NotSupportedException();
+            MoveCursor(CursorOp.Exact, x, y);
+            lock (tn)
+			{
+                this.tn.Controller.MoveCursor(CursorOp.Exact, x, y);
+				return this.tn.Action.GetStringData(length);
+			}
 		}
+        /// <summary>
+        /// Sets the text to the specified value at the specified position.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="paste"></param>
+        public void SetText(string text, int x, int y, bool paste = true)
+        {
+            MoveCursor(CursorOp.Exact, x, y);
+            lock (tn)
+            {
+                SetText(text, paste);
+            }
+        }
+        /// <summary>
+        /// Sets the text value at the current cursor position.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="paste"></param>
+        /// <returns></returns>
+        public bool SetText(string text, bool paste = true)
+        {
+            lock (tn)
+            {
+                bool success = true;
+                int i;
+                if (text != null)
+                {
+                    for (i = 0; i < text.Length; i++)
+                    {
+                        success = tn.Keyboard.HandleOrdinaryCharacter(text[i], false, paste);
+                        if (!success)
+                        {
+                            break;
+                        }
+                    }
+                }
+                return success;
+            }
+        }
+        /// <summary>
+        /// Gets the field attributes of the field at the specified coordinates.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public FieldAttributes GetFieldAttribute(int x, int y)
+        {
+            byte b = 0;
+            lock (tn)
+            {
+                b = (byte)tn.Controller.GetFieldAttribute(tn.Controller.CursorAddress);
+            }
 
-		public bool MoveCursor(CursorOp op, int x, int y)
+            FieldAttributes fa = new FieldAttributes();
+            fa.IsHigh = FieldAttribute.IsHigh(b);
+            fa.IsIntense = FieldAttribute.IsIntense(b);
+            fa.IsModified = FieldAttribute.IsModified(b);
+            fa.IsNormal = FieldAttribute.IsNormal(b);
+            fa.IsNumeric = FieldAttribute.IsNumeric(b);
+            fa.IsProtected = FieldAttribute.IsProtected(b);
+            fa.IsSelectable = FieldAttribute.IsSelectable(b);
+            fa.IsSkip = FieldAttribute.IsSkip(b);
+            fa.IsZero = FieldAttribute.IsZero(b);
+            return fa;
+        }
+        /// <summary>
+        /// Moves the cursor to the specified position.
+        /// </summary>
+        /// <param name="op"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public bool MoveCursor(CursorOp op, int x, int y)
 		{
 			lock (this.tn)
 			{
 				return this.tn.Controller.MoveCursor(op, x, y);
 			}
 		}
+        /// <summary>
+        /// Returns the text of the last error thrown.
+        /// </summary>
+        /// <returns></returns>
+        public bool ExecuteAction(bool submit, string name, params object[] args)
+        {
+            lock (this.tn)
+            {
+                return this.tn.Action.Execute(submit, name, args);
+            }
+        }
+        public bool KeyboardCommandCausesSubmit(string name)
+        {
+            return this.tn.Action.KeyboardCommandCausesSubmit(name);
+        }
+        public bool Wait(int timeout)
+        {
+            return this.tn.WaitFor(SmsState.KBWait, timeout);
+        }
+        public void RunScript(string where)
+        {
+            if (this.RunScriptRequested != null)
+            {
+                this.RunScriptRequested(where);
+            }
+        }
+        #endregion Public Methods
 
 
-		public void RunScript(string where)
-		{
-			if (this.RunScriptRequested != null)
-			{
-				this.RunScriptRequested(where);
-			}
-		}
+
+        #region Depricated Methods
+        [Obsolete("This method has been deprecated.  Please use SendKeyOp(KeyboardOp op) instead. This method is only included for backwards compatibiity and might not exist in future releases.")]
+        public bool SendKeyOp(KeyboardOp op, string key)
+        {
+            return SendKeyOp(op);
+        }
+        [Obsolete("This method has been deprecated.  Please use SetText instead. This method is only included for backwards compatibiity and might not exist in future releases.")]
+        public bool SendText(string text, bool paste)
+        {
+            return SetText(text, paste);
+        }
+        [Obsolete("This method has been deprecated.  Please use GetText instead. This method is only included for backwards compatibiity and might not exist in future releases.")]
+        public string GetStringData(int index)
+        {
+            lock (tn)
+            {
+                return this.tn.Action.GetStringData(index);
+            }
+        }
+        [Obsolete("This method has been deprecated.  Please use LastException instead. This method is only included for backwards compatibiity and might not exist in future releases.")]
+        public string GetLastError()
+        {
+            return LastException;
+        }
+        #endregion
 
 
-		public string GetLastError()
-		{
-			return this.tn.Events.GetErrorAsText();
-		}
 
-		#endregion Public Methods
+        #region Eventhandlers and such
 
-
-
-
-		#region Eventhandlers and such
-
-		private void tn_DataEventReceived(object parentData, TNEvent eventType, string text)
+        private void tn_DataEventReceived(object parentData, TNEvent eventType, string text)
 		{
 
 			//Console.WriteLine("event = "+eventType+" text='"+text+"'");
@@ -481,5 +561,4 @@ namespace Open3270.TN3270
 		#endregion Eventhandlers and such
 
 	}
-
 }

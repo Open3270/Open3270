@@ -28,6 +28,18 @@ namespace Open3270.TN3270
 				(c & ControllerConstant.FA_INTENSITY) == ControllerConstant.FA_INT_HIGH_SEL);
 		}
 		public static bool IsIntense(byte c) { return ((c & ControllerConstant.FA_INT_HIGH_SEL) == ControllerConstant.FA_INT_HIGH_SEL); }
-
 	}
+
+    public struct FieldAttributes
+    {
+        public bool IsModified { get; set; }
+        public bool IsNumeric { get; set; }
+        public bool IsProtected { get; set; }
+        public bool IsSkip { get; set; }
+        public bool IsZero { get; set; }
+        public bool IsHigh { get; set; }
+        public bool IsNormal { get; set; }
+        public bool IsSelectable { get; set; }
+        public bool IsIntense { get; set; }
+    }
 }
