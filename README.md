@@ -12,3 +12,7 @@
 * 100% Managed Microsoft .NET 3270 emulation
 * Support for multiple LUs, formatted and unformatted screens and most 3270 "bugs".
 * Coded entirely in C#, with overlapped I/O replacing the frequently used multi-threaded server approach to 3270 connectivity, this library is extremely efficient and lightweight, suitable both for WinForms applications as well as ASP.NET server applications
+
+## Install via NuGet
+
+    Install-Package Open3270
