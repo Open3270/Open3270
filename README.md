@@ -1,6 +1,6 @@
 # Welcome
 
-*The WinFXDeveloper TN3270 library provides a high level API to connect to mainframe 3270 sessions from a Microsoft .NET application.*
+*Open3270 provides a high level API to connect to mainframe 3270 sessions from a .NET application.*
 
 ## Key features include
 
