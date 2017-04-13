@@ -1,9 +1,9 @@
-#region License
+ï»¿#region License
 /* 
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
- *   Copyright © 2004-2006 Michael Warriner. All rights reserved
+ *   Copyright ï¿½ 2004-2006 Michael Warriner. All rights reserved
  * 
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -445,15 +445,32 @@ namespace Open3270.TN3270
 		
 		public string GetText(int offset, int length)
 		{
+			var screenBuffer = this.mScreenBuffer;
+			if (screenBuffer == null) return null;
 			int i;
 			string result = "";
-			int maxlen = this.mScreenBuffer.Length;
-			for (i=0; i<length; i++)
+			int maxlen = screenBuffer.Length;
+			for (i = 0; i < length; i++)
 			{
-				if (i+offset < maxlen)
-					result+= this.mScreenBuffer[i+offset];
+				if (i + offset < maxlen)
+				{
+					if (screenBuffer.Length > i + offset)
+						result += screenBuffer[i + offset];
+				}
 			}
 			return result;
+		}
+
+		public int LookForTextStrings(string[] text)
+		{
+			string buffer = new String(this.mScreenBuffer);
+
+			for (int i = 0; i < text.Length; i++)
+			{
+				if (buffer.Contains(text[i])) return i;
+
+			}
+			return -1;
 		}
 		public char GetCharAt(int offset)
 		{
@@ -469,25 +486,33 @@ namespace Open3270.TN3270
 			Dump(audit);
 			return audit.ToString();
 		}
+		bool debugWithCoordinates = true;
 		public void Dump(IAudit stream)
 		{
 			int i;
-			//stream.WriteLine("-----");
-			//string tens = "   ", singles= "   "; // the quoted strings must be 3 spaces each, it gets lost in translation by codeplex...
-			//for (i = 0; i < _CX; i += 10)
-			//{
-			//	tens += String.Format("{0,-10}", i / 10);
-			//	singles += "0123456789";
-			//}
-			//stream.WriteLine(tens.Substring(0,3+_CX));
-			//stream.WriteLine(singles.Substring(0, 3 + _CX));
-			for (i=0; i<_CY; i++)
+			if (debugWithCoordinates)
 			{
-				string line = GetText(0,i, _CX);
-				//string lr = ""+i+"       ";
-				stream.WriteLine(line);
+
+				stream.WriteLine("-----");
+				string tens = "  ", singles = "  "; // the quoted strings must be 3 spaces each, it gets lost in translation by codeplex...
+				for (i = 0; i < _CX; i += 10)
+				{
+					tens += String.Format("{0,-10}", i / 10);
+					singles += "0123456789";
+				}
+				stream.WriteLine(tens.Substring(0, 2 + _CX));
+				stream.WriteLine(singles.Substring(0, 2 + _CX));
 			}
-			//stream.WriteLine("-----");
+			for (i = 0; i < _CY; i++)
+			{
+				string line = GetText(0, i, _CX);
+				if (debugWithCoordinates)
+				{
+					line = String.Format(" {0,02}{1}", i, line);
+				}
+					stream.WriteLine(line);
+				}
+			if (debugWithCoordinates)  stream.WriteLine("-----");
 		}
 
         public string[] GetUnformatedStrings()

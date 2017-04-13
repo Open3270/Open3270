@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWPF", "SampleWPF\Samp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleForm", "SampleForm\SampleForm.csproj", "{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleScreenscraping", "SampleScreenscraping\SampleScreenscraping.csproj", "{A7F369B8-C62D-42CB-94C2-242A6266CB73}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleConsole", "SampleConsole\SampleConsole.csproj", "{B41A8260-36C0-4719-A248-78C92EE50FB5}"
+EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution
 		Svn-Managed = True
@@ -57,8 +61,45 @@ Global
 		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{6D1184E9-55E2-465E-8FBB-DC00FEECAEB6}.Release|Win32.ActiveCfg = Release|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Debug|Win32.Build.0 = Debug|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Release|Win32.ActiveCfg = Release|Any CPU
+		{A7F369B8-C62D-42CB-94C2-242A6266CB73}.Release|Win32.Build.0 = Release|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Debug|Win32.Build.0 = Debug|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Win32.ActiveCfg = Release|Any CPU
+		{B41A8260-36C0-4719-A248-78C92EE50FB5}.Release|Win32.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		Policies = $0
+		$0.TextStylePolicy = $1
+		$1.inheritsSet = null
+		$1.scope = text/x-csharp
+		$0.CSharpFormattingPolicy = $2
+		$2.scope = text/x-csharp
+		$0.TextStylePolicy = $3
+		$3.FileWidth = 80
+		$3.TabWidth = 3
+		$3.IndentWidth = 3
+		$3.scope = text/plain
 	EndGlobalSection
 EndGlobal

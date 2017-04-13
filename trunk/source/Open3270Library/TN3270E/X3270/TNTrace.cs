@@ -1,9 +1,9 @@
-#region License
+ï»¿#region License
 /* 
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
- *   Copyright © 2004-2006 Michael Warriner. All rights reserved
+ *   Copyright ï¿½ 2004-2006 Michael Warriner. All rights reserved
  * 
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -148,7 +148,10 @@ namespace Open3270.TN3270
 		/* display a (row,col) */
 		public string rcba(int baddr)
 		{
-			return "("+(baddr/telnet.Controller.ColumnCount+1)+","+(baddr%telnet.Controller.ColumnCount+1)+")";
+			int cols = telnet.Controller.ColumnCount;
+			int y = baddr /  cols + 1;
+			int x = baddr % cols +1;
+			return "(baddr=" + baddr + ",cols="+cols+", y=" + y + ",x=" + x + ")";
 		}
 
 		//

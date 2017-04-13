@@ -1,9 +1,9 @@
-#region License
+ï»¿#region License
 /* 
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
- *   Copyright © 2004-2006 Michael Warriner. All rights reserved
+ *   Copyright ï¿½ 2004-2006 Michael Warriner. All rights reserved
  * 
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -57,7 +57,18 @@ namespace Open3270
 		/// <returns></returns>
 		string GetText(int x, int y, int length);
 
-		/// <summary>
+
+
+	   /// <summary>
+		/// Does the text on the screen contain this text.
+		/// </summary>
+		/// <param name="offset"></param>
+		/// <param name="length"></param>
+		/// <returns></returns>
+		int LookForTextStrings(string[] text);
+
+
+	   /// <summary>
 		/// Get text at a specified 3270 offset on the screen
 		/// </summary>
 		/// <param name="offset"></param>

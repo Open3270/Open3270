@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Open3270;
 //
 namespace Sample
@@ -19,8 +19,7 @@ namespace Sample
             emulator.Config.TermType = "IBM-3278-2-E";
             emulator.Config.FastScreenMode = true;
 
-#if true
-            emulator.Connect("locis.loc.gov", 23, null);
+            emulator.Connect("localhost", 3270, null);
             // wait for the host to startup
             //
             if (!emulator.WaitForText(22, 0, "LIBRARY OF CONGRESS", 20000))
@@ -29,16 +28,6 @@ namespace Sample
                 Console.WriteLine(emulator.CurrentScreenXML.Dump());
                 return;
             }
-#else
-			emulator.Connect("uconnvm.uconn.edu", 23, null);
-			if (!emulator.WaitForText(27,0,"THE", 20000))
-			{
-				Console.WriteLine("Connection failed - didn't find 'THE UNIVERSITY OF CONNECTICUT' on screen");
-				Console.WriteLine(emulator.CurrentScreenXML.Dump());
-				return;
-			}
-#endif
-
             //
             //
             //

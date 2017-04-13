@@ -1,9 +1,9 @@
-#region License
+ï»¿#region License
 /* 
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
- *   Copyright © 2004-2006 Michael Warriner. All rights reserved
+ *   Copyright ï¿½ 2004-2006 Michael Warriner. All rights reserved
  * 
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -56,8 +56,8 @@ namespace Open3270.TN3270
 		int cursorAddress = 0;
 		int bufferAddress = 0;
 		int currentFaIndex = 0;
-		int maxColumns = 132;
-		int maxRows = 43;
+		int maxColumns = 80;
+		int maxRows = 25;
 		int modelNumber;
 		int crmnAttribute;
 		int rowCount = 25;
@@ -128,7 +128,7 @@ namespace Open3270.TN3270
 		public int ColumnCount
 		{
 			get { return columnCount; }
-			set { columnCount = value; }
+			set { Console.WriteLine("SET COLUMN COUNT="+value);columnCount = value; }
 		}
 
 		public bool Is3270
@@ -488,7 +488,7 @@ namespace Open3270.TN3270
 
 			/* Update the model name. */
 			modelName = "327" + (appres.m3279 ? "9" : "8") + "-" + modelNumber + (appres.extended ? "-E" : "");
-
+			Reinitialize(255);// mfwHACK
 		}
 
 
@@ -635,6 +635,7 @@ namespace Open3270.TN3270
 			else
 			{
 				// Going from maximum to 24x80. 
+				/*
 				if (maxRows > 24 || maxColumns > 80)
 				{
 					if (debuggingFont)
@@ -645,6 +646,10 @@ namespace Open3270.TN3270
 					rowCount = 24;
 					columnCount = 80;
 				}
+
+*/
+				rowCount = 24;
+				columnCount = 80;
 			}
 
 			screenAlt = alt;

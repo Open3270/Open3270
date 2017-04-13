@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
@@ -13,7 +13,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Open3270")]
 [assembly: AssemblyProduct("")]
-[assembly: AssemblyCopyright("Copyright © 2004-2006 Michael Warriner. All rights reserved. Released under the terms of the GNU Lesser General Public License as published by the Free Software Foundation.")]
+[assembly: AssemblyCopyright("Copyright ï¿½ 2004-2017 Michael Warriner. All rights reserved. Released under the terms of the GNU Lesser General Public License as published by the Free Software Foundation.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]		
 
@@ -31,7 +31,7 @@ using System.Runtime.CompilerServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.5.0.1")]
+[assembly: AssemblyVersion("1.6.0.0")]
 
 //
 // In order to sign your assembly you must specify a key to use. Refer to the 
