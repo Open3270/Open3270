@@ -15,14 +15,14 @@ namespace Sample
         {
             TNEmulator emulator = new TNEmulator();
             emulator.Audit = this;
-            emulator.Debug = true;
+            emulator.Debug = false;
             emulator.Config.TermType = "IBM-3278-2-E";
             emulator.Config.FastScreenMode = true;
 
             emulator.Connect("localhost", 3270, null);
             // wait for the host to startup
             //
-            if (!emulator.WaitForText(22, 0, "LIBRARY OF CONGRESS", 20000))
+            if (emulator.WaitForTextOnScreen(2000, "Multi-User System for Interactive Computing / System Product", "MUSIC/SP ESA/390")==-1)
             {
                 Console.WriteLine("Connection failed - didn't find 'LIBRARY OF CONGRESS' on screen");
                 Console.WriteLine(emulator.CurrentScreenXML.Dump());
