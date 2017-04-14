@@ -8,6 +8,7 @@ using System.Text;
 using System.IO;
 using System.Threading;
 using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 using Open3270;
 using Open3270.Library;
 using System.Net.Security;
@@ -577,9 +578,12 @@ namespace Open3270.TN3270
 					try
 					{
 						IPHostEntry hostEntry = Dns.GetHostEntry(address);
-						string[] aliases = hostEntry.Aliases;
-						IPAddress[] addr = hostEntry.AddressList;
-						this.remoteEndpoint = new IPEndPoint(addr[0], port);
+                        IPAddress ipAddress = hostEntry.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+
+                        //string[] aliases = hostEntry.Aliases;
+						//IPAddress[] addr = hostEntry.AddressList;
+                        
+						this.remoteEndpoint = new IPEndPoint(/*addr[0]*/ipAddress, port);
 					}
 					catch (System.Net.Sockets.SocketException se)
 					{
