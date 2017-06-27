@@ -424,7 +424,7 @@ namespace Open3270.TN3270
 			XmlSerializer serializer = new XmlSerializer(typeof(XMLScreen));
 			//
 			// now expand back to xml
-			StreamWriter fsw = new StreamWriter(filename, false, System.Text.Encoding.Default);
+			StreamWriter fsw = new StreamWriter(filename, false, System.Text.Encoding.UTF7);
 			serializer.Serialize(fsw, this);
 			fsw.Close();
 

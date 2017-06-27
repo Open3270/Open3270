@@ -306,7 +306,7 @@ namespace Open3270.Library
 								currentBuffer[currentBufferIndex++] = m_byBuff[i];
 								if (currentBufferIndex >= currentMessageHeader.uMessageSize)
 								{
-									string dump = System.Text.Encoding.Default.GetString(currentBuffer);
+									string dump = System.Text.Encoding.UTF7.GetString(currentBuffer);
 									Audit.WriteLine("RCLRVersion = "+Environment.Version);
 									Audit.WriteLine("Writeline "+dump);
 									try
