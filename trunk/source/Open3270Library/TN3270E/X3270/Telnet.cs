@@ -1306,7 +1306,7 @@ namespace Open3270.TN3270
 						// Simulate disconnect
 						trace.trace_dsn("RCVD disconnect\n");
 						//host_disconnect(false);
-						// If no data was recieved then the connection is probably dead
+						// If no data was received then the connection is probably dead
 
 						Console.WriteLine("Disconnected from log file");
 						// (We are this thread!)
@@ -1432,7 +1432,7 @@ namespace Open3270.TN3270
 					this.SetHostState(ConnectionState.ConnectedANSI);
 
 					//Define a new callback to read the data 
-					AsyncCallback recieveData = new AsyncCallback(OnRecievedData);
+					AsyncCallback receiveData = new AsyncCallback(OnReceivedData);
 
 					if (this.Config.UseSSL)
 					{
@@ -1449,7 +1449,7 @@ namespace Open3270.TN3270
 					}
 
 					// Begin reading data asyncronously
-					this.socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, recieveData, socketStream);
+					this.socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, receiveData, socketStream);
 					trace.trace_dsn("\nConnectCallback : SocketStream.BeginRead called to read asyncronously\n");
 				}
 				else
@@ -1478,7 +1478,7 @@ namespace Open3270.TN3270
 		/// StartedReceivingCount gets incremented each time OnReceiveData is invoked by the socket.
 		/// (CFC,Jr, 2008/06/26)
 		/// </summary>
-		private void NofityStartedReceiving()
+		private void NotifyStartedReceiving()
 		{
 			lock (receivingPadlock)
 			{
@@ -1492,12 +1492,12 @@ namespace Open3270.TN3270
 		/// Called from the socket when data is available
 		/// </summary>
 		/// <param name="ar"></param>
-		private void OnRecievedData(IAsyncResult ar)
+		private void OnReceivedData(IAsyncResult ar)
 		{
 			// (CFC, added for screen syncronization)
 			try
 			{
-				this.NofityStartedReceiving();
+				this.NotifyStartedReceiving();
 			}
 			catch
 			{
@@ -1579,9 +1579,9 @@ namespace Open3270.TN3270
 						}
 
 						// Define a new Callback to read the data 
-						AsyncCallback recieveData = new AsyncCallback(this.OnRecievedData);
+						AsyncCallback receiveData = new AsyncCallback(this.OnReceivedData);
 						// Begin reading data asyncronously
-						this.socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, recieveData, socketStream);
+						this.socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, receiveData, socketStream);
 						trace.trace_dsn("\nOnReceiveData : SocketStream.BeginRead called to read asyncronously\n");
 					}
 					else
@@ -1609,7 +1609,7 @@ namespace Open3270.TN3270
 				bool closeWasRequested = closeRequested;
 				trace.trace_dsn("RCVD disconnect\n");
 				this.Host_Disconnect(false);
-				// If no data was recieved then the connection is probably dead
+				// If no data was received then the connection is probably dead
 
 				this.Disconnect();
 
@@ -2756,9 +2756,9 @@ namespace Open3270.TN3270
 		public void RestartReceive()
 		{
 			// Define a new Callback to read the data 
-			AsyncCallback recieveData = new AsyncCallback(OnRecievedData);
+			AsyncCallback receiveData = new AsyncCallback(OnReceivedData);
 			// Begin reading data asyncronously
-			socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, recieveData, socketStream);
+			socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, receiveData, socketStream);
 			trace.trace_dsn("\nRestartReceive : SocketStream.BeginRead called to read asyncronously\n");
 		}
 
