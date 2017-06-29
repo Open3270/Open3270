@@ -23,9 +23,17 @@ namespace SampleScreenscraping
 				emulator.Config.AlwaysRefreshWhenWaiting = false;
 
 				emulator.Connect("localhost", 3270, null);
-				// wait for the host to startup
-				//
-				if (emulator.WaitForTextOnScreen(1000, "Multi-User System for Interactive Computing / System Product") == -1)
+                // wait for the host to startup
+                //
+                int index = emulator.WaitForTextOnScreen(1000, "Hercules", "Multi-User System for Interactive Computing / System Product");
+
+                if (index==0)
+                {
+                    Console.WriteLine("Mainframe emulator isn't running MUSIC/SP properly - check readme.md file in TestMainframe project for help");
+                    return;
+                }
+
+				if (index==-1)
 				{
 					Console.WriteLine("Connection failed - didn't find 'Multi-User System for Interactive Computing / System Product' on screen");
 					Console.WriteLine(emulator.CurrentScreenXML.Dump());
@@ -33,7 +41,7 @@ namespace SampleScreenscraping
 				}
 				try
 				{
-					int index;
+					
 					//
 					//
 					//
@@ -72,7 +80,7 @@ namespace SampleScreenscraping
 					}
 					Console.WriteLine(emulator.CurrentScreenXML.Dump());
 					string timeText = emulator.GetText(65, 4, 15).Trim();
-					Console.WriteLine("Text: >>>" + timeText + "<<<");
+					Console.WriteLine("Success! Scraped current mainframe time as : >>>" + timeText + "<<<");
 
 
 					return;

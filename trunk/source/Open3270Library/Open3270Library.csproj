@@ -248,6 +248,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <None Include=".editorconfig" />
     <None Include="Open3270.key" />
   </ItemGroup>
   <ItemGroup>
