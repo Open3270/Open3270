@@ -460,7 +460,8 @@ namespace Open3270.TN3270
 			}
 			return result;
 		}
-
+		/*
+		*/
 		public int LookForTextStrings(string[] text)
 		{
 			string buffer = new String(this.mScreenBuffer);
@@ -471,6 +472,27 @@ namespace Open3270.TN3270
 
 			}
 			return -1;
+		}
+		public StringPosition LookForTextStrings2(string[] text)
+		{
+
+			string buffer = new String(this.mScreenBuffer);
+
+			for (int i = 0; i < text.Length; i++)
+			{
+				if (buffer.Contains(text[i]))
+				{
+					int index = buffer.IndexOf(text[i]);
+					StringPosition s = new StringPosition();
+					s.indexInStringArray = i;
+					s.str = text[i];
+					s.x = index % _CX;
+					s.y = index / _CX;
+					return s;
+				}
+			}
+			return null;
+
 		}
 		public char GetCharAt(int offset)
 		{

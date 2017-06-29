@@ -27,6 +27,14 @@ using System.IO;
 
 namespace Open3270
 {
+	public class StringPosition
+	{
+		public int x;
+		public int y;
+		public string str;
+		public int indexInStringArray;
+	}
+
 	/// <summary>
 	/// An interface to a 3270 Screen object. Allows you to manually manipulate a screen.
 	/// </summary>
@@ -64,8 +72,16 @@ namespace Open3270
 		/// </summary>
 		/// <param name="offset"></param>
 		/// <param name="length"></param>
-		/// <returns></returns>
+		/// <returns>Returns index of string that was found in the array of strings, NOT the position on the screen</returns>
 		int LookForTextStrings(string[] text);
+
+		/// <summary>
+		/// Does the text on the screen contain this text.
+		/// </summary>
+		/// <param name="offset"></param>
+		/// <param name="length"></param>
+		/// <returns>StringPoisition structure filled out for the string that was found.</returns>
+		StringPosition LookForTextStrings2(string[] text);
 
 
 	   /// <summary>

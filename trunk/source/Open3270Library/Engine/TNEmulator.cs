@@ -641,7 +641,7 @@ namespace Open3270
 				//
 				if (sout != null)
 				{
-					sout.WriteLine("Open3270 emulator version " + Assembly.GetAssembly(typeof(Open3270.TNEmulator)).GetName().Version+" (c) 2004-2017 Mike Warriner");
+					sout.WriteLine("Open3270 emulator version " + Assembly.GetAssembly(typeof(Open3270.TNEmulator)).GetName().Version+" (c) 2004-2017 Mike Warriner and many others");
 #if false
 					sout.WriteLine("(c) 2004-2006 Mike Warriner (mikewarriner@gmail.com). All rights reserved");
 					sout.WriteLine("");
@@ -793,8 +793,22 @@ namespace Open3270
 		/// </summary>
 		/// <param name="timeoutMS"></param>
 		/// <param name="text"></param>
-		/// <returns></returns>
+		/// <returns>StreingPosition structure</returns>
+		public StringPosition WaitForTextOnScreen2(int timeoutMS, params string[] text)
+		{
+			if (WaitForTextOnScreen(timeoutMS, text) != -1)
+				return CurrentScreenXML.LookForTextStrings2(text);
+			else
+				return null;
+		}
 
+
+		/// <summary>
+		/// Waits for the specified text to appear at the specified location.
+		/// </summary>
+		/// <param name="timeoutMS"></param>
+		/// <param name="text"></param>
+		/// <returns>Index of text on screen, -1 if not found or timeout occurs</returns>
 		public int WaitForTextOnScreen(int timeoutMS, params string[] text)
 		{
 			if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection", null);
