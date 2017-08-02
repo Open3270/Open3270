@@ -148,7 +148,7 @@ namespace Open3270.TN3270
 			if (datastringcapture == null)
 				datastringcapture = new ArrayList();
 
-			datacapture.Add(System.Text.Encoding.ASCII.GetBytes(data));
+			datacapture.Add(System.Text.Encoding.UTF7.GetBytes(data));
 			//
 			if (encode)
 			{
@@ -176,7 +176,7 @@ namespace Open3270.TN3270
 				temp[i] = data[i];
 			}
 			datacapture.Add(temp);
-			string strdata = System.Text.Encoding.ASCII.GetString(temp);
+			string strdata = System.Text.Encoding.UTF7.GetString(temp);
 			if (encode)
 			{
 				strdata = encodeXML(strdata);

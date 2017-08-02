@@ -113,14 +113,14 @@ namespace Open3270.Library
 		{
 			if (Bytes==null)
 				return null;
-			return System.Text.Encoding.UTF8.GetString(Bytes);
+			return System.Text.Encoding.UTF7.GetString(Bytes);
 		}
 		public HtmlMessage()
 		{
 		}
 		public HtmlMessage(string text)
 		{
-			this.Bytes = System.Text.Encoding.UTF8.GetBytes(text);
+			this.Bytes = System.Text.Encoding.UTF7.GetBytes(text);
 			this.MessageType = "Html";
 		}
 	}

@@ -280,11 +280,6 @@ namespace Open3270.TN3270
 					//
 					int p;
 					//for (p=0; p<_CX; p++)
-                    for( p = 0; p < text.Length; p++ ) // CFC,Jr.
-					{
-						if (text[p]<32 || text[p]>126)
-							text = text.Replace(text[p], ' ');
-					}
 					//
 					//for (chindex=0; chindex<Unformatted.Text[i].Length; chindex++)
                     // CFCJr, 2008/07/11 use text.length instead of Unformatted.Text[i].Length
@@ -338,8 +333,6 @@ namespace Open3270.TN3270
 						for (chindex=0; chindex<field.Text.Length; chindex++)
 						{
 							char ch = field.Text[chindex];
-							if (ch<32 || ch>126)
-							    ch = ' ';
                             // CFCJr, 2008/07/11 make sure we don't get out of bounds 
                             //        of the array m_ScreenBuffer.
                             int bufNdx = chindex + field.Location.left + field.Location.top * _CX;
@@ -431,7 +424,7 @@ namespace Open3270.TN3270
 			XmlSerializer serializer = new XmlSerializer(typeof(XMLScreen));
 			//
 			// now expand back to xml
-			StreamWriter fsw = new StreamWriter(filename, false, System.Text.Encoding.Unicode);
+			StreamWriter fsw = new StreamWriter(filename, false, System.Text.Encoding.UTF7);
 			serializer.Serialize(fsw, this);
 			fsw.Close();
 
