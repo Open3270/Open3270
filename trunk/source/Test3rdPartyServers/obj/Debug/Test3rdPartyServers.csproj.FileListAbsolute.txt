@@ -1,8 +1,0 @@
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/bin/Debug/Test3rdPartyServers.exe
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/bin/Debug/Test3rdPartyServers.pdb
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/bin/Debug/Open3270.dll
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/bin/Debug/Open3270.pdb
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/obj/Debug/Test3rdPartyServers.csprojResolveAssemblyReference.cache
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/obj/Debug/Test3rdPartyServers.csproj.CoreCompileInputs.cache
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/obj/Debug/Test3rdPartyServers.exe
-/Users/mfw/Projects/3270/Open3270/trunk/source/Test3rdPartyServers/obj/Debug/Test3rdPartyServers.pdb
