@@ -1,13 +1,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30501.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Open3270Library", "Open3270Library\Open3270Library.csproj", "{0C1C4A52-4B1A-49E3-B980-B11C6D8B51EE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E582422F-6081-48BE-892D-AAA75999EDC0}"
-	ProjectSection(SolutionItems) = preProject
-		Docs\3270\ToDo.one = Docs\3270\ToDo.one
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleWPF", "SampleWPF\SampleWPF.csproj", "{347F533E-6248-48F9-B9A4-4686729823E2}"
 EndProject
@@ -18,6 +15,22 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleConsole", "SampleConsole\SampleConsole.csproj", "{B41A8260-36C0-4719-A248-78C92EE50FB5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test3rdPartyServers", "Test3rdPartyServers\Test3rdPartyServers.csproj", "{C80E8E6B-5BBE-45C1-B1CA-057FA70EBAA7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Open3270", "Open3270", "{6E8B3FEB-49D0-41A0-B954-4DD042AB7DC4}"
+	ProjectSection(SolutionItems) = preProject
+		..\documentation\Open3270\TerminalDemo.one = ..\documentation\Open3270\TerminalDemo.one
+		..\documentation\Open3270\ToDo.one = ..\documentation\Open3270\ToDo.one
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IBM 3270 Documentation", "IBM 3270 Documentation", "{CCD23DFC-B849-427F-A48C-AC0BCAEBDDD0}"
+	ProjectSection(SolutionItems) = preProject
+		..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 1-4.pdf = ..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 1-4.pdf
+		..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 10-.pdf = ..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 10-.pdf
+		..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 5.pdf = ..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 5.pdf
+		..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 6.pdf = ..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 6.pdf
+		..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 7-9.pdf = ..\documentation\IBM 3270 Documentation\IBM 3270 Data Stream Programmers Reference 7-9.pdf
+		..\documentation\IBM 3270 Documentation\PCOMM OIA Data.pdf = ..\documentation\IBM 3270 Documentation\PCOMM OIA Data.pdf
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SubversionScc) = preSolution
@@ -103,14 +116,17 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6E8B3FEB-49D0-41A0-B954-4DD042AB7DC4} = {E582422F-6081-48BE-892D-AAA75999EDC0}
+		{CCD23DFC-B849-427F-A48C-AC0BCAEBDDD0} = {E582422F-6081-48BE-892D-AAA75999EDC0}
+	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
-		$0.TextStylePolicy = $1
+		$0.TextStylePolicy = $3
 		$1.inheritsSet = null
 		$1.scope = text/x-csharp
 		$0.CSharpFormattingPolicy = $2
 		$2.scope = text/x-csharp
-		$0.TextStylePolicy = $3
 		$3.FileWidth = 80
 		$3.TabWidth = 3
 		$3.IndentWidth = 3
