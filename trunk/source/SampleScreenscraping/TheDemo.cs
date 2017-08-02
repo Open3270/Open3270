@@ -1,6 +1,6 @@
-﻿
+﻿using Open3270;
 using System;
-using Open3270;
+
 //
 namespace SampleScreenscraping
 {
@@ -12,6 +12,7 @@ namespace SampleScreenscraping
 		public TheDemo()
 		{
 		}
+
 		public void Run()
 		{
 			using (TNEmulator emulator = new TNEmulator())
@@ -23,17 +24,17 @@ namespace SampleScreenscraping
 				emulator.Config.AlwaysRefreshWhenWaiting = false;
 
 				emulator.Connect("localhost", 3270, null);
-                // wait for the host to startup
-                //
-                int index = emulator.WaitForTextOnScreen(1000, "Hercules", "Multi-User System for Interactive Computing / System Product");
+				// wait for the host to startup
+				//
+				int index = emulator.WaitForTextOnScreen(1000, "Hercules", "Multi-User System for Interactive Computing / System Product");
 
-                if (index==0)
-                {
-                    Console.WriteLine("Mainframe emulator isn't running MUSIC/SP properly - check readme.md file in TestMainframe project for help");
-                    return;
-                }
+				if (index == 0)
+				{
+					Console.WriteLine("Mainframe emulator isn't running MUSIC/SP properly - check readme.md file in TestMainframe project for help");
+					return;
+				}
 
-				if (index==-1)
+				if (index == -1)
 				{
 					Console.WriteLine("Connection failed - didn't find 'Multi-User System for Interactive Computing / System Product' on screen");
 					Console.WriteLine(emulator.CurrentScreenXML.Dump());
@@ -41,7 +42,6 @@ namespace SampleScreenscraping
 				}
 				try
 				{
-					
 					//
 					//
 					//
@@ -55,7 +55,7 @@ namespace SampleScreenscraping
 						Console.WriteLine("ERROR : Failed to find login form failed");
 						return;
 					}
-					//emulator.SendKey(true, TnKey.Enter, 10000); 
+					//emulator.SendKey(true, TnKey.Enter, 10000);
 					//emulator.WaitForHostSettle(100, 10000);
 					emulator.SetText("$000");
 					emulator.SendKey(false, TnKey.Tab, 0);
@@ -82,15 +82,12 @@ namespace SampleScreenscraping
 					string timeText = emulator.GetText(65, 4, 15).Trim();
 					Console.WriteLine("Success! Scraped current mainframe time as : >>>" + timeText + "<<<");
 
-
 					return;
-
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine("EX: " + ex);
 					Console.WriteLine(emulator.CurrentScreenXML.Dump());
-
 				}
 
 				//emulator.Refresh(true, 20000);
@@ -100,7 +97,6 @@ namespace SampleScreenscraping
 				{
 					string currentScreen = emulator.CurrentScreenXML.Dump();
 					Console.WriteLine("DUMP SCREEN\n=============\n" + currentScreen + "\n=========\n");
-
 
 					Console.WriteLine("Enter command : - refresh, text <text>, key <key>, quit");
 					Console.WriteLine("key is one of : Attn, Backspace,BackTab,CircumNot,Clear,CursorSelect,Delete,DeleteField, DeleteWord,Down,Dup,Enter,Erase,EraseEOF,EraseInput,FieldEnd, FieldMark,FieldExit,Home,Insert,Interrupt,Key,Left,Left2,Newline,NextWord, PAnn, PFnn, PreviousWord,Reset,Right,Right2,SysReq,Tab,Toggle,ToggleInsert,ToggleReverse,Up");
@@ -126,8 +122,8 @@ namespace SampleScreenscraping
 				while (!done);
 				emulator.Close();
 			}
-
 		}
+
 		#region IAudit Members
 
 		public void WriteLine(string text)
@@ -140,6 +136,6 @@ namespace SampleScreenscraping
 			Console.Write(text);
 		}
 
-		#endregion
+		#endregion IAudit Members
 	}
 }

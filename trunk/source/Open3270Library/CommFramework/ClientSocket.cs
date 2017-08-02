@@ -88,8 +88,8 @@ namespace Open3270.Library
 			{
 				mSocket.Blocking = false;
 				mState = State.Waiting;
-				AsyncCallback recieveData = new AsyncCallback( OnRecievedData );
-				mSocket.BeginReceive(m_byBuff, 0, m_byBuff.Length, SocketFlags.None, recieveData , mSocket );
+				AsyncCallback receiveData = new AsyncCallback( OnReceivedData );
+				mSocket.BeginReceive(m_byBuff, 0, m_byBuff.Length, SocketFlags.None, receiveData , mSocket );
 				Audit.WriteLine("called begin receive");
 			}
 			else
@@ -220,9 +220,9 @@ namespace Open3270.Library
 						this.OnNotify("Connect", null);
 					//
 					// Define a new Callback to read the data 
-					AsyncCallback recieveData = new AsyncCallback( OnRecievedData );
+					AsyncCallback receiveData = new AsyncCallback( OnReceivedData );
 					// Begin reading data asyncronously
-					sock1.BeginReceive( m_byBuff, 0, m_byBuff.Length, SocketFlags.None, recieveData , sock1 );
+					sock1.BeginReceive( m_byBuff, 0, m_byBuff.Length, SocketFlags.None, receiveData , sock1 );
 					Audit.WriteLine("setup data receiver");
 				}
 				else
@@ -240,7 +240,7 @@ namespace Open3270.Library
 			}
 		}
 		
-		private void OnRecievedData( IAsyncResult ar )
+		private void OnReceivedData( IAsyncResult ar )
 		{
 			//Audit.WriteLine("OnReceivedData");
 			// Get The connection socket from the callback
@@ -334,9 +334,9 @@ namespace Open3270.Library
 				try
 				{
 					// Define a new Callback to read the data 
-					AsyncCallback recieveData = new AsyncCallback( OnRecievedData );
+					AsyncCallback receiveData = new AsyncCallback( OnReceivedData );
 					// Begin reading data asyncronously
-					mSocket.BeginReceive( m_byBuff, 0, m_byBuff.Length, SocketFlags.None, recieveData , mSocket );
+					mSocket.BeginReceive( m_byBuff, 0, m_byBuff.Length, SocketFlags.None, receiveData , mSocket );
 					//
 				}
 				catch (Exception e)
@@ -348,7 +348,7 @@ namespace Open3270.Library
 			}
 			else
 			{
-				// If no data was recieved then the connection is probably dead
+				// If no data was received then the connection is probably dead
 				Audit.WriteLine( "Socket was disconnected disconnected");//+ sock.RemoteEndPoint );
 				Disconnect();
 			}
