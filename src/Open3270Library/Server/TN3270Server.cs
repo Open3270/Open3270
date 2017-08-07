@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,9 +21,11 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
+
+#endregion License
+
 using Open3270.Library;
+using System;
 
 namespace Open3270.TN3270Server
 {
@@ -37,8 +40,10 @@ namespace Open3270.TN3270Server
 		public TN3270Server()
 		{
 		}
-		TN3270ServerEmulationBase system;
-		ServerSocket server;
+
+		private TN3270ServerEmulationBase system;
+		private ServerSocket server;
+
 		public void Start(TN3270ServerEmulationBase system, int port)
 		{
 			this.system = system;
@@ -48,6 +53,7 @@ namespace Open3270.TN3270Server
 			server.OnConnectRAW += new OnConnectionDelegateRAW(server_OnConnectRAW);
 			server.Listen(port);
 		}
+
 		public void Stop()
 		{
 			server.Close();
@@ -66,7 +72,7 @@ namespace Open3270.TN3270Server
 				}
 				catch (TN3270ServerException tse)
 				{
-					Console.WriteLine("tse = "+tse);
+					Console.WriteLine("tse = " + tse);
 					throw;
 				}
 			}

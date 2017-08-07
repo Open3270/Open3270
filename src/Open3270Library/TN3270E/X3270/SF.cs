@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,22 +21,24 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 
 namespace Open3270.TN3270
 {
 	internal class StructuredField
 	{
-		Telnet telnet;
+		private Telnet telnet;
+
 		public StructuredField(Telnet telnet)
 		{
 			this.telnet = telnet;
 			NSR = SupportedReplies.Length;
 		}
 
-
-		string[] Bit4x4 = new string[] 
+		private string[] Bit4x4 = new string[]
 	{
 		"0000", "0001", "0010", "0011",
 		"0100", "0101", "0110", "0111",
@@ -43,50 +46,48 @@ namespace Open3270.TN3270
 		"1100", "1101", "1110", "1111"
 	};
 
-		static class Codes
+		private static class Codes
 		{
-			public const byte ReadPartition = 0x01;	/* read partition */
-			public const byte Query = 0x02;	/*  query */
-			public const byte QueryList = 0x03;	/*  query list */
-			public const byte QCodeList = 0x00;	/*   QCODE list */
-			public const byte EquivQCodeList = 0x40;	/*   equivalent+ QCODE list */
-			public const byte All = 0x80;	/*   all */
-			public const byte EraseReset = 0x03;	/* erase/reset */
-			public const byte Default = 0x00;	/*  default */
-			public const byte Alternate = 0x80;	/*  alternate */
-			public const byte SetReplyMode = 0x09;	/* set reply mode */
-			public const byte Field = 0x00;	/*  field */
-			public const byte ExtendedField = 0x01;	/*  extended field */
-			public const byte Character = 0x02;	/*  character */
-			public const byte CreatePartition = 0x0c;	/* create partition */
-			public const byte ProtectedFlag = 0x40;	/*  protected flag */
-			public const byte CopyPresentationSpace = 0x20;	/*  local copy to presentation space */
-			public const byte BaseCharacterSetIndex = 0x07;	/*  base character set index */
-			public const byte OutboundDS = 0x40;	/* outbound 3270 DS */
+			public const byte ReadPartition = 0x01; /* read partition */
+			public const byte Query = 0x02; /*  query */
+			public const byte QueryList = 0x03; /*  query list */
+			public const byte QCodeList = 0x00; /*   QCODE list */
+			public const byte EquivQCodeList = 0x40;    /*   equivalent+ QCODE list */
+			public const byte All = 0x80;   /*   all */
+			public const byte EraseReset = 0x03;    /* erase/reset */
+			public const byte Default = 0x00;   /*  default */
+			public const byte Alternate = 0x80; /*  alternate */
+			public const byte SetReplyMode = 0x09;  /* set reply mode */
+			public const byte Field = 0x00; /*  field */
+			public const byte ExtendedField = 0x01; /*  extended field */
+			public const byte Character = 0x02; /*  character */
+			public const byte CreatePartition = 0x0c;   /* create partition */
+			public const byte ProtectedFlag = 0x40; /*  protected flag */
+			public const byte CopyPresentationSpace = 0x20; /*  local copy to presentation space */
+			public const byte BaseCharacterSetIndex = 0x07; /*  base character set index */
+			public const byte OutboundDS = 0x40;    /* outbound 3270 DS */
 			public const byte FileTransferRequest = 0xd0;   /* file transfer open request */
 		}
 
-		byte[] SupportedReplies = new byte[] 
+		private byte[] SupportedReplies = new byte[]
 		{
-		  See.QR_SUMMARY,		
-		  See.QR_USABLE_AREA,	
-		  See.QR_ALPHA_PART,	
-		  See.QR_CHARSETS,		
+		  See.QR_SUMMARY,
+		  See.QR_USABLE_AREA,
+		  See.QR_ALPHA_PART,
+		  See.QR_CHARSETS,
 		  See.QR_COLOR,
-		  See.QR_HIGHLIGHTING,	
-		  See.QR_REPLY_MODES,	
-		  See.QR_IMP_PART		
+		  See.QR_HIGHLIGHTING,
+		  See.QR_REPLY_MODES,
+		  See.QR_IMP_PART
 		};
 
-
-		int NSR;
-		bool QrInProgress = false;
-		byte replyMode = 0;
+		private int NSR;
+		private bool QrInProgress = false;
+		private byte replyMode = 0;
 		//#define DEFAULT_CGEN	0x02b90000
 		//#define DEFAULT_CSET	0x00000025
 
-		int cgcsgid = 0x02b90025; // the above 2 OR'd together
-
+		private int cgcsgid = 0x02b90025; // the above 2 OR'd together
 
 		/// <summary>
 		/// Process a 3270 Write Structured Field command
@@ -111,7 +112,6 @@ namespace Open3270.TN3270
 			// Interpret fields.
 			while (bufferLength > 0)
 			{
-
 				if (first)
 				{
 					telnet.Trace.trace_ds(" ");
@@ -158,22 +158,27 @@ namespace Open3270.TN3270
 						telnet.Trace.trace_ds("ReadPartition");
 						rvThis = ReadPart(CloneBytes(buffer, cp, fieldlen), (int)fieldlen);
 						break;
+
 					case Codes.EraseReset:
 						telnet.Trace.trace_ds("EraseReset");
 						rvThis = EraseReset(CloneBytes(buffer, cp, fieldlen), (int)fieldlen);
 						break;
+
 					case Codes.SetReplyMode:
 						telnet.Trace.trace_ds("SetReplyMode");
 						rvThis = SetReplyMode(CloneBytes(buffer, cp, fieldlen), (int)fieldlen);
 						break;
+
 					case Codes.CreatePartition:
 						telnet.Trace.trace_ds("CreatePartition");
 						rvThis = CreatePartition(CloneBytes(buffer, cp, fieldlen), (int)fieldlen);
 						break;
+
 					case Codes.OutboundDS:
 						telnet.Trace.trace_ds("OutboundDS");
 						rvThis = OutboundDS(CloneBytes(buffer, cp, fieldlen), (int)fieldlen);
 						break;
+
 					default:
 						telnet.Trace.trace_ds("unsupported ID 0x%02x\n", buffer[cp + 2]);
 						rvThis = PDS.BadCommand;
@@ -212,7 +217,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-		PDS ReadPart(byte[] buffer, int bufferLength)
+		private PDS ReadPart(byte[] buffer, int bufferLength)
 		{
 			byte partition;
 
@@ -392,7 +397,7 @@ namespace Open3270.TN3270
 			return PDS.OkayOutput;
 		}
 
-		PDS EraseReset(byte[] buffer, int bufferLength)
+		private PDS EraseReset(byte[] buffer, int bufferLength)
 		{
 			if (bufferLength != 4)
 			{
@@ -406,10 +411,12 @@ namespace Open3270.TN3270
 					telnet.Trace.trace_ds(" Default\n");
 					telnet.Controller.Erase(false);
 					break;
+
 				case Codes.Alternate:
 					telnet.Trace.trace_ds(" Alternate\n");
 					telnet.Controller.Erase(true);
 					break;
+
 				default:
 					telnet.Trace.trace_ds(" unknown type 0x%02x\n", buffer[3]);
 					return PDS.BadCommand;
@@ -417,8 +424,7 @@ namespace Open3270.TN3270
 			return PDS.OkayNoOutput;
 		}
 
-
-		PDS SetReplyMode(byte[] buffer, int bufferLength)
+		private PDS SetReplyMode(byte[] buffer, int bufferLength)
 		{
 			byte partition;
 			int i;
@@ -444,12 +450,15 @@ namespace Open3270.TN3270
 				case Codes.Field:
 					telnet.Trace.trace_ds(" Field\n");
 					break;
+
 				case Codes.ExtendedField:
 					telnet.Trace.trace_ds(" ExtendedField\n");
 					break;
+
 				case Codes.Character:
 					telnet.Trace.trace_ds(" Character");
 					break;
+
 				default:
 					telnet.Trace.trace_ds(" unknown mode 0x%02x\n", buffer[4]);
 					return PDS.BadCommand;
@@ -470,28 +479,24 @@ namespace Open3270.TN3270
 			return PDS.OkayNoOutput;
 		}
 
-
-
-
-		PDS CreatePartition(byte[] buffer, int bufferLength)
+		private PDS CreatePartition(byte[] buffer, int bufferLength)
 		{
 			byte pid;
-			byte unitOfMeasure;		/* unit of measure */
-			byte addressingMode;		/* addressing mode */
-			byte flags;		/* flags */
-			int presentationHeight;		/* height of presentation space */
-			int presentationWidth;		/* width of presentation space */
-			int viewportOriginRow;		/* viewport origin row */
-			int viewportOriginColumn;		/* viewport origin column */
-			int viewportHeight;		/* viewport height */
-			int viewportWidth;		/* viewport width */
-			int windowOriginRow;		/* window origin row */
-			int windowOriginColumn;		/* window origin column */
-			int scrollRows;		/* scroll rows */
+			byte unitOfMeasure;     /* unit of measure */
+			byte addressingMode;        /* addressing mode */
+			byte flags;     /* flags */
+			int presentationHeight;     /* height of presentation space */
+			int presentationWidth;      /* width of presentation space */
+			int viewportOriginRow;      /* viewport origin row */
+			int viewportOriginColumn;       /* viewport origin column */
+			int viewportHeight;     /* viewport height */
+			int viewportWidth;      /* viewport width */
+			int windowOriginRow;        /* window origin row */
+			int windowOriginColumn;     /* window origin column */
+			int scrollRows;     /* scroll rows */
 
-			int charCellPointWidth;		/* character cell point width */
-			int charCellPointHeight;		/* character cell point height */
-
+			int charCellPointWidth;     /* character cell point width */
+			int charCellPointHeight;        /* character cell point height */
 
 			if (bufferLength > 3)
 			{
@@ -657,7 +662,6 @@ namespace Open3270.TN3270
 				charCellPointHeight = 7;
 			}
 
-
 			telnet.Trace.trace_ds(")\n");
 
 			telnet.Controller.SetCursorAddress(0);
@@ -666,7 +670,7 @@ namespace Open3270.TN3270
 			return PDS.OkayNoOutput;
 		}
 
-		PDS OutboundDS(byte[] buffer, int bufferLength)
+		private PDS OutboundDS(byte[] buffer, int bufferLength)
 		{
 			if (bufferLength < 5)
 			{
@@ -741,7 +745,7 @@ namespace Open3270.TN3270
 			return PDS.OkayNoOutput;
 		}
 
-		NetBuffer QueryReplyStart()
+		private NetBuffer QueryReplyStart()
 		{
 			NetBuffer obptr = new NetBuffer();
 			obptr.Add(AID.SF);
@@ -749,9 +753,8 @@ namespace Open3270.TN3270
 			return obptr;
 		}
 
-		void DoQueryReplay(NetBuffer obptr, byte code)
+		private void DoQueryReplay(NetBuffer obptr, byte code)
 		{
-
 			int i;
 			string comma = "";
 			int obptr0 = obptr.Index;
@@ -773,19 +776,19 @@ namespace Open3270.TN3270
 					{
 						this.telnet.Trace.trace_ds("> QueryReply(CharacterSets)\n");
 
-						obptr.Add(0x82);	/* flags: GE, CGCSGID present */
-						obptr.Add(0x00);	/* more flags */
-						obptr.Add(7);		/* SDW */
-						obptr.Add(7);		/* SDH */
-						obptr.Add(0x00);	/* Load PS format types */
+						obptr.Add(0x82);    /* flags: GE, CGCSGID present */
+						obptr.Add(0x00);    /* more flags */
+						obptr.Add(7);       /* SDW */
+						obptr.Add(7);       /* SDH */
+						obptr.Add(0x00);    /* Load PS format types */
 						obptr.Add(0x00);
 						obptr.Add(0x00);
 						obptr.Add(0x00);
-						obptr.Add(0x07);	/* DL */
-						obptr.Add(0x00);	/* SET 0: */
-						obptr.Add(0x10);	/*  FLAGS: non-loadable, single-plane, single-byte, no compare */
-						obptr.Add(0x00);	/*  LCID */
-						obptr.Add32(cgcsgid);	/*  CGCSGID */
+						obptr.Add(0x07);    /* DL */
+						obptr.Add(0x00);    /* SET 0: */
+						obptr.Add(0x10);    /*  FLAGS: non-loadable, single-plane, single-byte, no compare */
+						obptr.Add(0x00);    /*  LCID */
+						obptr.Add32(cgcsgid);   /*  CGCSGID */
 
 						// TODO: Missing font stuff for extended font information
 						break;
@@ -793,15 +796,15 @@ namespace Open3270.TN3270
 				case See.QR_IMP_PART:
 					{
 						this.telnet.Trace.trace_ds("> QueryReply(ImplicitPartition)\n");
-						obptr.Add(0x0);		/* reserved */
+						obptr.Add(0x0);     /* reserved */
 						obptr.Add(0x0);
-						obptr.Add(0x0b);	/* length of display size */
-						obptr.Add(0x01);	/* "implicit partition size" */
-						obptr.Add(0x00);	/* reserved */
-						obptr.Add16(80);	/* implicit partition width */
-						obptr.Add16(24);	/* implicit partition height */
-						obptr.Add16(this.telnet.Controller.MaxColumns);	/* alternate height */
-						obptr.Add16(this.telnet.Controller.MaxRows);	/* alternate width */
+						obptr.Add(0x0b);    /* length of display size */
+						obptr.Add(0x01);    /* "implicit partition size" */
+						obptr.Add(0x00);    /* reserved */
+						obptr.Add16(80);    /* implicit partition width */
+						obptr.Add16(24);    /* implicit partition height */
+						obptr.Add16(this.telnet.Controller.MaxColumns); /* alternate height */
+						obptr.Add16(this.telnet.Controller.MaxRows);    /* alternate width */
 						break;
 					}
 				case See.QR_NULL:
@@ -824,11 +827,11 @@ namespace Open3270.TN3270
 				case See.QR_USABLE_AREA:
 					{
 						this.telnet.Trace.trace_ds("> QueryReply(UsableArea)\n");
-						obptr.Add(0x01);	/* 12/14-bit addressing */
-						obptr.Add(0x00);	/* no special character features */
-						obptr.Add16(this.telnet.Controller.MaxColumns);	/* usable width */
-						obptr.Add16(this.telnet.Controller.MaxRows);	/* usable height */
-						obptr.Add(0x01);	/* units (mm) */
+						obptr.Add(0x01);    /* 12/14-bit addressing */
+						obptr.Add(0x00);    /* no special character features */
+						obptr.Add16(this.telnet.Controller.MaxColumns); /* usable width */
+						obptr.Add16(this.telnet.Controller.MaxRows);    /* usable height */
+						obptr.Add(0x01);    /* units (mm) */
 						num = 100;
 						denom = 1;
 						while (0 == (num % 2) && 0 == (denom % 2))
@@ -836,7 +839,7 @@ namespace Open3270.TN3270
 							num /= 2;
 							denom /= 2;
 						}
-						obptr.Add16((int)num);	/* Xr numerator */
+						obptr.Add16((int)num);  /* Xr numerator */
 						obptr.Add16((int)denom); /* Xr denominator */
 						num = 100;
 						denom = 1;
@@ -845,20 +848,20 @@ namespace Open3270.TN3270
 							num /= 2;
 							denom /= 2;
 						}
-						obptr.Add16((int)num);	/* Yr numerator */
+						obptr.Add16((int)num);  /* Yr numerator */
 						obptr.Add16((int)denom); /* Yr denominator */
-						obptr.Add(7);			/* AW */
-						obptr.Add(7);			/* AH */
-						obptr.Add16(this.telnet.Controller.MaxColumns * this.telnet.Controller.MaxRows);	/* buffer, questionable */
+						obptr.Add(7);           /* AW */
+						obptr.Add(7);           /* AH */
+						obptr.Add16(this.telnet.Controller.MaxColumns * this.telnet.Controller.MaxRows);    /* buffer, questionable */
 						break;
 					}
 				case See.QR_COLOR:
 					{
 						this.telnet.Trace.trace_ds("> QueryReply(Color)\n");
-						obptr.Add(0x00);	/* no options */
+						obptr.Add(0x00);    /* no options */
 						obptr.Add(this.telnet.Appres.color8 ? 8 : 16); /* report on 8 or 16 colors */
-						obptr.Add(0x00);	/* default color: */
-						obptr.Add(0xf0 + See.COLOR_GREEN);	/*  green */
+						obptr.Add(0x00);    /* default color: */
+						obptr.Add(0xf0 + See.COLOR_GREEN);  /*  green */
 						for (i = 0xf1; i <= (this.telnet.Appres.color8 ? 0xf8 : 0xff); i++)
 						{
 							obptr.Add(i);
@@ -876,13 +879,13 @@ namespace Open3270.TN3270
 				case See.QR_HIGHLIGHTING:
 					{
 						this.telnet.Trace.trace_ds("> QueryReply(Highlighting)\n");
-						obptr.Add(5);		/* report on 5 pairs */
-						obptr.Add(See.XAH_DEFAULT);	/* default: */
-						obptr.Add(See.XAH_NORMAL);	/*  normal */
-						obptr.Add(See.XAH_BLINK);	/* blink: */
-						obptr.Add(See.XAH_BLINK);	/*  blink */
-						obptr.Add(See.XAH_REVERSE);	/* reverse: */
-						obptr.Add(See.XAH_REVERSE);	/*  reverse */
+						obptr.Add(5);       /* report on 5 pairs */
+						obptr.Add(See.XAH_DEFAULT); /* default: */
+						obptr.Add(See.XAH_NORMAL);  /*  normal */
+						obptr.Add(See.XAH_BLINK);   /* blink: */
+						obptr.Add(See.XAH_BLINK);   /*  blink */
+						obptr.Add(See.XAH_REVERSE); /* reverse: */
+						obptr.Add(See.XAH_REVERSE); /*  reverse */
 						obptr.Add(See.XAH_UNDERSCORE); /* underscore: */
 						obptr.Add(See.XAH_UNDERSCORE); /*  underscore */
 						obptr.Add(See.XAH_INTENSIFY); /* intensify: */
@@ -900,9 +903,9 @@ namespace Open3270.TN3270
 				case See.QR_ALPHA_PART:
 					{
 						this.telnet.Trace.trace_ds("> QueryReply(AlphanumericPartitions)\n");
-						obptr.Add(0);		/* 1 partition */
-						obptr.Add16(this.telnet.Controller.MaxRows * this.telnet.Controller.MaxColumns);	/* buffer space */
-						obptr.Add(0);		/* no special features */
+						obptr.Add(0);       /* 1 partition */
+						obptr.Add16(this.telnet.Controller.MaxRows * this.telnet.Controller.MaxColumns);    /* buffer space */
+						obptr.Add(0);       /* no special features */
 						break;
 					}
 
@@ -913,10 +916,9 @@ namespace Open3270.TN3270
 					}
 			}
 			obptr.Add16At(obptr0, obptr.Index - obptr0);
-
 		}
 
-		void QueryReplyEnd(NetBuffer obptr)
+		private void QueryReplyEnd(NetBuffer obptr)
 		{
 			this.telnet.Output(obptr);
 			this.telnet.Keyboard.ToggleEnterInhibitMode(true);
@@ -927,14 +929,13 @@ namespace Open3270.TN3270
 			byte[] result = new byte[data.Length - start];
 			Array.Copy(data, start, result, 0, length);
 			return result;
-
 		}
+
 		private int Get16(byte[] buf, int offset)
 		{
 			int val = buf[offset + 1];
 			val += buf[offset] << 8;
 			return val;
 		}
-
 	}
 }

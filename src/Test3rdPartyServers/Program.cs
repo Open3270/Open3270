@@ -2,7 +2,7 @@
 
 namespace Test3rdPartyServers
 {
-	class MainClass
+	internal class MainClass
 	{
 		public static void Main(string[] args)
 		{

@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,7 +21,9 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 using System.IO;
 
@@ -31,7 +34,8 @@ namespace Open3270.TN3270
 	/// </summary>
 	internal class Print : IDisposable
 	{
-		Telnet telnet;
+		private Telnet telnet;
+
 		internal Print(Telnet telnet)
 		{
 			this.telnet = telnet;
@@ -43,7 +47,7 @@ namespace Open3270.TN3270
 		/// <param name="f"></param>
 		/// <param name="even_if_empty"></param>
 		/// <returns>Returns True if anything printed, False otherwise.</returns>
-		bool PrintFormattedScreen(StreamWriter f, bool even_if_empty)
+		private bool PrintFormattedScreen(StreamWriter f, bool even_if_empty)
 		{
 			int i;
 			byte e;
@@ -102,7 +106,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		///  Print the contents of the screen as text.
 		/// </summary>
@@ -125,7 +128,6 @@ namespace Open3270.TN3270
 
 		public void Dispose()
 		{
-
 		}
 	}
 }

@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,15 +21,16 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 
 namespace Open3270.TN3270
 {
-
 	internal class Appres
 	{
-		enum ToggleType
+		private enum ToggleType
 		{
 			Initial,
 			Interactive,
@@ -40,8 +42,9 @@ namespace Open3270.TN3270
 		{
 			public bool toggleValue;
 
-			// Has the value changed since init 
+			// Has the value changed since init
 			public bool changed;
+
 			public string[] labels;
 
 			internal Toggle()
@@ -53,7 +56,6 @@ namespace Open3270.TN3270
 				labels[1] = null;
 			}
 		}
-
 
 		public const int MonoCase = 0;
 		public const int AltCursor = 1;
@@ -70,8 +72,8 @@ namespace Open3270.TN3270
 		public const int RectangleSelect = 12;
 		private const int NToggles = 14;
 
+		private Toggle[] toggles;
 
-		Toggle[] toggles;
 		public Appres()
 		{
 			toggles = new Toggle[NToggles];
@@ -113,28 +115,29 @@ namespace Open3270.TN3270
 			this.intr = "^C";
 			this.quit = "^\\";
 			this.eof = "^D";
-
 		}
 
 		public bool Toggled(int ix)
 		{
 			return toggles[ix].toggleValue;
 		}
+
 		public void ToggleTheValue(Toggle t)
 		{
 			t.toggleValue = !t.toggleValue;
 			t.changed = true;
 		}
+
 		public void ToggleTheValue(int ix)
 		{
 			toggles[ix].toggleValue = !toggles[ix].toggleValue;
 			toggles[ix].changed = true;
 		}
+
 		public void SetToggle(int ix, bool v)
 		{
 			toggles[ix].toggleValue = v;
 			toggles[ix].changed = true;
-
 		}
 
 		public bool ToggleAction(params object[] args)
@@ -148,37 +151,44 @@ namespace Open3270.TN3270
 		public bool extended;
 		public bool m3279;
 		public bool modified_sel;
+
 		//public bool	once;
 		public bool apl_mode;
+
 		public bool scripted;
 		public bool numeric_lock;
 		public bool secure;
+
 		//public bool oerr_lock;
 		public bool typeahead;
+
 		public bool debug_tracing;
 		public bool disconnect_clear = false;
+
 		//public bool highlight_bold;
 		public bool color8 = false;
 
 		/* Named resources */
+
 		//public string conf_dir;
 		//public string model;
 		public string hostsfile;
+
 		public string port;
 		public string charset;
 		public string termname;
 		public string macros;
 		public string trace_dir;
+
 		//public string trace_file;
 		//public string screentrace_file;
 		//public string trace_file_size;
 		public string oversize;
+
 		//public string connectfile_name;
 		//public string idle_command;
 		//public bool idle_command_enabled;
 		//public string idle_timeout;
-
-
 
 		/* Line-mode TTY parameters */
 		public bool icrnl;
@@ -192,6 +202,5 @@ namespace Open3270.TN3270
 		public string intr;
 		public string quit;
 		public string eof;
-
 	}
 }

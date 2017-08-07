@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,7 +21,9 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 using System.Collections;
 
@@ -37,83 +40,85 @@ namespace Open3270.TN3270Server
 		public int currentCursorPosition = 0;
 		private ArrayList mStrings;
 		private bool mStringsLive = true;
-		
 
 		public TNServerScreen(int cx, int cy)
 		{
-			mScreenBytes = new byte[cx*cy];
+			mScreenBytes = new byte[cx * cy];
 			mStrings = new ArrayList();
 		}
+
 		public void Clear()
 		{
 			mStrings.Clear();
 			mStringsLive = true;
 		}
+
 		public void Add(string text)
 		{
 			if (!mStringsLive)
 				Clear();
 			mStrings.Add(text);
 		}
+
 		public void SetCursor(int x, int y)
 		{
-			this.currentCursorPosition = x+y*80;
+			this.currentCursorPosition = x + y * 80;
 		}
+
 		public void Format()
 		{
 			mScreenBytes = FormatScreen((string[])mStrings.ToArray(typeof(string)));
-
 		}
+
 		private byte[] FormatScreen(string[] Data)
 		{
-
 			//
 			// Step 1 - map screen image into buffer
 			//
 			byte[] buffer = new Byte[10000];
 			int to = 0;
 			int i;
-			int start,end;
+			int start, end;
 			//
-			
+
 			//
-			for (i=0; i<24; i++)
+			for (i = 0; i < 24; i++)
 			{
 				int count = 0;
-				if (i<Data.Length && Data[i] !=null)
-					count+=this.CopyMapData(Data[i],0,buffer,to,true);
+				if (i < Data.Length && Data[i] != null)
+					count += this.CopyMapData(Data[i], 0, buffer, to, true);
 				while (count < 80)
 				{
-					buffer[to+count] = 0x40;
+					buffer[to + count] = 0x40;
 					count++;
 				}
-				to+=80;//count;
+				to += 80;//count;
 			}
 			//
 			// Step 2 - clear trailing spaces on each field
 			//
-			i=0;
-			while (i<to)
+			i = 0;
+			while (i < to)
 			{
-				if (ISATTRIB(buffer[i]) && 
+				if (ISATTRIB(buffer[i]) &&
 					ISENTRY(buffer[i]))
 				{
 					i++;
 					start = i;
-					while (i<to)
+					while (i < to)
 					{
 						if (ISATTRIB(buffer[i]))
 							break;
 						i++;
 					}
-					if (i==to)
+					if (i == to)
 						break;
-					end = i-1;
+					end = i - 1;
 					while (end >= start)
 					{
 						if (buffer[end] != 0x40)
 							break;
-						buffer[end]=0;
+						buffer[end] = 0;
 						end--;
 					}
 				}
@@ -124,7 +129,7 @@ namespace Open3270.TN3270Server
 			// Step 3 - return the screen
 			//
 			byte[] response = new byte[to];
-			for (i=0; i<to; i++)
+			for (i = 0; i < to; i++)
 			{
 				response[i] = buffer[i];
 			}
@@ -132,46 +137,47 @@ namespace Open3270.TN3270Server
 		}
 
 		//
-		const int ATTR_PROTECT_BIT       =0x02;
-		const int ATTR_3270_PROTECT_BIT  =0x20;
-		const int ATTR_3270_NUMONLY      =0x10;
+		private const int ATTR_PROTECT_BIT = 0x02;
 
-		const int ATTR_BOLD_BIT        =0x08;
-		const int ATTR_SELECT_BIT      =0x04;
-		const int ATTR_MORE_BIT        =0x10;
-		const int ATTR_MDT_BIT         =0x01;
+		private const int ATTR_3270_PROTECT_BIT = 0x20;
+		private const int ATTR_3270_NUMONLY = 0x10;
 
-		const int ATTR_NORM            =ATTR_PROTECT_BIT;
-		const int ATTR_BOLD            =ATTR_PROTECT_BIT | ATTR_BOLD_BIT;
-		const int ATTR_INP             =ATTR_MORE_BIT;
-		const int ATTR_INP_BOLD        =ATTR_BOLD_BIT;
-		const int ATTR_HIDDEN          =ATTR_PROTECT_BIT | ATTR_BOLD_BIT | ATTR_SELECT_BIT | ATTR_MDT_BIT;
-		const int ATTR_PASSWORD        =ATTR_SELECT_BIT | ATTR_BOLD_BIT;
+		private const int ATTR_BOLD_BIT = 0x08;
+		private const int ATTR_SELECT_BIT = 0x04;
+		private const int ATTR_MORE_BIT = 0x10;
+		private const int ATTR_MDT_BIT = 0x01;
 
-		const int ATTR_3270_NORM       =0xC0 | ATTR_3270_PROTECT_BIT | ATTR_3270_NUMONLY; // make it autoskip
-		const int ATTR_3270_BOLD       =0xC0 | ATTR_3270_PROTECT_BIT | ATTR_BOLD_BIT | ATTR_3270_NUMONLY ;
-		const int ATTR_3270_INPUT      =0xC0;
-		const int ATTR_3270_INPUT_BOLD =     0xC0 | ATTR_BOLD_BIT;
-		const int ATTR_3270_HIDDEN     =ATTR_3270_PROTECT_BIT | ATTR_BOLD_BIT | ATTR_SELECT_BIT | ATTR_MDT_BIT;
-		const int ATTR_3270_PASSWORD   =0xC0 | ATTR_PASSWORD;
+		private const int ATTR_NORM = ATTR_PROTECT_BIT;
+		private const int ATTR_BOLD = ATTR_PROTECT_BIT | ATTR_BOLD_BIT;
+		private const int ATTR_INP = ATTR_MORE_BIT;
+		private const int ATTR_INP_BOLD = ATTR_BOLD_BIT;
+		private const int ATTR_HIDDEN = ATTR_PROTECT_BIT | ATTR_BOLD_BIT | ATTR_SELECT_BIT | ATTR_MDT_BIT;
+		private const int ATTR_PASSWORD = ATTR_SELECT_BIT | ATTR_BOLD_BIT;
 
-		private bool ISATTRIB(byte c) 
+		private const int ATTR_3270_NORM = 0xC0 | ATTR_3270_PROTECT_BIT | ATTR_3270_NUMONLY; // make it autoskip
+		private const int ATTR_3270_BOLD = 0xC0 | ATTR_3270_PROTECT_BIT | ATTR_BOLD_BIT | ATTR_3270_NUMONLY;
+		private const int ATTR_3270_INPUT = 0xC0;
+		private const int ATTR_3270_INPUT_BOLD = 0xC0 | ATTR_BOLD_BIT;
+		private const int ATTR_3270_HIDDEN = ATTR_3270_PROTECT_BIT | ATTR_BOLD_BIT | ATTR_SELECT_BIT | ATTR_MDT_BIT;
+		private const int ATTR_3270_PASSWORD = 0xC0 | ATTR_PASSWORD;
+
+		private bool ISATTRIB(byte c)
 		{
-			if (c !=0 && c < 0x20)
+			if (c != 0 && c < 0x20)
 				return true;
 			else
 				return false;
 			//return ((c && (c < 0x20))!=0);
 		}
+
 		private bool ISENTRY(byte c)
 		{
-			return (0!=(c & ATTR_PROTECT_BIT));
+			return (0 != (c & ATTR_PROTECT_BIT));
 		}
-
 
 		//
 		private int CopyMapData(string from, int fromIndex, byte[] to, int toIndex, bool fScreen)
-			// PCH pchFrom, PCH pchTo, BOOL fScreen, int rows, int columns)
+		// PCH pchFrom, PCH pchTo, BOOL fScreen, int rows, int columns)
 		{
 			int toSave = toIndex;
 			while (fromIndex < from.Length && from[fromIndex] != 0)
@@ -211,9 +217,9 @@ namespace Open3270.TN3270Server
 			return toIndex - toSave;
 		}
 
-		const byte WCC_CLEARMDT         =0x01;
-		const byte WCC_UNLOCK           =0x02;
-		const byte WCC_BASE             =0xC0;
+		private const byte WCC_CLEARMDT = 0x01;
+		private const byte WCC_UNLOCK = 0x02;
+		private const byte WCC_BASE = 0xC0;
 
 		public byte[] AsTN3270Buffer(bool fClear, bool fUnlock, bool TN3270E)
 		{
@@ -261,39 +267,44 @@ namespace Open3270.TN3270Server
 				{
 					if (blankCount > 0)
 					{
-						to+=FlushBlanks(buffer,to,blankCount,currentOffset);
+						to += FlushBlanks(buffer, to, blankCount, currentOffset);
 						blankCount = 0;
 					}
 					buffer[to++] = Open3270.TN3270.See.ORDER_SF;
 					switch (mScreenBytes[from])
 					{
 						case ATTR_NORM:
-							buffer[to++]=(byte) ATTR_3270_NORM;
-							fProtected=true;
+							buffer[to++] = (byte)ATTR_3270_NORM;
+							fProtected = true;
 							break;
+
 						case ATTR_BOLD:
-							buffer[to++]=(byte) ATTR_3270_BOLD;
-							fProtected=true;
+							buffer[to++] = (byte)ATTR_3270_BOLD;
+							fProtected = true;
 							break;
+
 						case ATTR_HIDDEN:
-							buffer[to++]=(byte) ATTR_3270_HIDDEN;
-							fProtected=true;
+							buffer[to++] = (byte)ATTR_3270_HIDDEN;
+							fProtected = true;
 							break;
+
 						case ATTR_INP:
-							buffer[to++]=(byte) ATTR_3270_INPUT;
-							fProtected=false;
+							buffer[to++] = (byte)ATTR_3270_INPUT;
+							fProtected = false;
 							break;
+
 						case ATTR_INP_BOLD:
-							buffer[to++]=(byte) ATTR_3270_INPUT_BOLD;
-							fProtected=false;
+							buffer[to++] = (byte)ATTR_3270_INPUT_BOLD;
+							fProtected = false;
 							break;
+
 						case ATTR_PASSWORD:
-							buffer[to++]=(byte) ATTR_3270_PASSWORD;
-							fProtected=false;
+							buffer[to++] = (byte)ATTR_3270_PASSWORD;
+							fProtected = false;
 							break;
 					}
 				}
-				else if (fProtected && (mScreenBytes[from] ==0 || mScreenBytes[from]==0x40))
+				else if (fProtected && (mScreenBytes[from] == 0 || mScreenBytes[from] == 0x40))
 				{
 					blankCount++;
 				}
@@ -301,8 +312,8 @@ namespace Open3270.TN3270Server
 				{
 					if (blankCount > 0)
 					{
-						to+=FlushBlanks(buffer,to,blankCount, currentOffset);
-						blankCount=0;
+						to += FlushBlanks(buffer, to, blankCount, currentOffset);
+						blankCount = 0;
 					}
 					buffer[to++] = mScreenBytes[from];
 				}
@@ -314,48 +325,49 @@ namespace Open3270.TN3270Server
 			//
 			if (fFormatted)
 			{
-				buffer[to++]=Open3270.TN3270.See.ORDER_SBA;
-				to+=Create12BitAddress(buffer, to, currentCursorPosition);
-				buffer[to++]=Open3270.TN3270.See.ORDER_IC;
+				buffer[to++] = Open3270.TN3270.See.ORDER_SBA;
+				to += Create12BitAddress(buffer, to, currentCursorPosition);
+				buffer[to++] = Open3270.TN3270.See.ORDER_IC;
 			}
 			//
 			// End of buffer
 			//
-			buffer[to++]=(byte) 0xFF;
-			buffer[to++]=(byte) 0xEF;
+			buffer[to++] = (byte)0xFF;
+			buffer[to++] = (byte)0xEF;
 			//
 			// ok - length of buffer is "to", send the buffer
 			//
 			byte[] ret = new byte[to];
-			for (int i=0; i<to; i++)
+			for (int i = 0; i < to; i++)
 			{
-				ret[i]=buffer[i];
+				ret[i] = buffer[i];
 			}
 			return ret;
 		}
+
 		private int FlushBlanks(byte[] data, int to, int count, int currentOffset)
 		{
 			int offset = 0;
-			if (count<5)
+			if (count < 5)
 			{
 				while (count-- > 0)
 				{
-					data[to+offset] = 0x40;
+					data[to + offset] = 0x40;
 					offset++;
 				}
 			}
 			else
 			{
-				data[to+offset] = Open3270.TN3270.See.ORDER_RA;
+				data[to + offset] = Open3270.TN3270.See.ORDER_RA;
 				offset++;
-				offset += this.Create12BitAddress(data, to+offset, currentOffset);
-				data[to+offset] = 0x00;
+				offset += this.Create12BitAddress(data, to + offset, currentOffset);
+				data[to + offset] = 0x00;
 				offset++;
 			}
 			return offset;
 		}
 
-		static byte[] inboundAddrChars = new byte[] 
+		private static byte[] inboundAddrChars = new byte[]
 		{
 			0x40, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
 			0x50, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
@@ -365,74 +377,78 @@ namespace Open3270.TN3270Server
 
 		private int Create12BitAddress(byte[] data, int to, int Address)
 		{
-			data[to++] = inboundAddrChars[Address >> 6]; 
+			data[to++] = inboundAddrChars[Address >> 6];
 			data[to++] = inboundAddrChars[Address & 0x003F];    // xxxx xxxx xx11 1111
 			return 2;
 		}
+
 		private enum TNS
 		{
 			DO_AID, DO_CURADDR1, DO_CURADDR2, DO_FIRST, DO_DATA, DO_SBA1, DO_SBA2, DO_IAC
 		}
 
-		private int BUFADDR(byte[] data, int offset) 
+		private int BUFADDR(byte[] data, int offset)
 		{
-			return ((data[offset] & 0x3f) << 6) + (data[offset+1] & 0x3f);
+			return ((data[offset] & 0x3f) << 6) + (data[offset + 1] & 0x3f);
 		}
 
-
 		public byte lastAid = 0;
-		
+
 		public string HandleTN3270Data(byte[] data, int length)
 		{
 			TNS state = TNS.DO_AID;
 			byte[] stateData = new byte[8];
 			bool fInField = false;
-			
+
 			int offset = 0;
 			int currentScreenOffset = 0;
 			if (this.inExtendedMode)
 			{
-				offset+=5;
+				offset += 5;
 			}
 			if (!fFormatted)
 			{
-				switch (data[offset]) 
+				switch (data[offset])
 				{
 					case 0x6d:
 					case 0x7d:
-						state=TNS.DO_AID;
+						state = TNS.DO_AID;
 						break;
+
 					default:
-						lastAid=0x7d;
-						state=TNS.DO_DATA;
+						lastAid = 0x7d;
+						state = TNS.DO_DATA;
 						break;
 				}
 			}
-			while (offset<length)
+			while (offset < length)
 			{
-				switch (state) 
+				switch (state)
 				{
 					case TNS.DO_AID:
-						lastAid=data[offset];
-						state=TNS.DO_CURADDR1;
+						lastAid = data[offset];
+						state = TNS.DO_CURADDR1;
 						break;
+
 					case TNS.DO_CURADDR1:
-						stateData[0]=data[offset];
-						state=TNS.DO_CURADDR2;
+						stateData[0] = data[offset];
+						state = TNS.DO_CURADDR2;
 						break;
+
 					case TNS.DO_CURADDR2:
-						stateData[1]=data[offset];
+						stateData[1] = data[offset];
 						this.currentCursorPosition = BUFADDR(stateData, 0);
 						if (fFormatted)
-							state=TNS.DO_FIRST;
+							state = TNS.DO_FIRST;
 						else
-							state=TNS.DO_DATA;
+							state = TNS.DO_DATA;
 						break;
+
 					case TNS.DO_FIRST:
-						if (data[offset]==0x11)
-							state=TNS.DO_SBA1;
-						else if (data[offset]==0xFF)
-							state=TNS.DO_IAC;
+						if (data[offset] == 0x11)
+							state = TNS.DO_SBA1;
+						else if (data[offset] == 0xFF)
+							state = TNS.DO_IAC;
 						else
 						{
 							Console.WriteLine("TNS.DO_FIRST = {0:X2}", data[offset]);
@@ -440,204 +456,246 @@ namespace Open3270.TN3270Server
 							//return null;
 						}
 						break;
-         
+
 					case TNS.DO_DATA:
-						if (data[offset]==0x11)
+						if (data[offset] == 0x11)
 						{
 							while (!ISATTRIB(mScreenBytes[currentScreenOffset]) &&
 								(currentScreenOffset < mScreenBytes.Length))
-								mScreenBytes[currentScreenOffset++]=0;
-                   
-							state=TNS.DO_SBA1;
+								mScreenBytes[currentScreenOffset++] = 0;
+
+							state = TNS.DO_SBA1;
 						}
-						else if (data[offset]==0xFF)
+						else if (data[offset] == 0xFF)
 						{
-							state=TNS.DO_IAC;
+							state = TNS.DO_IAC;
 						}
 						else
-							mScreenBytes[currentScreenOffset++]=data[offset];
+							mScreenBytes[currentScreenOffset++] = data[offset];
 						break;
+
 					case TNS.DO_SBA1:
-						stateData[0]=data[offset];
-						state=TNS.DO_SBA2;
+						stateData[0] = data[offset];
+						state = TNS.DO_SBA2;
 						break;
+
 					case TNS.DO_SBA2:
-						stateData[1]=data[offset];
-						currentScreenOffset=BUFADDR(stateData, 0);
-						state=TNS.DO_DATA;
-						fInField=true;
+						stateData[1] = data[offset];
+						currentScreenOffset = BUFADDR(stateData, 0);
+						state = TNS.DO_DATA;
+						fInField = true;
 						break;
+
 					case TNS.DO_IAC:
-						if (data[offset]==0xEF)
+						if (data[offset] == 0xEF)
 						{
 							if (fInField)
 							{
-								while ((currentScreenOffset < mScreenBytes.Length) && 
+								while ((currentScreenOffset < mScreenBytes.Length) &&
 									!ISATTRIB(mScreenBytes[currentScreenOffset]))
 								{
-									mScreenBytes[currentScreenOffset++]=0;
+									mScreenBytes[currentScreenOffset++] = 0;
 								}
-							}                   
+							}
 							return AidToText(lastAid);
 						}
 						else
 						{
-							state=TNS.DO_DATA;
-							mScreenBytes[currentScreenOffset++]=data[offset];
+							state = TNS.DO_DATA;
+							mScreenBytes[currentScreenOffset++] = data[offset];
 						}
 						break;
-				
-
 				}
 				offset++;
 			}
 			return AidToText(lastAid);
 		}
+
 		//
 		/* Key mnemonic translations */
-		byte GetAid(string AidData)
+
+		private byte GetAid(string AidData)
 		{
-			byte AidKey=0;
+			byte AidKey = 0;
 			int offset = 1;
-  
+
 			switch (AidData[offset])
 			{
 				case 'A':
-					if (AidData[offset+1] != '@')
+					if (AidData[offset + 1] != '@')
 						return AidKey;
-				switch (AidData[offset+2])
-				{
-					case 'H':
-						AidKey=0x30;
-						break;
-					case 'Q':
-						AidKey=0x2D;    // ATTN
-						break;
-					case 'J':
-						AidKey=0x3D;
-						break;
-					case 'C':
-						AidKey=0x2A;
-						break;
-					case '<':
-						AidKey=0x3D;   // record backspace
-						break;
-					default:
-						return AidKey;
-				}
-					AidData+=2;
+					switch (AidData[offset + 2])
+					{
+						case 'H':
+							AidKey = 0x30;
+							break;
+
+						case 'Q':
+							AidKey = 0x2D;    // ATTN
+							break;
+
+						case 'J':
+							AidKey = 0x3D;
+							break;
+
+						case 'C':
+							AidKey = 0x2A;
+							break;
+
+						case '<':
+							AidKey = 0x3D;   // record backspace
+							break;
+
+						default:
+							return AidKey;
+					}
+					AidData += 2;
 					break;
 
 				case 'E':  // Enter
-					AidKey=0x27;
+					AidKey = 0x27;
 					break;
+
 				case 'C':  // Clear
-					AidKey=0x5F;
+					AidKey = 0x5F;
 					break;
+
 				case 'H':  // Help
-					AidKey=0x2b;
+					AidKey = 0x2b;
 					break;
+
 				case 'P':  // Print
-					AidKey=0x2f;
+					AidKey = 0x2f;
 					break;
+
 				case '1':  // PF1
-					AidKey=0x31;
+					AidKey = 0x31;
 					break;
+
 				case '2':  // PF2
-					AidKey=0x32;
+					AidKey = 0x32;
 					break;
+
 				case '3':  // PF3
-					AidKey=0x33;
+					AidKey = 0x33;
 					break;
+
 				case '4':  // PF4
-					AidKey=0x34;
+					AidKey = 0x34;
 					break;
+
 				case '5':  // PF5
-					AidKey=0x35;
+					AidKey = 0x35;
 					break;
+
 				case '6':  // PF6
-					AidKey=0x36;
+					AidKey = 0x36;
 					break;
+
 				case '7':  // PF7
-					AidKey=0x37;
+					AidKey = 0x37;
 					break;
+
 				case '8':  // PF8
-					AidKey=0x38;
+					AidKey = 0x38;
 					break;
+
 				case '9':  // PF9
-					AidKey=0x39;
+					AidKey = 0x39;
 					break;
+
 				case 'a':  // PF10
-					AidKey=0x3A;
+					AidKey = 0x3A;
 					break;
+
 				case 'b':  // PF11
-					AidKey=0x23;
+					AidKey = 0x23;
 					break;
+
 				case 'c':  // PF12
-					AidKey=0x40;
+					AidKey = 0x40;
 					break;
+
 				case 'd':  // PF13
-					AidKey=0x41;
+					AidKey = 0x41;
 					break;
+
 				case 'e':  // PF14
-					AidKey=0x42;
+					AidKey = 0x42;
 					break;
+
 				case 'f':  // PF15
-					AidKey=0x43;
+					AidKey = 0x43;
 					break;
+
 				case 'g':  // PF16
-					AidKey=0x44;
+					AidKey = 0x44;
 					break;
+
 				case 'h':  // PF17
-					AidKey=0x45;
+					AidKey = 0x45;
 					break;
+
 				case 'i':  // PF18
-					AidKey=0x46;
+					AidKey = 0x46;
 					break;
+
 				case 'j':  // PF19
-					AidKey=0x47;
+					AidKey = 0x47;
 					break;
+
 				case 'k':  // PF20
-					AidKey=0x48;
+					AidKey = 0x48;
 					break;
+
 				case 'l':  // PF21
-					AidKey=0x49;
+					AidKey = 0x49;
 					break;
+
 				case 'm':  // PF22
-					AidKey=0x5B;
+					AidKey = 0x5B;
 					break;
+
 				case 'n':  // PF23
-					AidKey=0x2E;
+					AidKey = 0x2E;
 					break;
+
 				case 'o':  // PF24
-					AidKey=0x3C;
+					AidKey = 0x3C;
 					break;
+
 				case 'u':  // PgUp
-					AidKey=0x25;
+					AidKey = 0x25;
 					break;
+
 				case 'v':  // PgDown
-					AidKey=0x3e;
+					AidKey = 0x3e;
 					break;
+
 				case 'x':  // PA1
-					AidKey=0x25;
+					AidKey = 0x25;
 					break;
+
 				case 'y':  // PA2
-					AidKey=0x3E;
+					AidKey = 0x3E;
 					break;
+
 				case 'z':  // PA3
-					AidKey=0x2C;
+					AidKey = 0x2C;
 					break;
+
 				default:
 					break;
-      
 			}  // end of switch
 			return (Open3270.TN3270.Tables.A2E[AidKey]);
 		}
 
 		//
-		Hashtable hashTextToAid = null;
-		Hashtable hashAidToText = null;
-		void initAidTable()
+		private Hashtable hashTextToAid = null;
+
+		private Hashtable hashAidToText = null;
+
+		private void initAidTable()
 		{
 			hashTextToAid = new Hashtable();
 			hashTextToAid["tab"] = "@T";
@@ -674,11 +732,11 @@ namespace Open3270.TN3270Server
 			hashTextToAid["back tab"] = "@B";
 			hashTextToAid["lefttab"] = "@B";
 			hashTextToAid["backtab"] = "@B";
-			hashTextToAid["put"] =  "@S@p";//       // [put](F_row_col, "text";
-			hashTextToAid["c_pos"] =  "@S@c";//     // [c_pos](offset;
-			hashTextToAid["buffers"] =  "@S@d";//   // [buffers](hostwritesexpected;
-			hashTextToAid["sleep"] =  "@S@e";//     // [sleep](milliseconds;
-			hashTextToAid["settle"] =  "@S@f";//    // [settle](settletime;
+			hashTextToAid["put"] = "@S@p";//       // [put](F_row_col, "text";
+			hashTextToAid["c_pos"] = "@S@c";//     // [c_pos](offset;
+			hashTextToAid["buffers"] = "@S@d";//   // [buffers](hostwritesexpected;
+			hashTextToAid["sleep"] = "@S@e";//     // [sleep](milliseconds;
+			hashTextToAid["settle"] = "@S@f";//    // [settle](settletime;
 			hashTextToAid["delete"] = "@D";
 			hashTextToAid["help"] = "@H";
 			hashTextToAid["insert"] = "@I";
@@ -697,8 +755,8 @@ namespace Open3270.TN3270Server
 			hashTextToAid["page down"] = "@v";
 			hashTextToAid["pageup"] = "@u";
 			hashTextToAid["pagedown"] = "@v";
-			hashTextToAid["recordback"] =  "@A@<";
-			hashTextToAid["recbksp"] =  "@A@<";
+			hashTextToAid["recordback"] = "@A@<";
+			hashTextToAid["recbksp"] = "@A@<";
 			hashTextToAid["pa1"] = "@x";
 			hashTextToAid["pa2"] = "@y";
 			hashTextToAid["pa3"] = "@z";
@@ -716,7 +774,7 @@ namespace Open3270.TN3270Server
 			hashTextToAid["printps"] = "@A@T";
 			hashTextToAid["erase eol"] = "@S@A";
 			hashTextToAid["eraseeol"] = "@S@A";
-			hashTextToAid["test"] =  "@A@C";
+			hashTextToAid["test"] = "@A@C";
 
 			hashAidToText = new Hashtable();
 			foreach (DictionaryEntry de in hashTextToAid)
@@ -726,6 +784,7 @@ namespace Open3270.TN3270Server
 				hashAidToText[vCode] = (string)de.Key;
 			}
 		}
+
 		public string AidToText(byte aid)
 		{
 			if (hashTextToAid == null)
@@ -734,83 +793,89 @@ namespace Open3270.TN3270Server
 			}
 			return (string)hashAidToText[aid];
 		}
+
 		public byte TextToAid(string pszText)
 		{
 			if (hashTextToAid == null)
 			{
 				initAidTable();
 			}
-			
 
 			string aidKey = hashTextToAid[pszText.ToLower()] as string;
-			if (aidKey==null)
+			if (aidKey == null)
 				return 0;
 
 			//
 			return GetAid(aidKey);
 		}
+
 		public void ClearField(int x, int y, bool multiline)
 		{
 			int position;
 			int end;
 			if (multiline)
-				FindField(ToCursorPosition(x,y), 80*24, out position, out end);
+				FindField(ToCursorPosition(x, y), 80 * 24, out position, out end);
 			else
-				FindField(ToCursorPosition(x,y), ToCursorPosition(79,y), out position, out end);
-			
+				FindField(ToCursorPosition(x, y), ToCursorPosition(79, y), out position, out end);
+
 			WriteScreen(position, end, true, null);
 		}
+
 		public void WriteField(int x, int y, bool direct, string text)
 		{
-			WriteField(ToCursorPosition(x,y),direct,text);
+			WriteField(ToCursorPosition(x, y), direct, text);
 		}
-		public void WriteField(int position, bool direct,string text)
+
+		public void WriteField(int position, bool direct, string text)
 		{
 			int end;
-			FindField(position, 80*24, out position, out end);
+			FindField(position, 80 * 24, out position, out end);
 			WriteScreen(position, end, direct, text);
 		}
+
 		public string ReadField(int x, int y)
 		{
-			return ReadField(ToCursorPosition(x,y));
+			return ReadField(ToCursorPosition(x, y));
 		}
+
 		public string ReadField(int position)
 		{
 			//Console.WriteLine("position is "+position);
 			int end;
-			FindField(position, 80*24, out position, out end);
+			FindField(position, 80 * 24, out position, out end);
 			//
 			//Console.WriteLine("start is "+position+", end is "+end);
 			return ReadScreen(position, end);
 		}
+
 		public string ReadScreen(int position, int end)
 		{
 			int i;
 			string text = "";
-			for (i=position; i<end; i++)
+			for (i = position; i < end; i++)
 			{
 				text += System.Convert.ToChar(Open3270.TN3270.Tables.E2A[mScreenBytes[i]]);
-
 			}
 			return text.TrimEnd();
 		}
+
 		public void WriteFormattedData(int x, int y, string text)
 		{
-			int position = this.ToCursorPosition(x,y);
-			CopyMapData(text,0,mScreenBytes,position,true);
-
+			int position = this.ToCursorPosition(x, y);
+			CopyMapData(text, 0, mScreenBytes, position, true);
 		}
+
 		public void WriteScreen(int position, int end, bool direct, string text)
 		{
 			//Console.WriteLine("position = "+position+", end ="+end);
 			if (direct)
 			{
 				int i;
-				for (i=position; i<end; i++)
+				for (i = position; i < end; i++)
 				{
 					char ch;
-					if (text != null && i-position<text.Length)
-						ch = text[i-position];
+					if (text != null && i - position < text.Length)
+						ch = text[i - position];
 					else
 						ch = ' ';
 					byte b = Open3270.TN3270.Tables.A2E[ch];
@@ -819,14 +884,15 @@ namespace Open3270.TN3270Server
 			}
 			else
 			{
-				if (text==null)
-					text="";
-				while (text.Length < (end-position))
-					text = text+" ";
+				if (text == null)
+					text = "";
+				while (text.Length < (end - position))
+					text = text + " ";
 
-				CopyMapData(text,0,mScreenBytes,position,true);
+				CopyMapData(text, 0, mScreenBytes, position, true);
 			}
 		}
+
 		public void FindField(int startposition, int max, out int position, out int end)
 		{
 			position = startposition;
@@ -836,9 +902,10 @@ namespace Open3270.TN3270Server
 			while (end < max && !ISATTRIB(mScreenBytes[end]))
 				end++;
 		}
+
 		public int ToCursorPosition(int x, int y)
 		{
-			return x+y*80;
+			return x + y * 80;
 		}
 	}
 }

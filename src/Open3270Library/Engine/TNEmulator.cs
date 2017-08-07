@@ -1,10 +1,11 @@
 ﻿#region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright � 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,66 +21,73 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
-using System.Threading;
-using System.Collections;
-using System.IO;
-using System.Text;
-using System.Net.Sockets;
-using System.Reflection;
-using Open3270.TN3270;
+
+#endregion License
+
 using Open3270.Library;
+using Open3270.TN3270;
+using System;
 using System.Linq;
+using System.Reflection;
+using System.Threading;
 
 namespace Open3270
 {
-
 	/// <summary>
 	/// Summary description for TNEmulator.
 	/// </summary>
 	public class TNEmulator : IDisposable
 	{
 		#region Private Variables and Objects
-		static bool firstTime = true;
 
-		bool debug = false;
-		bool isDisposed = false;
-		MySemaphore semaphore = new MySemaphore(0, 9999);
+		private static bool firstTime = true;
+
+		private bool debug = false;
+		private bool isDisposed = false;
+		private MySemaphore semaphore = new MySemaphore(0, 9999);
 		private object objectState;
 
-		IXMLScreen currentScreenXML; // don't access me directly, use helper
-		string mScreenName = null;
-		IAudit sout = null;
-		bool mUseSSL = false;
+		private IXMLScreen currentScreenXML; // don't access me directly, use helper
+		private string mScreenName = null;
+		private IAudit sout = null;
+		private bool mUseSSL = false;
 		private string _localIP = string.Empty;
-		ConnectionConfig mConnectionConfiguration = null;
-		TN3270API currentConnection = null;
-		#endregion
+		private ConnectionConfig mConnectionConfiguration = null;
+		private TN3270API currentConnection = null;
+
+		#endregion Private Variables and Objects
 
 		#region Event Handlers
+
 		/// <summary>
 		/// Event fired when the host disconnects. Note - this must be set before you connect to the host.
 		/// </summary>
 		public event OnDisconnectDelegate Disconnected;
+
 		public event EventHandler CursorLocationChanged;
-		OnDisconnectDelegate apiOnDisconnectDelegate = null;
-		#endregion
+
+		private OnDisconnectDelegate apiOnDisconnectDelegate = null;
+
+		#endregion Event Handlers
 
 		#region Constructors / Destructors
+
 		public TNEmulator()
 		{
 			currentScreenXML = null;
 			currentConnection = null;
 			this.mConnectionConfiguration = new ConnectionConfig();
 		}
+
 		~TNEmulator()
 		{
 			Dispose(false);
 		}
-		#endregion
+
+		#endregion Constructors / Destructors
 
 		#region Properties
+
 		/// <summary>
 		/// Returns whether or not this session is connected to the mainframe.
 		/// </summary>
@@ -91,8 +99,8 @@ namespace Open3270
 					return false;
 				return this.currentConnection.IsConnected;
 			}
-
 		}
+
 		/// <summary>
 		/// Gets or sets the ojbect state.
 		/// </summary>
@@ -101,6 +109,7 @@ namespace Open3270
 			get { return objectState; }
 			set { objectState = value; }
 		}
+
 		/// <summary>
 		/// Returns whether or not the disposed action has been performed on this object.
 		/// </summary>
@@ -108,6 +117,7 @@ namespace Open3270
 		{
 			get { return isDisposed; }
 		}
+
 		/// <summary>
 		/// Returns the reason why the session has been disconnected.
 		/// </summary>
@@ -123,6 +133,7 @@ namespace Open3270
 				return string.Empty;
 			}
 		}
+
 		/// <summary>
 		/// Returns zero if the keyboard is currently locked (inhibited)
 		/// non-zero otherwise
@@ -135,6 +146,7 @@ namespace Open3270
 				return this.currentConnection.KeyboardLock;
 			}
 		}
+
 		/// <summary>
 		/// Returns the zero based X coordinate of the cursor
 		/// </summary>
@@ -146,6 +158,7 @@ namespace Open3270
 				return this.currentConnection.CursorX;
 			}
 		}
+
 		/// <summary>
 		/// Returns the zero based Y coordinate of the cursor
 		/// </summary>
@@ -157,6 +170,7 @@ namespace Open3270
 				return this.currentConnection.CursorY;
 			}
 		}
+
 		/// <summary>
 		/// Returns the IP address of the mainframe.
 		/// </summary>
@@ -164,6 +178,7 @@ namespace Open3270
 		{
 			get { return _localIP; }
 		}
+
 		/// <summary>
 		/// Returns the internal configuration object for this connection
 		/// </summary>
@@ -171,6 +186,7 @@ namespace Open3270
 		{
 			get { return this.mConnectionConfiguration; }
 		}
+
 		/// <summary>
 		/// Debug flag - setting this to true turns on much more debugging output on the
 		/// Audit output
@@ -179,8 +195,8 @@ namespace Open3270
 		{
 			get { return debug; }
 			set { debug = value; }
-
 		}
+
 		/// <summary>
 		/// Set this flag to true to enable SSL connections. False otherwise
 		/// </summary>
@@ -189,6 +205,7 @@ namespace Open3270
 			get { return mUseSSL; }
 			set { mUseSSL = value; }
 		}
+
 		/// <summary>
 		/// Returns the current screen XML
 		/// </summary>
@@ -196,7 +213,6 @@ namespace Open3270
 		{
 			get
 			{
-
 				if (this.currentScreenXML == null)
 				{
 					if (sout != null && Debug == true)
@@ -215,6 +231,7 @@ namespace Open3270
 				return this.currentScreenXML;
 			}
 		}
+
 		/// <summary>
 		/// Auditing interface
 		/// </summary>
@@ -223,9 +240,11 @@ namespace Open3270
 			get { return sout; }
 			set { sout = value; }
 		}
-		#endregion
+
+		#endregion Properties
 
 		#region Public Methods
+
 		/// <summary>
 		/// Disposes of this emulator object.
 		/// </summary>
@@ -234,6 +253,7 @@ namespace Open3270
 			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
+
 		/// <summary>
 		/// Sends the specified key stroke to the emulator.
 		/// </summary>
@@ -243,7 +263,6 @@ namespace Open3270
 		/// <returns></returns>
 		public bool SendKey(bool waitForScreenToUpdate, TnKey key, int timeout)
 		{
-
 			bool triggerSubmit = false;
 			bool success = false;
 			string command;
@@ -251,7 +270,6 @@ namespace Open3270
 			//This is only used as a parameter for other methods when we're using function keys.
 			//e.g. F1 yields a command of "PF" and a functionInteger of 1.
 			int functionInteger = -1;
-
 
 			if (sout != null && Debug == true)
 			{
@@ -262,7 +280,6 @@ namespace Open3270
 			{
 				throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection", null);
 			}
-
 
 			//Get the command name and accompanying int parameter, if applicable
 			if (Constants.FunctionKeys.Contains(key))
@@ -302,7 +319,6 @@ namespace Open3270
 
 			success = this.currentConnection.ExecuteAction(triggerSubmit, command, functionInteger);
 
-
 			if (sout != null && Debug)
 			{
 				sout.WriteLine("SendKeyFromText - submit = " + triggerSubmit + " ok=" + success);
@@ -322,8 +338,8 @@ namespace Open3270
 			}
 
 			return success;
-
 		}
+
 		/// <summary>
 		/// Waits until the keyboard state becomes unlocked.
 		/// </summary>
@@ -337,8 +353,9 @@ namespace Open3270
 				Thread.Sleep(10); // Wait 1/100th of a second
 			}
 		}
+
 		/// <summary>
-		/// Refresh the current screen.  If timeout > 0, it will wait for 
+		/// Refresh the current screen.  If timeout > 0, it will wait for
 		/// this number of milliseconds.
 		/// If waitForValidScreen is true, it will wait for a valid screen, otherwise it
 		/// will return immediately that any screen data is visible
@@ -394,14 +411,11 @@ namespace Open3270
 							}
 							else
 							{
-
 							}
 						}
-
 					}
 					while (!run && timeout > 0);
 					if (sout != null && this.Debug) sout.WriteLine("Refresh::Timeout or acquire failed. run= " + run + " timeout=" + timeout);
-
 				}
 
 				if (this.mConnectionConfiguration.FastScreenMode || this.KeyboardLocked == 0)
@@ -417,11 +431,9 @@ namespace Open3270
 					}
 
 					return true;
-
 				}
 				else
 					System.Threading.Thread.Sleep(10);
-
 			}
 			while (DateTime.Now.Ticks / 10000 < end);
 
@@ -443,8 +455,8 @@ namespace Open3270
 			{
 				return false;
 			}
-
 		}
+
 		/// <summary>
 		/// Dump fields to the current audit output
 		/// </summary>
@@ -463,6 +475,7 @@ namespace Open3270
 			else
 				throw new ApplicationException("ShowFields requires an active 'Audit' connection on the emulator");
 		}
+
 		/// <summary>
 		/// Retrieves text at the specified location on the screen
 		/// </summary>
@@ -474,6 +487,7 @@ namespace Open3270
 		{
 			return this.CurrentScreenXML.GetText(x, y, length);
 		}
+
 		/// <summary>
 		/// Sends a string starting at the indicated screen position
 		/// </summary>
@@ -489,6 +503,7 @@ namespace Open3270
 
 			return SetText(text);
 		}
+
 		/// <summary>
 		/// Sents the specified string to the emulator at it's current position.
 		/// </summary>
@@ -505,10 +520,11 @@ namespace Open3270
 			}
 			return currentConnection.ExecuteAction(false, "String", text);
 		}
+
 		/// <summary>
 		/// Returns after new screen data has stopped flowing from the host for screenCheckInterval time.
 		/// </summary>
-		/// <param name="screenCheckInterval">The amount of time between screen data comparisons in milliseconds.  
+		/// <param name="screenCheckInterval">The amount of time between screen data comparisons in milliseconds.
 		/// It's probably impractical for this to be much less than 100 ms.</param>
 		/// <param name="finalTimeout">The absolute longest time we should wait before the method should time out</param>
 		/// <returns>True if data ceased, and false if the operation timed out. </returns>
@@ -531,6 +547,7 @@ namespace Open3270
 
 			return success;
 		}
+
 		/// <summary>
 		/// Returns the last asynchronous error that occured internally
 		/// </summary>
@@ -540,6 +557,7 @@ namespace Open3270
 			if (currentConnection == null) throw new TNHostException("TNEmulator is not connected", "There is no currently open TN3270 connection", null);
 			return currentConnection.GetLastError();
 		}
+
 		/// <summary>
 		/// Set field value.
 		/// </summary>
@@ -555,6 +573,7 @@ namespace Open3270
 					case "showparseerror":
 						currentConnection.ShowParseError = true;
 						return;
+
 					default:
 						return;
 				}
@@ -563,11 +582,13 @@ namespace Open3270
 			DisposeOfCurrentScreenXML();
 			currentScreenXML = null;
 		}
+
 		public void SetField(FieldInfo field, string text)
 		{
 			//this.currentConnection.ExecuteAction()
 			throw new NotImplementedException();
 		}
+
 		/// <summary>
 		/// Set the cursor position on the screen
 		/// </summary>
@@ -579,6 +600,7 @@ namespace Open3270
 			//currentConnection.ExecuteAction("MoveCursor", x,y);
 			this.currentConnection.MoveCursor(CursorOp.Exact, x, y);
 		}
+
 		/// <summary>
 		/// Connects to the mainframe.
 		/// </summary>
@@ -588,6 +610,7 @@ namespace Open3270
 				 this.mConnectionConfiguration.HostPort,
 				 this.mConnectionConfiguration.HostLU);
 		}
+
 		/// <summary>
 		/// Connects to host using a local IP endpoint
 		/// <remarks>
@@ -603,6 +626,7 @@ namespace Open3270
 			_localIP = localIP;
 			Connect(host, port, string.Empty);
 		}
+
 		/// <summary>
 		/// Connect to TN3270 server using the connection details specified.
 		/// </summary>
@@ -624,7 +648,6 @@ namespace Open3270
 
 			try
 			{
-
 				semaphore.Reset();
 
 				this.currentConnection = null;
@@ -641,7 +664,7 @@ namespace Open3270
 				//
 				if (sout != null)
 				{
-					sout.WriteLine("Open3270 emulator version " + Assembly.GetAssembly(typeof(Open3270.TNEmulator)).GetName().Version+" (c) 2004-2017 Mike Warriner and many others");
+					sout.WriteLine("Open3270 emulator version " + Assembly.GetAssembly(typeof(Open3270.TNEmulator)).GetName().Version + " (c) 2004-2017 Mike Warriner and many others");
 #if false
 					sout.WriteLine("(c) 2004-2006 Mike Warriner (mikewarriner@gmail.com). All rights reserved");
 					sout.WriteLine("");
@@ -681,7 +704,6 @@ namespace Open3270
 
 				currentConnection.UseSSL = this.mUseSSL;
 
-
 				/// Modified CFCJR Feb/29/2008 to support local IP endpoint
 				if (!string.IsNullOrEmpty(_localIP))
 				{
@@ -695,7 +717,7 @@ namespace Open3270
 				currentConnection.WaitForConnect(-1);
 				DisposeOfCurrentScreenXML();
 				currentScreenXML = null;
-				// Force refresh 
+				// Force refresh
 				// GetScreenAsXML();
 			}
 			catch (Exception)
@@ -711,7 +733,6 @@ namespace Open3270
 				Refresh(true, 10000);
 				if (sout != null && Debug == true) sout.WriteLine("Debug::Connected");
 				//mScreenProcessor.Update_Screen(currentScreenXML, true);
-
 			}
 			catch (Exception)
 			{
@@ -719,6 +740,7 @@ namespace Open3270
 			}
 			return;
 		}
+
 		/// <summary>
 		/// Closes the current connection to the mainframe.
 		/// </summary>
@@ -730,6 +752,7 @@ namespace Open3270
 				currentConnection = null;
 			}
 		}
+
 		/// <summary>
 		/// Waits for the specified text to appear at the specified location.
 		/// </summary>
@@ -788,6 +811,7 @@ namespace Open3270
 				Audit.WriteLine("WaitForText('" + text + "') Timed out");
 			return false;
 		}
+
 		/// <summary>
 		/// Waits for the specified text to appear at the specified location.
 		/// </summary>
@@ -801,7 +825,6 @@ namespace Open3270
 			else
 				return null;
 		}
-
 
 		/// <summary>
 		/// Waits for the specified text to appear at the specified location.
@@ -840,7 +863,6 @@ namespace Open3270
 				//
 				if (timeoutMS > 0)
 				{
-
 					//
 					System.Threading.Thread.Sleep(100);
 					if (Config.AlwaysRefreshWhenWaiting)
@@ -859,11 +881,12 @@ namespace Open3270
 			if (Audit != null)
 			{
 				string temp = ""; foreach (string t in text) temp += "t" + "//";
-			
+
 				Audit.WriteLine("WaitForText('" + temp + "') Timed out");
 			}
 			return -1;
 		}
+
 		/// <summary>
 		/// Dump current screen to the current audit output
 		/// </summary>
@@ -875,6 +898,7 @@ namespace Open3270
 					CurrentScreenXML.Dump(sout);
 			}
 		}
+
 		/// <summary>
 		/// Refreshes the connection to the mainframe.
 		/// </summary>
@@ -886,9 +910,11 @@ namespace Open3270
 				currentScreenXML = null;
 			}
 		}
-		#endregion
+
+		#endregion Public Methods
 
 		#region Protected / Internal Methods
+
 		protected void DisposeOfCurrentScreenXML()
 		{
 			if (currentScreenXML != null)
@@ -899,6 +925,7 @@ namespace Open3270
 				currentScreenXML = null;
 			}
 		}
+
 		protected virtual void Dispose(bool disposing)
 		{
 			lock (this)
@@ -960,9 +987,9 @@ namespace Open3270
 
 				//------------------------------
 				// release unmanaged resources
-
 			}
 		}
+
 		protected virtual void OnCursorLocationChanged(EventArgs args)
 		{
 			if (this.CursorLocationChanged != null)
@@ -970,6 +997,7 @@ namespace Open3270
 				this.CursorLocationChanged(this, args);
 			}
 		}
+
 		/// <summary>
 		/// Get the current screen as an XMLScreen data structure
 		/// </summary>
@@ -987,13 +1015,16 @@ namespace Open3270
 			else
 				return null;
 		}
-		#endregion
+
+		#endregion Protected / Internal Methods
 
 		#region Private Methods
-		void currentConnection_CursorLocationChanged(object sender, EventArgs e)
+
+		private void currentConnection_CursorLocationChanged(object sender, EventArgs e)
 		{
 			this.OnCursorLocationChanged(e);
 		}
+
 		private void currentConnection_RunScriptEvent(string where)
 		{
 			lock (this)
@@ -1004,6 +1035,7 @@ namespace Open3270
 				semaphore.Release(1);
 			}
 		}
+
 		/// <summary>
 		/// Wait for some text to appear at the specified location
 		/// </summary>
@@ -1017,18 +1049,20 @@ namespace Open3270
 			if (this.Disconnected != null)
 				this.Disconnected(this, Reason);
 		}
-		#endregion
+
+		#endregion Private Methods
 
 		#region Deprecated Methods
+
 		[Obsolete("This method has been deprecated.  Please use SendKey instead. This method is only included for backwards compatibiity and might not exist in future releases.")]
 		public bool SendKeyFromText(bool waitForScreenToUpdate, string text)
 		{
 			return SendKeyFromText(waitForScreenToUpdate, text, Config.DefaultTimeout);
 		}
+
 		[Obsolete("This method has been deprecated.  Please use SendKey instead.  This method is only included for backwards compatibiity and might not exist in future releases.")]
 		public bool SendKeyFromText(bool waitForScreenToUpdate, string text, int timeout)
 		{
-
 			bool submit = false;
 			bool success = false;
 
@@ -1047,7 +1081,6 @@ namespace Open3270
 				// No keys are less than 2 characters.
 				return false;
 			}
-
 
 			if (this.Config.SubmitAllKeyboardCommands)
 			{
@@ -1069,7 +1102,6 @@ namespace Open3270
 				}
 			}
 
-
 			if (submit)
 			{
 				lock (this)
@@ -1083,9 +1115,7 @@ namespace Open3270
 						semaphore.Reset();
 					}
 				}
-
 			}
-
 
 			if (text.Substring(0, 2) == "PF")
 			{
@@ -1122,6 +1152,7 @@ namespace Open3270
 				return success;
 			}
 		}
+
 		[Obsolete("This method has been deprecated.  Please use SetText instead.  This method is only included for backwards compatibiity and might not exist in future releases.")]
 		public bool SendText(string text)
 		{
@@ -1133,12 +1164,14 @@ namespace Open3270
 			}
 			return currentConnection.ExecuteAction(false, "String", text);
 		}
+
 		[Obsolete("This method has been deprecated.  Please use SetText instead.  This method is only included for backwards compatibiity and might not exist in future releases.")]
 		public bool PutText(string text, int x, int y)
 		{
 			return SetText(text, x, y);
 		}
-		#endregion
+
+		#endregion Deprecated Methods
 	}
 
 	public delegate void OnDisconnectDelegate(TNEmulator where, string Reason);

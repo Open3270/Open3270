@@ -1,22 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
+﻿using System.ComponentModel;
 using TerminalDemo.Properties;
 
 namespace TerminalDemo
 {
 	public class TerminalSettings : INotifyPropertyChanged
 	{
-
-
-
 		public TerminalSettings()
 		{
 			this.LoadFromSettings(Settings.Default);
 		}
-
 
 		internal void LoadFromSettings(Settings settings)
 		{
@@ -36,10 +28,7 @@ namespace TerminalDemo
 			Settings.Default.Save();
 		}
 
-
-
-
-		string host;
+		private string host;
 
 		public string Host
 		{
@@ -54,10 +43,7 @@ namespace TerminalDemo
 			}
 		}
 
-
-
-
-		int hostPort;
+		private int hostPort;
 
 		public int HostPort
 		{
@@ -72,9 +58,7 @@ namespace TerminalDemo
 			}
 		}
 
-
-
-		bool useSSL;
+		private bool useSSL;
 
 		public bool UseSSL
 		{
@@ -89,10 +73,7 @@ namespace TerminalDemo
 			}
 		}
 
-
-
-
-		string terminalType;
+		private string terminalType;
 
 		public string TerminalType
 		{
@@ -120,7 +101,5 @@ namespace TerminalDemo
 		}
 
 		#endregion INotifyPropertyChanged
-
-
 	}
 }

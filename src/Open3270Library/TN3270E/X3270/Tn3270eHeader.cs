@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,15 +21,15 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 
 namespace Open3270.TN3270
 {
-
 	internal class TnHeader
 	{
-
 		#region Constants
 
 		public const int EhSize = 5;
@@ -85,8 +86,6 @@ namespace Open3270.TN3270
 
 		#endregion Constants
 
-
-
 		#region Fields
 
 		private DataType3270 dataType;
@@ -95,8 +94,6 @@ namespace Open3270.TN3270
 		private byte[] sequenceNumber = new byte[2]; /* actually, 16 bits, unaligned (!) */
 
 		#endregion Fields
-
-
 
 		#region Properties
 
@@ -111,7 +108,7 @@ namespace Open3270.TN3270
 			get { return requestFlag; }
 			set { requestFlag = value; }
 		}
-		
+
 		public byte ResponseFlag
 		{
 			get { return responseFlag; }
@@ -125,8 +122,6 @@ namespace Open3270.TN3270
 		}
 
 		#endregion Properties
-
-
 
 		#region Constructors and disposal
 
@@ -158,8 +153,6 @@ namespace Open3270.TN3270
 
 		#endregion Constructors and disposal
 
-
-
 		#region Public Methods
 
 		private byte ByteFromDataType()
@@ -182,7 +175,6 @@ namespace Open3270.TN3270
 			return ch;
 		}
 
-
 		public void OnToByte(byte[] buf)
 		{
 			buf[0] = ByteFromDataType();
@@ -190,9 +182,7 @@ namespace Open3270.TN3270
 			buf[2] = responseFlag;
 			buf[3] = sequenceNumber[0];
 			buf[4] = sequenceNumber[1];
-
 		}
-
 
 		private void AddWithDoubledIAC(NetBuffer buffer, byte character)
 		{
@@ -202,7 +192,6 @@ namespace Open3270.TN3270
 				buffer.Add(character);
 			}
 		}
-
 
 		public void AddToNetBuffer(NetBuffer buffer)
 		{
@@ -214,8 +203,5 @@ namespace Open3270.TN3270
 		}
 
 		#endregion Public Methods
-
 	}
 }
-
-

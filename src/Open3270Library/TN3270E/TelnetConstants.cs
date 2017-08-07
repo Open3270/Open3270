@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Open3270.TN3270
 {
@@ -11,23 +9,22 @@ namespace Open3270.TN3270
 		public const byte DONT = 254;
 		public const byte WILL = 251;
 		public const byte WONT = 252;
-		public const byte SB = 250;		/* interpret as subnegotiation */
-		public const byte GA = 249;		/* you may reverse the line */
-		public const byte EL = 248;		/* erase the current line */
-		public const byte EC = 247;		/* erase the current character */
-		public const byte AYT = 246;		/* are you there */
-		public const byte AO = 245;		/* abort output--but let prog finish */
-		public const byte IP = 244;		/* interrupt process--permanently */
-		public const byte BREAK = 243;		/* break */
-		public const byte DM = 242;		/* data mark--for connect. cleaning */
-		public const byte NOP = 241;		/* nop */
-		public const byte SE = 240;		/* end sub negotiation */
+		public const byte SB = 250;     /* interpret as subnegotiation */
+		public const byte GA = 249;     /* you may reverse the line */
+		public const byte EL = 248;     /* erase the current line */
+		public const byte EC = 247;     /* erase the current character */
+		public const byte AYT = 246;        /* are you there */
+		public const byte AO = 245;     /* abort output--but let prog finish */
+		public const byte IP = 244;     /* interrupt process--permanently */
+		public const byte BREAK = 243;      /* break */
+		public const byte DM = 242;     /* data mark--for connect. cleaning */
+		public const byte NOP = 241;        /* nop */
+		public const byte SE = 240;     /* end sub negotiation */
 		public const byte EOR = 239;            /* end of record (transparent mode) */
-		public const byte SUSP = 237;		/* suspend process */
-		public const byte xEOF = 236;		/* end of file */
+		public const byte SUSP = 237;       /* suspend process */
+		public const byte xEOF = 236;       /* end of file */
 
-
-		public const byte SYNCH = 242;		/* for telfunc calls */
+		public const byte SYNCH = 242;      /* for telfunc calls */
 
 		public const Char IS = '0';
 		public const Char SEND = '1';
@@ -37,41 +34,40 @@ namespace Open3270.TN3270
 		public const Char ESC = '2';
 		public const Char USERVAR = '3';
 
-		public const int TELQUAL_IS = 0;	/* option is... */
-		public const int TELQUAL_SEND = 1;	/* send option */
+		public const int TELQUAL_IS = 0;    /* option is... */
+		public const int TELQUAL_SEND = 1;  /* send option */
 		public const int LU_MAX = 32;
-
 
 		public static readonly string[] TelQuals = new string[] { "IS", "SEND" };
 
-
 		//Telnet options
-		public const int TELOPT_BINARY = 0;	/* 8-bit data path */
-		public const int TELOPT_ECHO = 1;	/* echo */
-		public const int TELOPT_RCP = 2;	/* prepare to reconnect */
-		public const int TELOPT_SGA = 3;	/* suppress go ahead */
-		public const int TELOPT_NAMS = 4;	/* approximate message size */
-		public const int TELOPT_STATUS = 5;	/* give status */
-		public const int TELOPT_TM = 6;	/* timing mark */
-		public const int TELOPT_RCTE = 7;	/* remote controlled transmission and echo */
-		public const int TELOPT_NAOL = 8;	/* negotiate about output line width */
-		public const int TELOPT_NAOP = 9;	/* negotiate about output page size */
-		public const int TELOPT_NAOCRD = 10;	/* negotiate about CR disposition */
-		public const int TELOPT_NAOHTS = 11;	/* negotiate about horizontal tabstops */
-		public const int TELOPT_NAOHTD = 12;	/* negotiate about horizontal tab disposition */
-		public const int TELOPT_NAOFFD = 13;	/* negotiate about formfeed disposition */
-		public const int TELOPT_NAOVTS = 14;	/* negotiate about vertical tab stops */
-		public const int TELOPT_NAOVTD = 15;	/* negotiate about vertical tab disposition */
-		public const int TELOPT_NAOLFD = 16;	/* negotiate about output LF disposition */
-		public const int TELOPT_XASCII = 17;	/* extended ascic character set */
-		public const int TELOPT_LOGOUT = 18;	/* force logout */
-		public const int TELOPT_BM = 19;	/* byte macro */
-		public const int TELOPT_DET = 20;	/* data entry terminal */
-		public const int TELOPT_SUPDUP = 21;	/* supdup protocol */
-		public const int TELOPT_SUPDUPOUTPUT = 22;	/* supdup output */
-		public const int TELOPT_SNDLOC = 23;	/* send location */
-		public const int TELOPT_TTYPE = 24;	/* terminal type */
-		public const int TELOPT_EOR = 25;	/* end or record */
+		public const int TELOPT_BINARY = 0; /* 8-bit data path */
+
+		public const int TELOPT_ECHO = 1;   /* echo */
+		public const int TELOPT_RCP = 2;    /* prepare to reconnect */
+		public const int TELOPT_SGA = 3;    /* suppress go ahead */
+		public const int TELOPT_NAMS = 4;   /* approximate message size */
+		public const int TELOPT_STATUS = 5; /* give status */
+		public const int TELOPT_TM = 6; /* timing mark */
+		public const int TELOPT_RCTE = 7;   /* remote controlled transmission and echo */
+		public const int TELOPT_NAOL = 8;   /* negotiate about output line width */
+		public const int TELOPT_NAOP = 9;   /* negotiate about output page size */
+		public const int TELOPT_NAOCRD = 10;    /* negotiate about CR disposition */
+		public const int TELOPT_NAOHTS = 11;    /* negotiate about horizontal tabstops */
+		public const int TELOPT_NAOHTD = 12;    /* negotiate about horizontal tab disposition */
+		public const int TELOPT_NAOFFD = 13;    /* negotiate about formfeed disposition */
+		public const int TELOPT_NAOVTS = 14;    /* negotiate about vertical tab stops */
+		public const int TELOPT_NAOVTD = 15;    /* negotiate about vertical tab disposition */
+		public const int TELOPT_NAOLFD = 16;    /* negotiate about output LF disposition */
+		public const int TELOPT_XASCII = 17;    /* extended ascic character set */
+		public const int TELOPT_LOGOUT = 18;    /* force logout */
+		public const int TELOPT_BM = 19;    /* byte macro */
+		public const int TELOPT_DET = 20;   /* data entry terminal */
+		public const int TELOPT_SUPDUP = 21;    /* supdup protocol */
+		public const int TELOPT_SUPDUPOUTPUT = 22;  /* supdup output */
+		public const int TELOPT_SNDLOC = 23;    /* send location */
+		public const int TELOPT_TTYPE = 24; /* terminal type */
+		public const int TELOPT_EOR = 25;   /* end or record */
 		public const int TELOPT_TUID = 26;      /* TACACS user identification */
 		public const int TELOPT_OUTMRK = 27;      /* output marking */
 		public const int TELOPT_TTYLOC = 28;      /* terminal location number */
@@ -86,12 +82,12 @@ namespace Open3270.TN3270
 		public const int TELOPT_AUTHENTICATION = 37;/* authenticate */
 		public const int TELOPT_ENCRYPT = 38;      /* encryption option */
 		public const int TELOPT_NEW_ENVIRON = 39;   /* new - environment variables */
-		public const int TELOPT_TN3270E = 40;	/* extended 3270 regime */
-		public const int TELOPT_EXOPL = 255;	/* extended-options-list */
-
+		public const int TELOPT_TN3270E = 40;   /* extended 3270 regime */
+		public const int TELOPT_EXOPL = 255;    /* extended-options-list */
 
 		//Negotiation function Names.
 		public const int TN3270E_FUNC_BIND_IMAGE = 0;
+
 		public const int TN3270E_FUNC_DATA_STREAM_CTL = 1;
 		public const int TN3270E_FUNC_RESPONSES = 2;
 		public const int TN3270E_FUNC_SCS_CTL_CODES = 3;
@@ -106,7 +102,7 @@ namespace Open3270.TN3270
 									"IAC"
 								};
 
-		public static readonly string[] TelnetOptions = new string[] 
+		public static readonly string[] TelnetOptions = new string[]
 										  {
 											  "BINARY", "ECHO", "RCP", "SUPPRESS GO AHEAD", "NAME",
 											  "STATUS", "TIMING MARK", "RCTE", "NAOL", "NAOP",
@@ -118,13 +114,11 @@ namespace Open3270.TN3270
 											  "3270 REGIME", "X.3 PAD", "NAWS", "TSPEED", "LFLOW",
 											  "LINEMODE", "XDISPLOC", "OLD-ENVIRON", "AUTHENTICATION",
 											  "ENCRYPT", "NEW-ENVIRON", "TN3270E"
-											  
 										  };
 
-		public static readonly byte[] FunctionsReq = new byte[] { TelnetConstants.IAC, TelnetConstants.SB, TelnetConstants.TELOPT_TN3270E,TnHeader.Ops.Functions };
+		public static readonly byte[] FunctionsReq = new byte[] { TelnetConstants.IAC, TelnetConstants.SB, TelnetConstants.TELOPT_TN3270E, TnHeader.Ops.Functions };
 
 		public static readonly string[] FunctionNames = new string[] { "BIND-IMAGE", "DATA-STREAM-CTL", "RESPONSES", "SCS-CTL-CODES", "SYSREQ" };
-
 
 		public static string GetReason(int reasonCode)
 		{

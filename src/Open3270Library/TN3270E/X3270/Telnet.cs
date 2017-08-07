@@ -1,143 +1,136 @@
-
+using Open3270.Library;
 using System;
 using System.Collections;
-using System.Data;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.IO;
-using System.Threading;
-using System.Security.Cryptography.X509Certificates;
-using System.Linq;
-using Open3270;
-using Open3270.Library;
-using System.Net.Security;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Threading;
 
 namespace Open3270.TN3270
 {
-
 	internal class Telnet : IDisposable
 	{
-
 		#region Fields
 
 		public event TelnetDataDelegate telnetDataEventOccurred;
+
 		public event EventHandler<Connected3270EventArgs> Connected3270;
+
 		public event EventHandler ConnectedLineMode;
+
 		public event EventHandler ConnectionPending;
+
 		public event EventHandler<PrimaryConnectionChangedArgs> PrimaryConnectionChanged;
 
-		SmsState waitState;
-		TN3270State tnState = TN3270State.InNeither;
-		ConnectionState connectionState = ConnectionState.NotConnected;
-		TN3270ESubmode tn3270eSubmode = TN3270ESubmode.None;
-		TelnetState telnetState = TelnetState.Data;
+		private SmsState waitState;
+		private TN3270State tnState = TN3270State.InNeither;
+		private ConnectionState connectionState = ConnectionState.NotConnected;
+		private TN3270ESubmode tn3270eSubmode = TN3270ESubmode.None;
+		private TelnetState telnetState = TelnetState.Data;
 
-		TN3270API telnetApi = null;
-		ConnectionConfig connectionConfig = null;
-
+		private TN3270API telnetApi = null;
+		private ConnectionConfig connectionConfig = null;
 
 		#region Services
 
-		Controller controller = null;
-		Print print = null;
-		Idle idle = null;
-		Actions action = null;
-		Ansi ansi = null;
-		Appres appres;
-		Events events = null;
-		Keyboard keyboard = null;
+		private Controller controller = null;
+		private Print print = null;
+		private Idle idle = null;
+		private Actions action = null;
+		private Ansi ansi = null;
+		private Appres appres;
+		private Events events = null;
+		private Keyboard keyboard = null;
 		private TNTrace trace = null;
 
 		#endregion Services
 
-
-		bool nonTn3270eHost = false;
-		bool parseLogFileOnly = false;
-		bool showParseError;
-		bool isValid = false;
-		bool tn3270eBound = false;
-		bool linemode = false;
-		bool syncing = false;
-		bool tn3270e_negotiated = false;
-		bool logFileProcessorThread_Quit = false;
-		bool closeRequested = false;
-		bool isDisposed = false;
+		private bool nonTn3270eHost = false;
+		private bool parseLogFileOnly = false;
+		private bool showParseError;
+		private bool isValid = false;
+		private bool tn3270eBound = false;
+		private bool linemode = false;
+		private bool syncing = false;
+		private bool tn3270e_negotiated = false;
+		private bool logFileProcessorThread_Quit = false;
+		private bool closeRequested = false;
+		private bool isDisposed = false;
 
 		// ANSI stuff
-		byte vintr;
-		byte vquit;
-		byte verase;
-		byte vkill;
-		byte veof;
-		byte vwerase;
-		byte vrprnt;
-		byte vlnext;
+		private byte vintr;
 
+		private byte vquit;
+		private byte verase;
+		private byte vkill;
+		private byte veof;
+		private byte vwerase;
+		private byte vrprnt;
+		private byte vlnext;
 
-		int port;
-		int bytesReceived;
-		int bytesSent;
-		int currentLUIndex = 0;
-		int eTransmitSequence = 0;
-		int ansiData = 0;
-		int currentOptionMask;
-		int responseRequired = TnHeader.HeaderReponseFlags.NoResponse;
-		int inputBufferIndex = 0;
-		int startedReceivingCount = 0;
+		private int port;
+		private int bytesReceived;
+		private int bytesSent;
+		private int currentLUIndex = 0;
+		private int eTransmitSequence = 0;
+		private int ansiData = 0;
+		private int currentOptionMask;
+		private int responseRequired = TnHeader.HeaderReponseFlags.NoResponse;
+		private int inputBufferIndex = 0;
+		private int startedReceivingCount = 0;
 
-		int[] clientOptions = new int[256];
-		int[] hostOptions = null;
+		private int[] clientOptions = new int[256];
+		private int[] hostOptions = null;
 
-		List<string> lus = null;
+		private List<string> lus = null;
 
-
-
-		string termType = null;
-		string connectedType = null;
-		string reportedType = null;
-		string connectedLu = null;
-		string reportedLu = null;
-		string sourceIP = string.Empty;
-		string address;
-		string disconnectReason = null;
-
+		private string termType = null;
+		private string connectedType = null;
+		private string reportedType = null;
+		private string connectedLu = null;
+		private string reportedLu = null;
+		private string sourceIP = string.Empty;
+		private string address;
+		private string disconnectReason = null;
 
 		//Buffers
-		NetBuffer sbBuffer = null;
-		byte[] byteBuffer = new Byte[32767];
-		byte[] inputBuffer = null;
+		private NetBuffer sbBuffer = null;
+
+		private byte[] byteBuffer = new Byte[32767];
+		private byte[] inputBuffer = null;
 
 		//Telnet predefined messages
-		byte[] doOption = new byte[] { TelnetConstants.IAC, TelnetConstants.DO, 0 };
-		byte[] dontOption = new byte[] { TelnetConstants.IAC, TelnetConstants.DONT, 0 };
-		byte[] willDoOption = new byte[] { TelnetConstants.IAC, TelnetConstants.WILL, 0 };
-		byte[] wontDoOption = new byte[] { TelnetConstants.IAC, TelnetConstants.WONT, 0 };
-		
-		
-		//Sockets
-		 IPEndPoint remoteEndpoint;
-		 IPEndPoint localEndpoint;
-		 AsyncCallback callbackProc;
-		 Socket socketBase;
-		 Stream socketStream;
+		private byte[] doOption = new byte[] { TelnetConstants.IAC, TelnetConstants.DO, 0 };
 
+		private byte[] dontOption = new byte[] { TelnetConstants.IAC, TelnetConstants.DONT, 0 };
+		private byte[] willDoOption = new byte[] { TelnetConstants.IAC, TelnetConstants.WILL, 0 };
+		private byte[] wontDoOption = new byte[] { TelnetConstants.IAC, TelnetConstants.WONT, 0 };
+
+		//Sockets
+		private IPEndPoint remoteEndpoint;
+
+		private IPEndPoint localEndpoint;
+		private AsyncCallback callbackProc;
+		private Socket socketBase;
+		private Stream socketStream;
 
 		//Threading and synchronization fields
-		object receivingPadlock = new object();
-		MySemaphore logFileSemaphore = null;
-		Thread logFileProcessorThread = null;
-		Thread mainThread = null;
-		ManualResetEvent WaitEvent = new ManualResetEvent(false);
-		Queue logClientData = null;
+		private object receivingPadlock = new object();
 
-		object parentData;
+		private MySemaphore logFileSemaphore = null;
+		private Thread logFileProcessorThread = null;
+		private Thread mainThread = null;
+		private ManualResetEvent WaitEvent = new ManualResetEvent(false);
+		private Queue logClientData = null;
+
+		private object parentData;
 
 		#endregion Fields
-
-
-
 
 		#region Simple Properties
 
@@ -188,6 +181,7 @@ namespace Open3270.TN3270
 			get { return keyboard; }
 			set { keyboard = value; }
 		}
+
 		public Appres Appres
 		{
 			get { return appres; }
@@ -205,6 +199,7 @@ namespace Open3270.TN3270
 			get { return parseLogFileOnly; }
 			set { parseLogFileOnly = value; }
 		}
+
 		public TN3270API TelnetApi
 		{
 			get { return telnetApi; }
@@ -233,6 +228,7 @@ namespace Open3270.TN3270
 			get { return lus; }
 			set { lus = value; }
 		}
+
 		public string TermType
 		{
 			get { return termType; }
@@ -243,7 +239,7 @@ namespace Open3270.TN3270
 		{
 			get { return disconnectReason; }
 		}
-		
+
 		public int StartedReceivingCount
 		{
 			get
@@ -256,8 +252,6 @@ namespace Open3270.TN3270
 		}
 
 		#endregion Simple Properties
-
-
 
 		#region Macro-like Properties
 
@@ -301,7 +295,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		public bool IsResolving
 		{
 			get { return ((int)connectionState >= (int)ConnectionState.Resolving); }
@@ -344,9 +337,6 @@ namespace Open3270.TN3270
 
 		#endregion Macro-like Properties
 
-
-
-
 		#region Ctors, Dtors, clean-up
 
 		public Telnet(TN3270API api, IAudit audit, ConnectionConfig config)
@@ -364,7 +354,6 @@ namespace Open3270.TN3270
 					Shift(TelnetConstants.TN3270E_FUNC_RESPONSES) |
 					Shift(TelnetConstants.TN3270E_FUNC_SYSREQ);
 			}
-
 
 			this.disconnectReason = null;
 
@@ -400,22 +389,18 @@ namespace Open3270.TN3270
 			{
 				this.hostOptions[i] = 0;
 			}
-
 		}
-
 
 		~Telnet()
 		{
 			Dispose(false);
 		}
 
-
 		public void Dispose()
 		{
 			this.Dispose(true);
 			GC.SuppressFinalize(this);
 		}
-
 
 		protected virtual void Dispose(bool disposing)
 		{
@@ -430,7 +415,7 @@ namespace Open3270.TN3270
 				this.Disconnect();
 				if (this.controller != null)
 				{
-					this.controller.CursorLocationChanged-=controller_CursorLocationChanged;
+					this.controller.CursorLocationChanged -= controller_CursorLocationChanged;
 					this.controller.Dispose();
 				}
 				if (this.Idle != null)
@@ -447,18 +432,14 @@ namespace Open3270.TN3270
 				{
 					this.ansi.Dispose();
 				}
-
 			}
 		}
 
-		#endregion Ctors
-
-
-
+		#endregion Ctors, Dtors, clean-up
 
 		#region Eventhandlers and similar
 
-		void ReactToConnectionChange(bool success)
+		private void ReactToConnectionChange(bool success)
 		{
 			if (this.IsConnected || this.appres.disconnect_clear)
 			{
@@ -467,11 +448,6 @@ namespace Open3270.TN3270
 		}
 
 		#endregion Eventhandlers and similar
-
-
-
-
-
 
 		#region Public Methods
 
@@ -485,11 +461,9 @@ namespace Open3270.TN3270
 		/// <param name="sourceIP">IP to use as local IP</param>
 		public void Connect(object parameterObjectToSendCallbacks, string hostAddress, int hostPort, string sourceIP)
 		{
-			
 			this.sourceIP = sourceIP;
 			this.Connect(parameterObjectToSendCallbacks, hostAddress, hostPort);
 		}
-
 
 		/// <summary>
 		/// Connects to host at address/port
@@ -520,13 +494,11 @@ namespace Open3270.TN3270
 			this.keyboard.Initialize();
 			ansi.ansi_init();
 
-
 			//Set up colour screen
 			appres.mono = false;
 			appres.m3279 = true;
 			//Set up trace options
 			appres.debug_tracing = true;
-
 
 			//Handle initial toggle settings.
 			if (!appres.debug_tracing)
@@ -578,11 +550,11 @@ namespace Open3270.TN3270
 					try
 					{
 						IPHostEntry hostEntry = Dns.GetHostEntry(address);
-                        IPAddress ipAddress = hostEntry.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+						IPAddress ipAddress = hostEntry.AddressList.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
 
-                        //string[] aliases = hostEntry.Aliases;
+						//string[] aliases = hostEntry.Aliases;
 						//IPAddress[] addr = hostEntry.AddressList;
-                        
+
 						this.remoteEndpoint = new IPEndPoint(/*addr[0]*/ipAddress, port);
 					}
 					catch (System.Net.Sockets.SocketException se)
@@ -601,7 +573,6 @@ namespace Open3270.TN3270
 						throw new TNHostException("Invalid Host TCP/IP address '" + address + "'", se.Message, null);
 					}
 				}
-
 
 				// If a source IP is given then use it for the local IP
 				if (!string.IsNullOrEmpty(sourceIP))
@@ -624,7 +595,7 @@ namespace Open3270.TN3270
 
 				try
 				{
-					// Create New Socket 
+					// Create New Socket
 					socketBase = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 					// Create New EndPoint
 					// Assign Callback function to read from Asyncronous Socket
@@ -633,7 +604,6 @@ namespace Open3270.TN3270
 					this.connectionState = ConnectionState.Resolving;
 					this.socketBase.Bind(localEndpoint);
 					this.socketBase.BeginConnect(remoteEndpoint, callbackProc, socketBase);
-
 				}
 				catch (System.Net.Sockets.SocketException se)
 				{
@@ -646,8 +616,6 @@ namespace Open3270.TN3270
 				}
 			}
 		}
-
-
 
 		public void Disconnect()
 		{
@@ -693,7 +661,6 @@ namespace Open3270.TN3270
 				logFileProcessorThread = null;
 			}
 		}
-
 
 		public bool ParseByte(byte b)
 		{
@@ -745,7 +712,7 @@ namespace Open3270.TN3270
 						}
 						if (connectionState == ConnectionState.ConnectedInitial)
 						{
-							//Now can assume ANSI mode 
+							//Now can assume ANSI mode
 							SetHostState(ConnectionState.ConnectedANSI);
 							keyboard.KeyboardLockClear(KeyboardConstants.AwaitingFirst, "telnet_fsm");
 							controller.ProcessPendingInput();
@@ -1103,7 +1070,6 @@ namespace Open3270.TN3270
 
 								/* Advance to the next LU name. */
 								this.currentLUIndex++;
-
 							}
 							else if (clientOptions[TelnetConstants.TELOPT_TN3270E] != 0 && this.sbBuffer.Data[0] == TelnetConstants.TELOPT_TN3270E)
 							{
@@ -1123,7 +1089,6 @@ namespace Open3270.TN3270
 			return 0;
 		}
 
-
 		public void SendString(string s)
 		{
 			int i;
@@ -1131,12 +1096,10 @@ namespace Open3270.TN3270
 				SendChar(s[i]);
 		}
 
-
 		public void SendChar(char c)
 		{
 			SendByte((byte)c);
 		}
-
 
 		public void SendByte(byte c)
 		{
@@ -1156,7 +1119,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		public void Abort()
 		{
 			byte[] buf = new byte[] { TelnetConstants.IAC, TelnetConstants.AO };
@@ -1173,6 +1135,7 @@ namespace Open3270.TN3270
 					case TN3270ESubmode.None:
 					case TN3270ESubmode.NVT:
 						break;
+
 					case TN3270ESubmode.SSCP:
 						SendRawOutput(buf, buf.Length);
 						trace.trace_dsn("SENT AO\n");
@@ -1183,6 +1146,7 @@ namespace Open3270.TN3270
 							CheckIn3270();
 						}
 						break;
+
 					case TN3270ESubmode.Mode3270:
 						SendRawOutput(buf, buf.Length);
 						trace.trace_dsn("SENT AO\n");
@@ -1203,7 +1167,6 @@ namespace Open3270.TN3270
 			Cook(data, 1);
 		}
 
-
 		/// <summary>
 		/// Sends the KILL character in ANSI mode
 		/// </summary>
@@ -1223,7 +1186,6 @@ namespace Open3270.TN3270
 			data[0] = vwerase;
 			Cook(data, 1);
 		}
-
 
 		/// <summary>
 		/// Send uncontrolled user data to the host in ANSI mode, performing IAC and CR quoting as necessary.
@@ -1250,7 +1212,6 @@ namespace Open3270.TN3270
 					trace.trace_dsn("\n");
 				}
 
-
 				//Expand it.
 				tempBuffer = new byte[2 * length];
 				index = 0;
@@ -1276,10 +1237,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		#endregion Public Methods
-
-
 
 		#region Private Methods
 
@@ -1347,7 +1305,6 @@ namespace Open3270.TN3270
 
 									text = text.Substring(2).Trim();
 								}
-
 							}
 						}
 						else if (text.Substring(9, 2) == "C ")
@@ -1412,7 +1369,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private void ConnectCallback(IAsyncResult ar)
 		{
 			try
@@ -1431,7 +1387,7 @@ namespace Open3270.TN3270
 					this.Net_Connected();
 					this.SetHostState(ConnectionState.ConnectedANSI);
 
-					//Define a new callback to read the data 
+					//Define a new callback to read the data
 					AsyncCallback receiveData = new AsyncCallback(OnReceivedData);
 
 					if (this.Config.UseSSL)
@@ -1458,9 +1414,8 @@ namespace Open3270.TN3270
 					this.OnTelnetData(parentData, TNEvent.Error, "Connect callback returned 'not connected'");
 					// spurious, but to meet spec
 					this.connectionState = ConnectionState.NotConnected;
-					
-					this.OnPrimaryConnectionChanged(false);
 
+					this.OnPrimaryConnectionChanged(false);
 				}
 			}
 			catch (Exception ex)
@@ -1471,7 +1426,6 @@ namespace Open3270.TN3270
 				this.disconnectReason = "exception during telnet connect callback";
 			}
 		}
-
 
 		/// <summary>
 		/// This section is for screen syncronization with the user of this library
@@ -1486,7 +1440,6 @@ namespace Open3270.TN3270
 			}
 			trace.trace_dsn("NotifyStartedReceiving : startedReceivingCount = " + StartedReceivingCount.ToString() + Environment.NewLine);
 		}
-
 
 		/// <summary>
 		/// Called from the socket when data is available
@@ -1561,7 +1514,6 @@ namespace Open3270.TN3270
 
 							for (i = 0; i < nBytesRec; i++)
 							{
-
 								if (this.tnState == TN3270State.InNeither)
 								{
 									this.keyboard.KeyboardLockClear(KeyboardConstants.AwaitingFirst, "telnet_fsm");
@@ -1578,7 +1530,7 @@ namespace Open3270.TN3270
 							}
 						}
 
-						// Define a new Callback to read the data 
+						// Define a new Callback to read the data
 						AsyncCallback receiveData = new AsyncCallback(this.OnReceivedData);
 						// Begin reading data asyncronously
 						this.socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, receiveData, socketStream);
@@ -1597,7 +1549,6 @@ namespace Open3270.TN3270
 				}
 				catch (Exception e)
 				{
-
 					trace.trace_event("%s", "Exception occured processing Telnet buffer. Disconnecting\n\n" + e);
 					disconnectme = true;
 					disconnectReason = "Exception in data stream (" + e.Message + "). Connection dropped.";
@@ -1623,10 +1574,8 @@ namespace Open3270.TN3270
 				}
 
 				this.closeRequested = false;
-
 			}
 		}
-
 
 		protected void OnTelnetData(object parentData, TNEvent eventType, string text)
 		{
@@ -1635,7 +1584,6 @@ namespace Open3270.TN3270
 				this.telnetDataEventOccurred(parentData, eventType, text);
 			}
 		}
-
 
 		private string DumpToString(byte[] data, int length)
 		{
@@ -1647,18 +1595,15 @@ namespace Open3270.TN3270
 			return output;
 		}
 
-
 		private string ToHex(int n)
 		{
 			return String.Format("{0:x2}", n);
 		}
 
-
 		private int Shift(int n)
 		{
 			return (1 << (n));
 		}
-		
 
 		private void SendRawOutput(NetBuffer smk)
 		{
@@ -1666,12 +1611,10 @@ namespace Open3270.TN3270
 			this.SendRawOutput(bytes);
 		}
 
-
 		private void SendRawOutput(byte[] smkBuffer)
 		{
 			this.SendRawOutput(smkBuffer, smkBuffer.Length);
 		}
-
 
 		private void SendRawOutput(byte[] smkBuffer, int length)
 		{
@@ -1697,7 +1640,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private void Store3270Input(byte c)
 		{
 			if (this.inputBufferIndex >= this.inputBuffer.Length)
@@ -1708,7 +1650,6 @@ namespace Open3270.TN3270
 			}
 			this.inputBuffer[inputBufferIndex++] = c;
 		}
-
 
 		private void SetHostState(ConnectionState new_cstate)
 		{
@@ -1722,10 +1663,9 @@ namespace Open3270.TN3270
 			this.OnConnected3270(now3270);
 		}
 
-		void CheckIn3270()
+		private void CheckIn3270()
 		{
 			ConnectionState newConnectionState = ConnectionState.NotConnected;
-
 
 			if (clientOptions[TelnetConstants.TELOPT_TN3270E] != 0)
 			{
@@ -1738,12 +1678,15 @@ namespace Open3270.TN3270
 						case TN3270ESubmode.None:
 							newConnectionState = ConnectionState.ConnectedInitial3270E;
 							break;
+
 						case TN3270ESubmode.NVT:
 							newConnectionState = ConnectionState.ConnectedNVT;
 							break;
+
 						case TN3270ESubmode.Mode3270:
 							newConnectionState = ConnectionState.Connected3270E;
 							break;
+
 						case TN3270ESubmode.SSCP:
 							newConnectionState = ConnectionState.ConnectedSSCP;
 							break;
@@ -1756,18 +1699,18 @@ namespace Open3270.TN3270
 				clientOptions[TelnetConstants.TELOPT_TTYPE] != 0 &&
 				hostOptions[TelnetConstants.TELOPT_BINARY] != 0 &&
 				hostOptions[TelnetConstants.TELOPT_EOR] != 0)
-				{
-					newConnectionState = ConnectionState.Connected3270;
-				}
-				else if (connectionState == ConnectionState.ConnectedInitial)
-				{
-					//Nothing has happened, yet.
-					return;
-				}
-				else
-				{
-					newConnectionState = ConnectionState.ConnectedANSI;
-				}
+			{
+				newConnectionState = ConnectionState.Connected3270;
+			}
+			else if (connectionState == ConnectionState.ConnectedInitial)
+			{
+				//Nothing has happened, yet.
+				return;
+			}
+			else
+			{
+				newConnectionState = ConnectionState.ConnectedANSI;
+			}
 
 			if (newConnectionState != connectionState)
 			{
@@ -1775,7 +1718,6 @@ namespace Open3270.TN3270
 
 				trace.trace_dsn("Now operating in " + newConnectionState + " mode\n");
 				this.SetHostState(newConnectionState);
-
 
 				//If we've now switched between non-TN3270E mode and TN3270E mode, reset the LU list so we can try again in the new mode.
 				if (lus != null && wasInE != IsE)
@@ -1809,7 +1751,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private bool ProcessEOR()
 		{
 			int i;
@@ -1817,7 +1758,6 @@ namespace Open3270.TN3270
 
 			if (!syncing && inputBufferIndex != 0)
 			{
-
 				if (connectionState >= ConnectionState.ConnectedInitial3270E)
 				{
 					TnHeader h = new TnHeader(inputBuffer);
@@ -1836,7 +1776,7 @@ namespace Open3270.TN3270
 									this.responseRequired = h.ResponseFlag;
 									rv = controller.ProcessDS(inputBuffer, TnHeader.EhSize, inputBufferIndex - TnHeader.EhSize);
 									//Console.WriteLine("*** RV = "+rv);
-									//Console.WriteLine("*** response_required = "+response_required);						
+									//Console.WriteLine("*** response_required = "+response_required);
 									if (rv < 0 && responseRequired != TnHeader.HeaderReponseFlags.NoResponse)
 									{
 										this.SendNak();
@@ -1905,7 +1845,6 @@ namespace Open3270.TN3270
 								result = false;
 								break;
 							}
-
 					}
 				}
 				else
@@ -1916,26 +1855,22 @@ namespace Open3270.TN3270
 			return result;
 		}
 
-
-
 		/// <summary>
 		/// Send acknowledgment
 		/// </summary>
-		void SendAck()
+		private void SendAck()
 		{
 			this.Ack(true);
 		}
-
 
 		/// <summary>
 		/// Send a TN3270E negative response to the server
 		/// </summary>
 		/// <param name="rv"></param>
-		void SendNak()
+		private void SendNak()
 		{
 			this.Ack(false);
 		}
-
 
 		/// <summary>
 		/// Sends an ACK or NAK
@@ -2008,12 +1943,10 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private string GetCommand(int index)
 		{
 			return TelnetConstants.TelnetCommands[index - TelnetConstants.TELCMD_FIRST];
 		}
-
 
 		private string GetOption(int index)
 		{
@@ -2029,7 +1962,6 @@ namespace Open3270.TN3270
 			}
 			return option;
 		}
-
 
 		private byte ParseControlCharacter(string s)
 		{
@@ -2049,13 +1981,12 @@ namespace Open3270.TN3270
 				return (byte)s[0];
 		}
 
-
 		/// <summary>
 		/// Send output in ANSI mode, including cooked-mode processing if appropriate.
 		/// </summary>
 		/// <param name="buffer"></param>
 		/// <param name="length"></param>
-		void Cook(byte[] buffer, int length)
+		private void Cook(byte[] buffer, int length)
 		{
 			if (!IsAnsi || (keyboard.keyboardLock & KeyboardConstants.AwaitingFirst) != 0)
 			{
@@ -2070,11 +2001,9 @@ namespace Open3270.TN3270
 			{
 				this.SendCookedOut(buffer, length);
 			}
-
 		}
 
-
-		void AnsiProcessString(string data)
+		private void AnsiProcessString(string data)
 		{
 			int i;
 			for (i = 0; i < data.Length; i++)
@@ -2083,14 +2012,12 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-		void CookedInitialized()
+		private void CookedInitialized()
 		{
 			Console.WriteLine("--bugbug--cooked-init())");
 		}
 
 		#endregion Private Methods
-
 
 		public void Output(NetBuffer obptr)
 		{
@@ -2156,7 +2083,6 @@ namespace Open3270.TN3270
 			bytesSent++;
 		}
 
-
 		public void Break()
 		{
 			byte[] buf = new byte[] { TelnetConstants.IAC, TelnetConstants.BREAK };
@@ -2165,7 +2091,6 @@ namespace Open3270.TN3270
 			SendRawOutput(buf, buf.Length);
 			trace.trace_dsn("SENT BREAK\n");
 		}
-
 
 		public void Interrupt()
 		{
@@ -2176,13 +2101,12 @@ namespace Open3270.TN3270
 			trace.trace_dsn("SENT IP\n");
 		}
 
-
 		/// <summary>
 		/// Send user data out in ANSI mode, without cooked-mode processing.
 		/// </summary>
 		/// <param name="buf"></param>
 		/// <param name="len"></param>
-		void SendCookedOut(byte[] buf, int len)
+		private void SendCookedOut(byte[] buf, int len)
 		{
 			if (appres.Toggled(Appres.DSTrace))
 			{
@@ -2198,12 +2122,10 @@ namespace Open3270.TN3270
 			this.SendRawOutput(buf, len);
 		}
 
-
-
 		/// <summary>
 		/// Send a Telnet window size sub-option negotation.
 		/// </summary>
-		void SendNaws()
+		private void SendNaws()
 		{
 			NetBuffer buffer = new NetBuffer();
 
@@ -2218,13 +2140,12 @@ namespace Open3270.TN3270
 			trace.trace_dsn("SENT %s NAWS %d %d %s\n", GetCommand(TelnetConstants.SB), controller.MaxColumns, controller.MaxRows, GetCommand(TelnetConstants.SE));
 		}
 
-
 		/// <summary>
 		/// Negotiation of TN3270E options.
 		/// </summary>
 		/// <param name="buffer"></param>
 		/// <returns>Returns 0 if okay, -1 if we have to give up altogether.</returns>
-		int Tn3270e_Negotiate(NetBuffer buffer)
+		private int Tn3270e_Negotiate(NetBuffer buffer)
 		{
 			int bufferLength;
 			int capabilitiesRequested;
@@ -2284,7 +2205,6 @@ namespace Open3270.TN3270
 									}
 
 									trace.trace_dsn("IS " + buffer.AsString(3, tnLength) + " CONNECT " + buffer.AsString(3 + tnLength + 1, snLength) + " SE\n");
-
 
 									//Remember the LU
 									if (tnLength != 0)
@@ -2424,9 +2344,7 @@ namespace Open3270.TN3270
 
 			//Good enough for now.
 			return 0;
-
 		}
-
 
 		/// <summary>
 		/// Send a TN3270E terminal type request.
@@ -2467,9 +2385,7 @@ namespace Open3270.TN3270
 				(try_lu != null) ? " CONNECT " : "",
 				(try_lu != null) ? try_lu : "",
 				GetCommand(TelnetConstants.SE));
-
 		}
-
 
 		private string GetFunctionName(int i)
 		{
@@ -2486,7 +2402,6 @@ namespace Open3270.TN3270
 
 			return functionName;
 		}
-
 
 		/// <summary>
 		/// Expand a string of TN3270E function codes into text.
@@ -2514,12 +2429,11 @@ namespace Open3270.TN3270
 			return temp;
 		}
 
-
 		/// <summary>
 		/// Expand the current TN3270E function codes into text.
 		/// </summary>
 		/// <returns></returns>
-		string GetCurrentOptionsAsText()
+		private string GetCurrentOptionsAsText()
 		{
 			int i;
 			string temp = "";
@@ -2540,14 +2454,12 @@ namespace Open3270.TN3270
 			return temp;
 		}
 
-
-
 		/// <summary>
 		/// Transmit a TN3270E FUNCTIONS REQUEST or FUNCTIONS IS message.
 		/// </summary>
 		/// <param name="op"></param>
 		/// <param name="funcs"></param>
-		void Tn3270e_Subneg_Send(byte op, int funcs)
+		private void Tn3270e_Subneg_Send(byte op, int funcs)
 		{
 			byte[] protoBuffer = new byte[7 + 32];
 			int length;
@@ -2582,9 +2494,8 @@ namespace Open3270.TN3270
 				GetCommand(TelnetConstants.SE));
 		}
 
-
 		//Translate a string of TN3270E functions into a bit-map.
-		int tn3270e_fdecode(NetBuffer netbuf)
+		private int tn3270e_fdecode(NetBuffer netbuf)
 		{
 			int r = 0;
 			int i;
@@ -2601,12 +2512,11 @@ namespace Open3270.TN3270
 			return r;
 		}
 
-
 		/// <summary>
 		/// Back off of TN3270E.
 		/// </summary>
 		/// <param name="why"></param>
-		void Backoff_TN3270e(string why)
+		private void Backoff_TN3270e(string why)
 		{
 			trace.trace_dsn("Aborting TN3270E: %s\n", why);
 
@@ -2623,7 +2533,6 @@ namespace Open3270.TN3270
 			this.CheckIn3270();
 		}
 
-
 		protected virtual void OnPrimaryConnectionChanged(bool success)
 		{
 			this.ReactToConnectionChange(success);
@@ -2634,11 +2543,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-		
-		
-
-		
 		protected virtual void OnConnectionPending()
 		{
 			if (this.ConnectionPending != null)
@@ -2647,7 +2551,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-		
 		protected virtual void OnConnected3270(bool is3270)
 		{
 			this.ReactToConnectionChange(is3270);
@@ -2658,10 +2561,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-		
-
-		
 		protected virtual void OnConnectedLineMode()
 		{
 			if (this.ConnectedLineMode != null)
@@ -2669,8 +2568,6 @@ namespace Open3270.TN3270
 				this.ConnectedLineMode(this, EventArgs.Empty);
 			}
 		}
-		
-		
 
 		//public void Status_Changed(StCallback id, bool v)
 		//{
@@ -2687,19 +2584,17 @@ namespace Open3270.TN3270
 		//	}
 		//}
 
-
-		void Host_Connected()
+		private void Host_Connected()
 		{
 			connectionState = ConnectionState.ConnectedInitial;
 			this.OnPrimaryConnectionChanged(true);
 		}
 
-
-		void Net_Connected()
+		private void Net_Connected()
 		{
 			trace.trace_dsn("NETCONNECTED Connected to %s, port %u.\n", this.address, this.port);
 
-			//Set up telnet options 
+			//Set up telnet options
 			int i;
 			for (i = 0; i < clientOptions.Length; i++)
 			{
@@ -2733,11 +2628,9 @@ namespace Open3270.TN3270
 			tn3270eBound = false;
 
 			CheckLineMode(true);
-
 		}
 
-
-		void Host_Disconnect(bool failed)
+		private void Host_Disconnect(bool failed)
 		{
 			if (IsConnected || IsPending)
 			{
@@ -2752,16 +2645,14 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		public void RestartReceive()
 		{
-			// Define a new Callback to read the data 
+			// Define a new Callback to read the data
 			AsyncCallback receiveData = new AsyncCallback(OnReceivedData);
 			// Begin reading data asyncronously
 			socketStream.BeginRead(byteBuffer, 0, byteBuffer.Length, receiveData, socketStream);
 			trace.trace_dsn("\nRestartReceive : SocketStream.BeginRead called to read asyncronously\n");
 		}
-
 
 		public bool WaitForConnect()
 		{
@@ -2776,7 +2667,6 @@ namespace Open3270.TN3270
 			}
 			return true;
 		}
-
 
 		public void test_enter()
 		{
@@ -2797,9 +2687,7 @@ namespace Open3270.TN3270
 				Console.WriteLine("do key");
 				keyboard.HandleAttentionIdentifierKey(AID.Enter);
 			}
-
 		}
-
 
 		public bool WaitFor(SmsState what, int timeout)
 		{
@@ -2822,12 +2710,9 @@ namespace Open3270.TN3270
 				}
 				return false;
 			}
-
 		}
 
-
-
-		bool cryptocallback(
+		private bool cryptocallback(
 			 Object sender,
 			 X509Certificate certificate,
 			 X509Chain chain,
@@ -2837,6 +2722,7 @@ namespace Open3270.TN3270
 		}
 
 		public event EventHandler CursorLocationChanged;
+
 		protected virtual void OnCursorLocationChanged(EventArgs args)
 		{
 			if (this.CursorLocationChanged != null)
@@ -2844,14 +2730,10 @@ namespace Open3270.TN3270
 				this.CursorLocationChanged(this, args);
 			}
 		}
-		
-		void controller_CursorLocationChanged(object sender, EventArgs e)
+
+		private void controller_CursorLocationChanged(object sender, EventArgs e)
 		{
 			this.OnCursorLocationChanged(e);
 		}
-
-
 	}
 }
-
-

@@ -1,10 +1,11 @@
 ﻿#region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright � 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,86 +21,77 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 
 namespace Open3270.TN3270
 {
 	internal class Controller : IDisposable
 	{
-
 		#region Fields
 
-		byte[] screenBuffer;
-		byte[] crmAttributes;
-		byte[] aScreenBuffer = null;
+		private byte[] screenBuffer;
+		private byte[] crmAttributes;
+		private byte[] aScreenBuffer = null;
 
+		private byte attentionID = AID.None;
+		private byte defaultCs = 0;
+		private byte defaultFg = 0;
+		private byte defaultGr = 0;
+		private byte replyMode = 0;
+		private byte fakeFA = 0;
 
-		byte attentionID = AID.None;
-		byte defaultCs = 0;
-		byte defaultFg = 0;
-		byte defaultGr = 0;
-		byte replyMode = 0;
-		byte fakeFA = 0;
+		private bool is3270 = false;
+		private bool isAltBuffer = false;
+		private bool screenAlt = true;
+		private bool isFormatted = false;
+		private bool tracePrimed = false;
+		private bool traceSkipping = false;
+		private bool screenChanged = false;
+		private bool debuggingFont = false;
 
+		private int cursorAddress = 0;
+		private int bufferAddress = 0;
+		private int currentFaIndex = 0;
+		private int maxColumns = 80;
+		private int maxRows = 25;
+		private int modelNumber;
+		private int crmnAttribute;
+		private int rowCount = 25;
+		private int columnCount = 80;
+		private int sscpStart = 0;
+		private int firstChanged = 0;
+		private int lastChanged = 0;
+		private int dataAvailableCount = 0;
+		private long startTime = 0;
 
-		bool is3270 = false;
-		bool isAltBuffer = false;
-		bool screenAlt = true;
-		bool isFormatted = false;
-		bool tracePrimed = false;
-		bool traceSkipping = false;
-		bool screenChanged = false;
-		bool debuggingFont = false;
+		private string modelName = null;
 
+		private ExtendedAttribute[] extendedAttributes;
+		private ExtendedAttribute[] aExtendedAttributeBuffer = null;
+		private ExtendedAttribute[] extendedAttributesZeroBuffer = null;
 
-		int cursorAddress = 0;
-		int bufferAddress = 0;
-		int currentFaIndex = 0;
-		int maxColumns = 80;
-		int maxRows = 25;
-		int modelNumber;
-		int crmnAttribute;
-		int rowCount = 25;
-		int columnCount = 80;
-		int sscpStart = 0;
-		int firstChanged = 0;
-		int lastChanged = 0;
-		int dataAvailableCount = 0;
-		long startTime = 0;
+		private Telnet telnet;
+		private TNTrace trace;
+		private Appres appres;
+		private StructuredField sf;
 
-
-		string modelName = null;
-
-
-		ExtendedAttribute[] extendedAttributes;
-		ExtendedAttribute[] aExtendedAttributeBuffer = null;
-		ExtendedAttribute[] extendedAttributesZeroBuffer = null;
-
-
-		Telnet telnet;
-		TNTrace trace;
-		Appres appres;
-		StructuredField sf;
-		
-		PreviousEnum previous = PreviousEnum.None;
+		private PreviousEnum previous = PreviousEnum.None;
 
 		//For synchonization only
-		object dataAvailablePadlock = new object();
+		private object dataAvailablePadlock = new object();
 
 		#endregion Fields
 
-
-
 		#region Properties
-
 
 		public bool Formatted
 		{
 			get { return isFormatted; }
 			set { isFormatted = value; }
 		}
-
 
 		public byte[] CrmAttributes
 		{
@@ -128,7 +120,7 @@ namespace Open3270.TN3270
 		public int ColumnCount
 		{
 			get { return columnCount; }
-			set { Console.WriteLine("SET COLUMN COUNT="+value);columnCount = value; }
+			set { Console.WriteLine("SET COLUMN COUNT=" + value); columnCount = value; }
 		}
 
 		public bool Is3270
@@ -136,11 +128,13 @@ namespace Open3270.TN3270
 			get { return is3270; }
 			set { is3270 = value; }
 		}
+
 		public int MaxColumns
 		{
 			get { return maxColumns; }
 			set { maxColumns = value; }
 		}
+
 		public int MaxRows
 		{
 			get { return maxRows; }
@@ -164,6 +158,7 @@ namespace Open3270.TN3270
 			get { return cursorAddress; }
 			set { cursorAddress = value; }
 		}
+
 		public byte[] ScreenBuffer
 		{
 			get { return screenBuffer; }
@@ -200,8 +195,6 @@ namespace Open3270.TN3270
 
 		#endregion Properties
 
-
-
 		#region Calculated properties
 
 		public bool IsBlank(byte c)
@@ -209,11 +202,10 @@ namespace Open3270.TN3270
 			return ((c == CharacterGenerator.Null) || (c == CharacterGenerator.Space));
 		}
 
-
 		/// <summary>
 		/// Tell me if there is any data on the screen.
 		/// </summary>
-		bool StreamHasData
+		private bool StreamHasData
 		{
 			get
 			{
@@ -233,12 +225,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		#endregion Calculated properties
-
-
-
-
 
 		#region Ctors, dtors, and clean-up
 
@@ -260,7 +247,7 @@ namespace Open3270.TN3270
 			Dispose(false);
 		}
 
-		bool isDisposed = false;
+		private bool isDisposed = false;
 
 		public void Dispose()
 		{
@@ -291,44 +278,28 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
-		#endregion
+		#endregion IDisposable Members
 
 		#endregion Ctors, dtors, and clean-up
 
-
-
-
-
 		#region Eventhandlers
 
-
-		void telnet_PrimaryConnectionChanged(object sender, PrimaryConnectionChangedArgs e)
+		private void telnet_PrimaryConnectionChanged(object sender, PrimaryConnectionChangedArgs e)
 		{
 			this.ReactToConnectionChange(e.Success);
 		}
 
-
-		void telnet_ConnectionPending(object sender, EventArgs e)
+		private void telnet_ConnectionPending(object sender, EventArgs e)
 		{
 			//Not doing anything here, yet.
 		}
 
-
-		void telnet_Connected3270(object sender, Connected3270EventArgs e)
+		private void telnet_Connected3270(object sender, Connected3270EventArgs e)
 		{
 			this.ReactToConnectionChange(e.Is3270);
 		}
 
 		#endregion Eventhandlers
-
-
-
-
-
-
-
 
 		private void OnAllChanged()
 		{
@@ -340,7 +311,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private void OnRegionChanged(int f, int l)
 		{
 			screenChanged = true;
@@ -351,13 +321,10 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private void OnOneChanged(int n)
 		{
 			OnRegionChanged(n, n + 1);
 		}
-
-
 
 		/// <summary>
 		/// Initialize the emulated 3270 hardware.
@@ -370,7 +337,6 @@ namespace Open3270.TN3270
 			this.telnet.PrimaryConnectionChanged += telnet_PrimaryConnectionChanged;
 			this.telnet.Connected3270 += telnet_Connected3270;
 		}
-
 
 		/// <summary>
 		/// Handles connection state changes, e.g. initial connection, disconnection (or does it?), and connecting with 3270
@@ -401,8 +367,6 @@ namespace Open3270.TN3270
 			crmnAttribute = 0;
 		}
 
-
-
 		/// <summary>
 		/// Reinitialize the emulated 3270 hardware.
 		/// </summary>
@@ -430,14 +394,13 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		/// <summary>
 		/// Deal with the relationships between model numbers and rows/cols.
 		/// </summary>
 		/// <param name="mn"></param>
 		/// <param name="ovc"></param>
 		/// <param name="ovr"></param>
-		void SetRowsAndColumns(int mn, int ovc, int ovr)
+		private void SetRowsAndColumns(int mn, int ovc, int ovr)
 		{
 			int defmod;
 
@@ -480,7 +443,6 @@ namespace Open3270.TN3270
 					}
 			}
 
-
 			if (ovc != 0 || ovr != 0)
 			{
 				throw new ApplicationException("oops - oversize");
@@ -491,11 +453,9 @@ namespace Open3270.TN3270
 			Reinitialize(255);// mfwHACK
 		}
 
-
-
-		//Set the formatted screen flag.  
+		//Set the formatted screen flag.
 		//A formatted screen is a screen thathas at least one field somewhere on it.
-		void SetFormattedFlag()
+		private void SetFormattedFlag()
 		{
 			int baddr;
 
@@ -512,7 +472,6 @@ namespace Open3270.TN3270
 			}
 			while (baddr != 0);
 		}
-
 
 		/// <summary>
 		/// Find the field attribute for the given buffer address.  Return its address rather than its value.
@@ -540,8 +499,6 @@ namespace Open3270.TN3270
 			return -1;// **BUG** &fake_fa;
 		}
 
-
-
 		/// <summary>
 		/// Find the field attribute for the given buffer address, bounded by another buffer address.
 		/// Return the attribute in a parameter.
@@ -550,7 +507,7 @@ namespace Open3270.TN3270
 		/// <param name="bound"></param>
 		/// <param name="faOutIndex"></param>
 		/// <returns>Returns true if an attribute is found, false if boundary hit.</returns>
-		bool GetBoundedFieldAttribute(int bAddr, int bound, ref int faOutIndex)
+		private bool GetBoundedFieldAttribute(int bAddr, int bound, ref int faOutIndex)
 		{
 			int sbaddr;
 
@@ -583,7 +540,6 @@ namespace Open3270.TN3270
 			return false;
 		}
 
-
 		/// <summary>
 		/// Find the next unprotected field.  Returns the address following the unprotected attribute byte,
 		/// or 0 if no nonzero-width unprotected field can be found.
@@ -609,7 +565,6 @@ namespace Open3270.TN3270
 			return 0;
 		}
 
-
 		/// <summary>
 		/// Perform an erase command, which may include changing the (virtual) screen size.
 		/// </summary>
@@ -627,14 +582,14 @@ namespace Open3270.TN3270
 
 			if (alt)
 			{
-				// Going from 24x80 to maximum. 
+				// Going from 24x80 to maximum.
 				// screen_disp(false);
 				rowCount = maxRows;
 				columnCount = maxColumns;
 			}
 			else
 			{
-				// Going from maximum to 24x80. 
+				// Going from maximum to 24x80.
 				/*
 				if (maxRows > 24 || maxColumns > 80)
 				{
@@ -655,7 +610,6 @@ namespace Open3270.TN3270
 			screenAlt = alt;
 		}
 
-
 		/// <summary>
 		/// Interpret an incoming 3270 command.
 		/// </summary>
@@ -672,7 +626,6 @@ namespace Open3270.TN3270
 
 			trace.trace_ds("< ");
 
-
 			// Handle 3270 command
 			if (buf[start] == ControllerConstant.CMD_EAU || buf[start] == ControllerConstant.SNA_CMD_EAU)
 			{
@@ -688,7 +641,6 @@ namespace Open3270.TN3270
 				Erase(true);
 				ProcessWriteCommand(buf, start, bufferLength, true);
 				return PDS.OkayNoOutput;
-
 			}
 			else if (buf[start] == ControllerConstant.CMD_EW || buf[start] == ControllerConstant.SNA_CMD_EW)
 			{
@@ -704,7 +656,6 @@ namespace Open3270.TN3270
 				trace.trace_ds("Write\n");
 				ProcessWriteCommand(buf, start, bufferLength, false);
 				return PDS.OkayNoOutput;
-
 			}
 			else if (buf[start] == ControllerConstant.CMD_RB || buf[start] == ControllerConstant.SNA_CMD_RB)
 			{
@@ -712,7 +663,6 @@ namespace Open3270.TN3270
 				trace.trace_ds("ReadBuffer\n");
 				ProcessReadBufferCommand(attentionID);
 				return PDS.OkayOutput;
-
 			}
 			else if (buf[start] == ControllerConstant.CMD_RM || buf[start] == ControllerConstant.SNA_CMD_RM)
 			{
@@ -720,7 +670,6 @@ namespace Open3270.TN3270
 				trace.trace_ds("ReadModified\n");
 				ProcessReadModifiedCommand(attentionID, false);
 				return PDS.OkayOutput;
-
 			}
 			else if (buf[start] == ControllerConstant.CMD_RMA || buf[start] == ControllerConstant.SNA_CMD_RMA)
 			{
@@ -749,8 +698,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
 		/// <summary>
 		/// Functions to insert SA attributes into the inbound data stream.
 		/// </summary>
@@ -759,7 +706,7 @@ namespace Open3270.TN3270
 		/// <param name="vValue"></param>
 		/// <param name="currentp"></param>
 		/// <param name="anyp"></param>
-		void InsertSaAttribtutes(NetBuffer obptr, byte attr, byte vValue, ref byte currentp, ref bool anyp)
+		private void InsertSaAttribtutes(NetBuffer obptr, byte attr, byte vValue, ref byte currentp, ref bool anyp)
 		{
 			if (vValue != currentp)
 			{
@@ -776,7 +723,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-		void InsertSaAttribtutes(NetBuffer obptr, int baddr, ref byte current_fgp, ref byte current_grp, ref byte current_csp, ref bool anyp)
+		private void InsertSaAttribtutes(NetBuffer obptr, int baddr, ref byte current_fgp, ref byte current_grp, ref byte current_csp, ref bool anyp)
 		{
 			if (replyMode == ControllerConstant.SF_SRM_CHAR)
 			{
@@ -831,7 +778,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		/// <summary>
 		/// Process a 3270 Read-Modified command and transmit the data back to the host.
 		/// </summary>
@@ -856,7 +802,7 @@ namespace Open3270.TN3270
 
 			switch (attentionIDbyte)
 			{
-				//Test request 
+				//Test request
 				case AID.SysReq:
 					{
 						//Soh
@@ -902,7 +848,7 @@ namespace Open3270.TN3270
 						{
 							sendData = false;
 						}
-						
+
 						if (!telnet.IsSscp)
 						{
 							obptr.Add(attentionIDbyte);
@@ -916,7 +862,7 @@ namespace Open3270.TN3270
 						}
 						break;
 					}
-				default:				/* ordinary AID */
+				default:                /* ordinary AID */
 					if (!telnet.IsSscp)
 					{
 						obptr.Add(attentionIDbyte);
@@ -990,8 +936,8 @@ namespace Open3270.TN3270
 						}
 					}
 					else
-					{	
-						//Not modified - skip 
+					{
+						//Not modified - skip
 						do
 						{
 							this.IncrementAddress(ref baddr);
@@ -1053,20 +999,17 @@ namespace Open3270.TN3270
 				}
 			}
 
-		rm_done:
+			rm_done:
 			trace.trace_ds("\n");
 			telnet.Output(obptr);
 		}
-
-
-
 
 		/// <summary>
 		/// Calculate the proper 3270 DS value for an internal field attribute.
 		/// </summary>
 		/// <param name="fa"></param>
 		/// <returns></returns>
-		byte CalculateFA(byte fa)
+		private byte CalculateFA(byte fa)
 		{
 			byte r = 0x00;
 
@@ -1086,7 +1029,6 @@ namespace Open3270.TN3270
 			r |= (byte)((fa & ControllerConstant.FA_INTENSITY) << 2);
 			return r;
 		}
-
 
 		/// <summary>
 		/// Process a 3270 Read-Buffer command and transmit the data back to the host.
@@ -1209,7 +1151,6 @@ namespace Open3270.TN3270
 			telnet.Output(obptr);
 		}
 
-
 		/// <summary>
 		/// Construct a 3270 command to reproduce the current state of the display.
 		/// </summary>
@@ -1300,24 +1241,23 @@ namespace Open3270.TN3270
 			obptr.Add(ControllerConstant.ORDER_IC);
 		}
 
-
 		/// <summary>
 		///	Construct a 3270 command to reproduce the reply mode.
 		/// Returns a bool indicating if one is necessary.
 		/// </summary>
 		/// <param name="obptr"></param>
 		/// <returns></returns>
-		bool TakeReplyModeSnapshot(NetBuffer obptr)
+		private bool TakeReplyModeSnapshot(NetBuffer obptr)
 		{
 			bool success = false;
 
 			if (telnet.Is3270 && replyMode != ControllerConstant.SF_SRM_FIELD)
 			{
 				obptr.Add(ControllerConstant.CMD_WSF);
-				obptr.Add(0x00);	//Implicit length
+				obptr.Add(0x00);    //Implicit length
 				obptr.Add(0x00);
 				obptr.Add(ControllerConstant.SF_SET_REPLY_MODE);
-				obptr.Add(0x00);	//Partition 0
+				obptr.Add(0x00);    //Partition 0
 				obptr.Add(replyMode);
 				if (replyMode == ControllerConstant.SF_SRM_CHAR)
 				{
@@ -1401,7 +1341,6 @@ namespace Open3270.TN3270
 			this.telnet.Keyboard.ResetKeyboardLock(false);
 		}
 
-
 		private void EndText()
 		{
 			if (previous == PreviousEnum.Text)
@@ -1410,13 +1349,11 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		private void EndText(string cmd)
 		{
 			this.EndText();
 			trace.trace_ds(" " + cmd);
 		}
-
 
 		private byte AttributeToFA(byte attr)
 		{
@@ -1427,10 +1364,9 @@ namespace Open3270.TN3270
 				(((attr) >> 2) & ControllerConstant.FA_INTENSITY));
 		}
 
-
 		private void StartFieldWithFA(byte fa)
 		{
-			//current_fa = screen_buf[buffer_addr]; 
+			//current_fa = screen_buf[buffer_addr];
 			currentFaIndex = bufferAddress;
 			AddCharacter(bufferAddress, fa, 0);
 			SetForegroundColor(bufferAddress, 0);
@@ -1439,12 +1375,10 @@ namespace Open3270.TN3270
 			isFormatted = true;
 		}
 
-
 		private void StartField()
 		{
 			this.StartFieldWithFA(ControllerConstant.FA_BASE);
 		}
-
 
 		private void StartFieldWithAttribute(byte attr)
 		{
@@ -1480,7 +1414,6 @@ namespace Open3270.TN3270
 			defaultGr = 0;
 			defaultCs = 0;
 			tracePrimed = true;
-
 
 			trace.WriteLine("::ctlr_write::" + ((DateTime.Now.Ticks - startTime) / 10000) + " " + length + " bytes");
 
@@ -1554,7 +1487,6 @@ namespace Open3270.TN3270
 					IncrementAddress(ref baddr);
 				}
 				while (baddr != 0);
-
 			}
 			if (paren != "(")
 			{
@@ -1572,7 +1504,6 @@ namespace Open3270.TN3270
 					//Start field
 					case ControllerConstant.ORDER_SF:
 						{
-
 							EndText("StartField");
 							if (previous != PreviousEnum.SBA)
 							{
@@ -1724,7 +1655,6 @@ namespace Open3270.TN3270
 								this.SetForegroundColor(bufferAddress, defaultFg);
 								this.ctlr_add_gr(bufferAddress, defaultGr);
 								this.IncrementAddress(ref bufferAddress);
-
 							} while (bufferAddress != baddr);
 
 							currentFaIndex = GetFieldAttribute(bufferAddress);
@@ -1771,7 +1701,7 @@ namespace Open3270.TN3270
 							lastZpt = false;
 							break;
 						}
-					//Graphic escape 
+					//Graphic escape
 					case ControllerConstant.ORDER_GE:
 						{
 							EndText("GraphicEscape ");
@@ -1979,7 +1909,7 @@ namespace Open3270.TN3270
 							break;
 						}
 					//Format control orders
-					case ControllerConstant.FCORDER_SUB:	
+					case ControllerConstant.FCORDER_SUB:
 					case ControllerConstant.FCORDER_DUP:
 					case ControllerConstant.FCORDER_FM:
 					case ControllerConstant.FCORDER_FF:
@@ -2079,9 +2009,6 @@ namespace Open3270.TN3270
 			return rv;
 		}
 
-
-
-
 		private void NotifyDataAvailable()
 		{
 			lock (dataAvailablePadlock)
@@ -2103,7 +2030,6 @@ namespace Open3270.TN3270
 			trace.trace_dsn("NotifyDataAvailable : dataReceivedCount = " + rcvCnt + "  dataAvailableCount = " + DataAvailableCount.ToString() + Environment.NewLine);
 		}
 
-
 		/// <summary>
 		/// Write SSCP-LU data, which is quite a bit dumber than regular 3270 output.
 		/// </summary>
@@ -2118,7 +2044,6 @@ namespace Open3270.TN3270
 			byte c;
 			int baddr;
 			byte fa;
-
 
 			//The 3174 Functionl Description says that anything but NL, NULL, FM, or DUP is to be displayed as a graphic.  However, to deal with
 			//badly-behaved hosts, we filter out SF, IC and SBA sequences, andwe display other control codes as spaces.
@@ -2141,7 +2066,7 @@ namespace Open3270.TN3270
 						}
 						break;
 
-					case ControllerConstant.ORDER_SF:	/* some hosts forget their talking SSCP-LU */
+					case ControllerConstant.ORDER_SF:   /* some hosts forget their talking SSCP-LU */
 						cp++;
 						i++;
 						fa = AttributeToFA(buf[cp]);
@@ -2151,9 +2076,11 @@ namespace Open3270.TN3270
 						this.ctlr_add_gr(bufferAddress, defaultGr);
 						this.IncrementAddress(ref bufferAddress);
 						break;
+
 					case ControllerConstant.ORDER_IC:
 						trace.trace_ds(" InsertCursor%s [ignored]\n", trace.rcba(bufferAddress));
 						break;
+
 					case ControllerConstant.ORDER_SBA:
 						baddr = Util.DecodeBAddress(buf[cp + 1], buf[cp + 2]);
 						trace.trace_ds(" SetBufferAddress%s [ignored]\n", trace.rcba(baddr));
@@ -2208,18 +2135,15 @@ namespace Open3270.TN3270
 			//sms_host_output();
 		}
 
-
-
 		public void ProcessPendingInput()
 		{
 			//Process type ahead queue
-			while (telnet.Keyboard.RunTypeAhead());
+			while (telnet.Keyboard.RunTypeAhead()) ;
 			//Notify script we're ok
 			//Console.WriteLine("--sms_continue");
 
 			this.Continue();
 		}
-
 
 		public void Continue()
 		{
@@ -2229,24 +2153,28 @@ namespace Open3270.TN3270
 				{
 					case SmsState.Idle:
 						break;
+
 					case SmsState.KBWait:
 						if (telnet.IsKeyboardInWait)
 						{
 							telnet.WaitEvent1.Set();
 						}
 						break;
+
 					case SmsState.WaitAnsi:
 						if (telnet.IsAnsi)
 						{
 							telnet.WaitEvent1.Set();
 						}
 						break;
+
 					case SmsState.Wait3270:
 						if (telnet.Is3270 | telnet.IsSscp)
 						{
 							telnet.WaitEvent1.Set();
 						}
 						break;
+
 					case SmsState.Wait:
 						if (!telnet.CanProceed)
 							break;
@@ -2257,6 +2185,7 @@ namespace Open3270.TN3270
 						telnet.WaitEvent1.Set();
 
 						break;
+
 					case SmsState.ConnectWait:
 						if (telnet.IsPending ||
 							(telnet.IsConnected && (telnet.Keyboard.keyboardLock & KeyboardConstants.AwaitingFirst) != 0))
@@ -2264,6 +2193,7 @@ namespace Open3270.TN3270
 						// do stuff
 						telnet.WaitEvent1.Set();
 						break;
+
 					default:
 						Console.WriteLine("**BUGBUG**IGNORED STATE " + telnet.WaitState);
 						break;
@@ -2271,14 +2201,10 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
-
-
-		 /// <summary>
-		 /// Clear the text (non-status) portion of the display.  Also resets the cursor and buffer addresses and extended attributes.
-		 /// </summary>
-		 /// <param name="can_snap"></param>
+		/// <summary>
+		/// Clear the text (non-status) portion of the display.  Also resets the cursor and buffer addresses and extended attributes.
+		/// </summary>
+		/// <param name="can_snap"></param>
 		public void Clear(bool can_snap)
 		{
 			/* Snap any data that is about to be lost into the trace file. */
@@ -2314,12 +2240,10 @@ namespace Open3270.TN3270
 			sscpStart = 0;
 		}
 
-
-
 		/// <summary>
 		/// Fill the screen buffer with blanks.
 		/// </summary>
-		void BlankOutScreen()
+		private void BlankOutScreen()
 		{
 			int i;
 			for (i = 0; i < rowCount * columnCount; i++)
@@ -2333,8 +2257,6 @@ namespace Open3270.TN3270
 			isFormatted = false;
 		}
 
-
-		
 		/// <summary>
 		/// Change a character in the 3270 buffer.
 		/// </summary>
@@ -2369,6 +2291,7 @@ namespace Open3270.TN3270
 		/*
 		 * Change the graphic rendition of a character in the 3270 buffer.
 		 */
+
 		public void ctlr_add_gr(int baddr, byte gr)
 		{
 			if (extendedAttributes[baddr].gr != gr)
@@ -2381,7 +2304,6 @@ namespace Open3270.TN3270
 				//			blink_start();
 			}
 		}
-
 
 		/// <summary>
 		/// Change the foreground color for a character in the 3270 buffer.
@@ -2406,7 +2328,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		/// <summary>
 		/// Change the background color for a character in the 3270 buffer.
 		/// </summary>
@@ -2430,9 +2351,8 @@ namespace Open3270.TN3270
 			}
 		}
 
-	
 		/// <summary>
-		/// Copy a block of characters in the 3270 buffer, optionally including all of the extended attributes.  
+		/// Copy a block of characters in the 3270 buffer, optionally including all of the extended attributes.
 		///(The character set, which is actually kept in the extended attributes, is considered part of the characters here.)
 		/// </summary>
 		/// <param name="fromAddress"></param>
@@ -2483,9 +2403,8 @@ namespace Open3270.TN3270
 				//	unselect(baddr_to, count);
 			}
 
-			
-			 //If we aren't supposed to move all the extended attributes, move the character sets separately.
-			
+			//If we aren't supposed to move all the extended attributes, move the character sets separately.
+
 			if (!moveExtendedAttributes)
 			{
 				for (int i = start; i != end; i += inc)
@@ -2519,7 +2438,6 @@ namespace Open3270.TN3270
 				}
 			}
 		}
-
 
 		/// <summary>
 		/// Erase a region of the 3270 buffer, optionally clearing extended attributes as well.
@@ -2573,22 +2491,21 @@ namespace Open3270.TN3270
 		 * This could be accomplished with ctlr_bcopy() and ctlr_aclear(), but this
 		 * operation is common enough to warrant a separate path.
 		 */
+
 		public void ScrollOne()
 		{
 			throw new ApplicationException("ctlr_scroll not implemented");
 		}
-
 
 		/// <summary>
 		/// Note that a particular region of the screen has changed.
 		/// </summary>
 		/// <param name="start"></param>
 		/// <param name="end"></param>
-		void ScreenRegionChanged(int start, int end)
+		private void ScreenRegionChanged(int start, int end)
 		{
 			OnRegionChanged(start, end);
 		}
-
 
 		/// <summary>
 		/// Swap the regular and alternate screen buffers
@@ -2596,14 +2513,11 @@ namespace Open3270.TN3270
 		/// <param name="alt"></param>
 		public void SwapAltBuffers(bool alt)
 		{
-
 			byte[] stmp;
 			ExtendedAttribute[] etmp;
 
-
 			if (alt != isAltBuffer)
 			{
-
 				stmp = screenBuffer;
 				screenBuffer = aScreenBuffer;
 				aScreenBuffer = stmp;
@@ -2623,7 +2537,6 @@ namespace Open3270.TN3270
 				//		blink_start();
 			}
 		}
-
 
 		/// <summary>
 		/// Set or clear the MDT on an attribute
@@ -2657,12 +2570,10 @@ namespace Open3270.TN3270
 				OnAllChanged();
 		}
 
-
-
 		/// <summary>
 		/// Support for screen-size swapping for scrolling
 		/// </summary>
-		void Shrink()
+		private void Shrink()
 		{
 			int i;
 			for (i = 0; i < rowCount * columnCount; i++)
@@ -2677,12 +2588,14 @@ namespace Open3270.TN3270
 		{
 			get { return AddressToColumn(cursorAddress); }
 		}
+
 		public int CursorY
 		{
 			get { return AddresstoRow(cursorAddress); }
 		}
 
 		public event EventHandler CursorLocationChanged;
+
 		protected virtual void OnCursorLocationChanged()
 		{
 			if (this.CursorLocationChanged != null)
@@ -2690,7 +2603,6 @@ namespace Open3270.TN3270
 				this.CursorLocationChanged(this, EventArgs.Empty);
 			}
 		}
-		
 
 		public void SetCursorAddress(int address)
 		{
@@ -2699,24 +2611,28 @@ namespace Open3270.TN3270
 				cursorAddress = address;
 				this.OnCursorLocationChanged();
 			}
-			
 		}
+
 		public int AddresstoRow(int address)
 		{
 			return ((address) / columnCount);
 		}
+
 		public int AddressToColumn(int address)
 		{
 			return address % columnCount;
 		}
+
 		public int RowColumnToByteAddress(int row, int column)
 		{
 			return (((row) * columnCount) + column);
 		}
+
 		public void IncrementAddress(ref int address)
 		{
 			(address) = ((address) + 1) % (columnCount * rowCount);
 		}
+
 		public void DecrementAddress(ref int address)
 		{
 			(address) = (address != 0) ? (address - 1) : ((columnCount * rowCount) - 1);
@@ -2729,16 +2645,14 @@ namespace Open3270.TN3270
 			{
 				timer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 			}
-
 		}
+
 		public System.Threading.Timer AddTimeout(int milliseconds, System.Threading.TimerCallback callback)
 		{
 			//Console.WriteLine("add timeout");
 			System.Threading.Timer timer = new System.Threading.Timer(callback, this, milliseconds, 0);
 			return timer;
-
 		}
-
 
 		public bool MoveCursor(CursorOp op, int x, int y)
 		{
@@ -2761,9 +2675,9 @@ namespace Open3270.TN3270
 							x = 0;
 						if (y < 0)
 							y = 0;
-						
+
 						bAddress = ((y * columnCount) + x) % (rowCount * columnCount);
-					
+
 						if (op == CursorOp.Exact)
 						{
 							this.SetCursorAddress(bAddress);
@@ -2787,7 +2701,7 @@ namespace Open3270.TN3270
 						{
 							this.SetCursorAddress(GetNextUnprotectedField(cursorAddress));
 						}
-						success= true;
+						success = true;
 						break;
 					}
 				case CursorOp.BackTab:
@@ -2825,11 +2739,10 @@ namespace Open3270.TN3270
 							this.IncrementAddress(ref bAddress);
 							this.SetCursorAddress(bAddress);
 							success = true;
-							
 						}
 						break;
 					}
-					
+
 				default:
 					throw new ApplicationException("Sorry, cursor op '" + op + "' not implemented");
 			}
@@ -2837,12 +2750,8 @@ namespace Open3270.TN3270
 			return success;
 		}
 
-
-
-
 		public void DumpRange(int first, int len, bool in_ascii, byte[] buf, int rel_rows, int rel_cols)
 		{
-
 			bool any = false;
 			byte[] lineBuffer = new byte[this.maxColumns * 3 + 1];
 			int s = 0;
@@ -2903,9 +2812,8 @@ namespace Open3270.TN3270
 			}
 		}
 
-		void DumpRangeXML(int first, int length, bool inAscii, byte[] buffer, int relRows, int relCols)
+		private void DumpRangeXML(int first, int length, bool inAscii, byte[] buffer, int relRows, int relCols)
 		{
-
 			bool any = false;
 			byte[] linebuf = new byte[maxColumns * 3 * 5 + 1];
 			int s = 0;
@@ -2957,9 +2865,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
-		bool DumpFixed(object[] args, string name, bool inAscii, byte[] buffer, int relRows, int relColumns, int cAddress)
+		private bool DumpFixed(object[] args, string name, bool inAscii, byte[] buffer, int relRows, int relColumns, int cAddress)
 		{
 			int row, col, len, rows = 0, cols = 0;
 
@@ -3017,7 +2923,6 @@ namespace Open3270.TN3270
 				return false;
 			}
 
-
 			if (args.Length < 4)
 			{
 				this.DumpRange((row * relColumns) + col, len, inAscii, buffer, relRows, relColumns);
@@ -3035,7 +2940,7 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-		bool DumpField(string name, bool in_ascii)
+		private bool DumpField(string name, bool in_ascii)
 		{
 			int faIndex;
 			byte fa = this.fakeFA;
@@ -3065,13 +2970,12 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-		int DumpFieldAsXML(int address, ExtendedAttribute ea)
+		private int DumpFieldAsXML(int address, ExtendedAttribute ea)
 		{
 			byte fa = this.fakeFA;
 			int faIndex;
 			int start, baddr;
 			int length = 0;
-
 
 			faIndex = GetFieldAttribute(address);
 			if (faIndex != -1)
@@ -3086,14 +2990,13 @@ namespace Open3270.TN3270
 			{
 				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
-
-					if (extendedAttributes[baddr].fg != 0) 
+					if (extendedAttributes[baddr].fg != 0)
 						ea.fg = extendedAttributes[baddr].fg;
-					if (extendedAttributes[baddr].bg != 0) 
+					if (extendedAttributes[baddr].bg != 0)
 						ea.bg = extendedAttributes[baddr].bg;
-					if (extendedAttributes[baddr].cs != 0) 
+					if (extendedAttributes[baddr].cs != 0)
 						ea.cs = extendedAttributes[baddr].cs;
-					if (extendedAttributes[baddr].gr != 0) 
+					if (extendedAttributes[baddr].gr != 0)
 						ea.gr = extendedAttributes[baddr].gr;
 
 					break;
@@ -3127,10 +3030,9 @@ namespace Open3270.TN3270
 					remainingLength -= length;
 				}
 
-
 				this.telnet.Action.action_output("<Field>");
 				this.telnet.Action.action_output("<Location position=\"" + start + "\" left=\"" + AddressToColumn(start) + "\" top=\"" + AddresstoRow(start) + "\" length=\"" + length + "\"/>");
-				
+
 				string temp = "";
 				temp += "<Attributes Base=\"" + fa + "\"";
 
@@ -3185,7 +3087,6 @@ namespace Open3270.TN3270
 			return baddr;
 		}
 
-
 		//endif
 
 		public void Dump()
@@ -3210,6 +3111,7 @@ namespace Open3270.TN3270
 				Console.WriteLine("{0:d2} {1}", y, temp);
 			}
 		}
+
 		public bool AsciiAction(params object[] args)
 		{
 			return this.DumpFixed(args, "Ascii_action", true, screenBuffer, rowCount, columnCount, cursorAddress);
@@ -3273,10 +3175,5 @@ namespace Open3270.TN3270
 			this.telnet.Action.action_output("</XMLScreen>");
 			return true;
 		}
-
-
-
-
-
 	}
 }

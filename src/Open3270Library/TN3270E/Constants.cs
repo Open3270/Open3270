@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace  Open3270.TN3270
+namespace Open3270.TN3270
 {
 	public static class Constants
 	{
@@ -42,8 +39,6 @@ namespace  Open3270.TN3270
 			FunctionKeyIntLUT.Add(TnKey.PA10, 10);
 			FunctionKeyIntLUT.Add(TnKey.PA11, 11);
 			FunctionKeyIntLUT.Add(TnKey.PA12, 12);
-
-
 		}
 	}
 }

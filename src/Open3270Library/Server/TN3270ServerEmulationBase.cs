@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,10 +21,12 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
+using Open3270.Library;
 using System;
 using System.Collections;
-using Open3270.Library;
 
 namespace Open3270.TN3270Server
 {
@@ -33,12 +36,14 @@ namespace Open3270.TN3270Server
 	public abstract class TN3270ServerEmulationBase
 	{
 		private ClientSocket mSocket;
-		private MySemaphore mDataSemaphore = new MySemaphore(0,9999);
+		private MySemaphore mDataSemaphore = new MySemaphore(0, 9999);
 		private Queue mData = new Queue();
+
 		//
 		public TN3270ServerEmulationBase()
 		{
 		}
+
 		public void Init(System.Net.Sockets.Socket sock)
 		{
 			mSocket = new ClientSocket(sock);
@@ -47,14 +52,16 @@ namespace Open3270.TN3270Server
 			mSocket.OnNotify += new ClientSocketNotify(mSocket_OnNotify);
 			mSocket.Start();
 		}
-		
+
 		public virtual void Run()
 		{
 		}
+
 		public abstract TN3270ServerEmulationBase CreateInstance(System.Net.Sockets.Socket sock);
+
 		private void cs_OnData(byte[] data, int Length)
 		{
-			if (data==null)
+			if (data == null)
 			{
 				Console.WriteLine("cs_OnData received disconnect, close down this instance");
 				Disconnect();
@@ -65,30 +72,33 @@ namespace Open3270.TN3270Server
 				AddData(data, Length);
 			}
 		}
+
 		public void Send(string dataStream)
 		{
 			//Console.WriteLine("send "+dataStream);
 			byte[] bytedata = ByteFromData(dataStream);
 			mSocket.Send(bytedata);
 		}
+
 		public void Send(TNServerScreen s)
 		{
 			//Console.WriteLine("send screen");
-			byte[] data = s.AsTN3270Buffer(true,true, _TN3270E);
+			byte[] data = s.AsTN3270Buffer(true, true, _TN3270E);
 			//Console.WriteLine("data.length="+data.Length);
 			mSocket.Send(data);
 		}
 
 		private byte[] ByteFromData(string text)
 		{
-			string[] data = text.Split(new char[] {' '});
+			string[] data = text.Split(new char[] { ' ' });
 			byte[] bytedata = new byte[data.Length];
-			for (int i=0; i<data.Length; i++)
+			for (int i = 0; i < data.Length; i++)
 			{
 				bytedata[i] = (byte)System.Convert.ToInt32(data[i], 16);
 			}
 			return bytedata;
 		}
+
 		public string WaitForKey(TNServerScreen currentScreen)
 		{
 			//Console.WriteLine("--wait for key");
@@ -100,26 +110,26 @@ namespace Open3270.TN3270Server
 				{
 					while (!mDataSemaphore.Acquire(1000))
 					{
-						if (mSocket==null)
+						if (mSocket == null)
 							throw new TN3270ServerException("Connection dropped");
 					}
 					data = (byte[])mData.Dequeue();
 				}
-				while (data==null);
-				if (data[0]==255 && data[1]==253)
+				while (data == null);
+				if (data[0] == 255 && data[1] == 253)
 				{
 					// assume do/will string
-					for (int i=0; i<data.Length; i++)
+					for (int i = 0; i < data.Length; i++)
 					{
-						if (data[i]==253) 
+						if (data[i] == 253)
 						{
 							data[i] = 251; // swap DO to WILL
-							Console.WriteLine("DO "+data[i+1]);
+							Console.WriteLine("DO " + data[i + 1]);
 						}
-						else if (data[i]==251)
+						else if (data[i] == 251)
 						{
 							data[i] = 253; // swap WILL to DO
-							Console.WriteLine("WILL "+data[i+1]);
+							Console.WriteLine("WILL " + data[i + 1]);
 						}
 					}
 					mSocket.Send(data);
@@ -137,19 +147,19 @@ namespace Open3270.TN3270Server
 			//Console.WriteLine("--wait for "+dataStream);
 			while (!mDataSemaphore.Acquire(1000))
 			{
-				if (mSocket==null)
+				if (mSocket == null)
 					throw new TN3270ServerException("Connection dropped");
 			}
 			byte[] data = (byte[])mData.Dequeue();
 
-			for (int count=0; count<dataStream.Length; count++)
+			for (int count = 0; count < dataStream.Length; count++)
 			{
 				byte[] bytedata = ByteFromData(dataStream[count]);
-				
-				if (bytedata.Length==data.Length)
+
+				if (bytedata.Length == data.Length)
 				{
 					bool ok = true;
-					for (int i=0; i<bytedata.Length; i++)
+					for (int i = 0; i < bytedata.Length; i++)
 					{
 						if (bytedata[i] != data[i])
 						{
@@ -161,28 +171,30 @@ namespace Open3270.TN3270Server
 				}
 			}
 			Console.WriteLine("\n\ndata match error");
-			for (int count=0; count<dataStream.Length; count++)
+			for (int count = 0; count < dataStream.Length; count++)
 			{
-				Console.WriteLine("--expected "+dataStream);
+				Console.WriteLine("--expected " + dataStream);
 			}
-			Console.Write(    "--received ");
-			for (int i=0; i<data.Length; i++)
+			Console.Write("--received ");
+			for (int i = 0; i < data.Length; i++)
 			{
 				Console.Write("{0:x2} ", data[i]);
 			}
 			Console.WriteLine();
 			throw new TN3270ServerException("Error reading incoming data stream. Expected data missing. Check console log for details");
 		}
+
 		public void AddData(byte[] data, int length)
 		{
 			byte[] copy = new byte[length];
-			for (int i=0; i<length;i++)
+			for (int i = 0; i < length; i++)
 			{
 				copy[i] = data[i];
 			}
 			mData.Enqueue(copy);
 			mDataSemaphore.Release(1);
 		}
+
 		public void Disconnect()
 		{
 			if (mSocket != null)
@@ -194,19 +206,21 @@ namespace Open3270.TN3270Server
 
 		private void mSocket_OnNotify(string eventName, Message message)
 		{
-			if (eventName=="Disconnect")
+			if (eventName == "Disconnect")
 			{
 				Disconnect();
 			}
 		}
+
 		private bool _TN3270E = false;
+
 		public bool TN3270E
 		{
 			get
 			{
 				return _TN3270E;
 			}
-			set 
+			set
 			{
 				_TN3270E = value;
 			}

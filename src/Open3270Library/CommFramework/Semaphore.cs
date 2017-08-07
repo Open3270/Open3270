@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,7 +21,9 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 using System.Threading;
 
@@ -43,18 +46,25 @@ namespace Open3270.Library
 	internal sealed class MySemaphore
 	{
 		#region Fields
-        private int initialCount; // CFCJR
+
+		private int initialCount; // CFCJR
+
 		// Current count available.
 		private int count;
+
 		// Max slots in the semaphore.
 		private int maxCount;
+
 		// Object used for sync.
 		private readonly object syncLock;
+
 		// Object used for starvation sync.
 		private readonly object starvationLock;
-		#endregion
+
+		#endregion Fields
 
 		#region Constructors
+
 		/// <summary>
 		/// Creates semaphore object with a maxCount
 		/// and set initial count to maxCount.
@@ -76,31 +86,32 @@ namespace Open3270.Library
 		/// This value must be zero or greater
 		/// and less than or equal to maximumCount.
 		/// </param>
-        /// <param name="maxCount">
+		/// <param name="maxCount">
 		/// Maximum count for the semaphore object.
 		/// This value must be greater than zero.
 		/// </param>
 		public MySemaphore(int initialCount, int maxCount)
 		{
-			if ( initialCount < 0 )
-				throw new 
+			if (initialCount < 0)
+				throw new
 					ArgumentOutOfRangeException("initialCount", "initialCount must be >= 0.");
-			if ( maxCount < 1 )
+			if (maxCount < 1)
 				throw new ArgumentOutOfRangeException("maxCount", "maxCount must be >= 1.");
-			if ( initialCount > maxCount)
-				throw new 
-					ArgumentOutOfRangeException("initialCount", "initialCount" + 
+			if (initialCount > maxCount)
+				throw new
+					ArgumentOutOfRangeException("initialCount", "initialCount" +
 					" must be <= maxCount.");
 			count = initialCount;
-            this.initialCount = initialCount; // CFCJR
+			this.initialCount = initialCount; // CFCJR
 			this.maxCount = maxCount;
 			syncLock = new object();
 			starvationLock = new object();
 		}
 
-		#endregion
+		#endregion Constructors
 
 		#region Properties
+
 		/// <summary>
 		/// Gets the current available count (or slots)
 		/// in the semaphore. A count of zero means that no slots
@@ -114,7 +125,7 @@ namespace Open3270.Library
 		{
 			get
 			{
-				lock(syncLock)
+				lock (syncLock)
 				{
 					return count;
 				}
@@ -130,21 +141,21 @@ namespace Open3270.Library
 			get { return maxCount; }
 		}
 
-		#endregion
+		#endregion Properties
 
 		#region Public Methods
 
 		/// <summary>
-        /// Resets the semaphore to it's initial count
-        /// </summary>
-        public void Reset() //CFCJR
-        {
-            lock (syncLock)
-            {
-                count = initialCount;
-                Monitor.PulseAll(syncLock);
-            }
-        }
+		/// Resets the semaphore to it's initial count
+		/// </summary>
+		public void Reset() //CFCJR
+		{
+			lock (syncLock)
+			{
+				count = initialCount;
+				Monitor.PulseAll(syncLock);
+			}
+		}
 
 		/// <summary>
 		/// Acquires semaphore and decrements count by 1.
@@ -173,7 +184,7 @@ namespace Open3270.Library
 		/// </exception>
 		public bool Acquire(int millisecondsTimeout)
 		{
-			lock(syncLock)
+			lock (syncLock)
 			{
 				// Use spin lock instead of an if test, to handle
 				// rogue/barging threads that can enter
@@ -183,8 +194,8 @@ namespace Open3270.Library
 				// would regain the lock and continue and
 				// decrease the count to -1 which is an error.
 				// The while loop/test prevents this.
-                while (count == 0)
-                {
+				while (count == 0)
+				{
 					try
 					{
 						if (!Monitor.Wait(syncLock, millisecondsTimeout))
@@ -209,10 +220,10 @@ namespace Open3270.Library
 						// decide how to handle exception.
 						throw;
 					}
-                }
+				}
 				count--;
-				if ( count == 0 )
-					lock(starvationLock) { Monitor.PulseAll(starvationLock); }
+				if (count == 0)
+					lock (starvationLock) { Monitor.PulseAll(starvationLock); }
 				return true;
 			}
 		}
@@ -256,28 +267,28 @@ namespace Open3270.Library
 			{
 				try
 				{
-					if (! Acquire(timeout) )
+					if (!Acquire(timeout))
 					{
 						// Could not acquire all slots,
 						// release any we may already have got.
-						if ( slotsGot > 0 )
+						if (slotsGot > 0)
 							Release(slotsGot);
 						return false;
 					}
 					else
 					{
-                        if (timeout > 0) // if not Timeout.Infinite
-                        {
-						elapsedMS = (int)((TimeSpan)
-							(DateTime.Now - start)).TotalMilliseconds;
-						timeout = millisecondsTimeout - elapsedMS;
-						// Next wait will be a smaller timeout.
+						if (timeout > 0) // if not Timeout.Infinite
+						{
+							elapsedMS = (int)((TimeSpan)
+								(DateTime.Now - start)).TotalMilliseconds;
+							timeout = millisecondsTimeout - elapsedMS;
+							// Next wait will be a smaller timeout.
 
-                            if (timeout < 0)
-							timeout = 0;
-						// Next Acquire will return
-						// false if we have to wait;
-                        }
+							if (timeout < 0)
+								timeout = 0;
+							// Next Acquire will return
+							// false if we have to wait;
+						}
 
 						slotsGot++;
 						// If we get all remaining slots
@@ -287,13 +298,13 @@ namespace Open3270.Library
 				catch
 				{
 					// Catch any exception during Acquire wait.
-					if ( slotsGot > 0 )
+					if (slotsGot > 0)
 						Release(slotsGot);
 					throw;
 				}
 			} // end for.
-			// Count is now zero, so notify any/all starvation consumers.
-			lock(starvationLock) { Monitor.PulseAll(starvationLock); }
+			  // Count is now zero, so notify any/all starvation consumers.
+			lock (starvationLock) { Monitor.PulseAll(starvationLock); }
 			return true;
 		}
 
@@ -316,19 +327,19 @@ namespace Open3270.Library
 		/// </exception>
 		/// <exception cref="ArgumentOutOfRangeException">
 		/// The releaseCount would cause
-		/// the semaphore's count to exceed maxCount. 
+		/// the semaphore's count to exceed maxCount.
 		/// </exception>
 		public void Release(int releaseCount)
 		{
-			if ( releaseCount < 1 )
-				throw new 
+			if (releaseCount < 1)
+				throw new
 					ArgumentOutOfRangeException("releaseCount", "releaseCount must be >= 1.");
 
-			lock(syncLock)
+			lock (syncLock)
 			{
-				if ( (count + releaseCount) > maxCount )
-					throw new 
-						ArgumentOutOfRangeException("releaseCount", "releaseCount" + 
+				if ((count + releaseCount) > maxCount)
+					throw new
+						ArgumentOutOfRangeException("releaseCount", "releaseCount" +
 						" would cause the semaphore's count to exceed maxCount.");
 				count += releaseCount;
 				Monitor.PulseAll(syncLock);
@@ -355,12 +366,12 @@ namespace Open3270.Library
 		/// slots; otherwise false.</returns>
 		public bool TryRelease(int releaseCount)
 		{
-			if ( releaseCount <= 0 )
+			if (releaseCount <= 0)
 				return false;
 
-			lock(syncLock)
+			lock (syncLock)
 			{
-				if ( (count + releaseCount) > maxCount )
+				if ((count + releaseCount) > maxCount)
 					return false;
 				else
 					count += releaseCount;
@@ -382,7 +393,7 @@ namespace Open3270.Library
 		/// </summary>
 		public void ReleaseAll()
 		{
-			lock(syncLock)
+			lock (syncLock)
 			{
 				count = maxCount;
 				Monitor.PulseAll(syncLock);
@@ -406,22 +417,23 @@ namespace Open3270.Library
 		/// </summary>
 		public void WaitForStarvation()
 		{
-			lock(starvationLock)
+			lock (starvationLock)
 			{
 				// We will block until count is 0.
 				// We use Interlocked just to be sure
 				// we test for zero correctly as we
 				// are not in the syncLock context.
-				if ( Interlocked.CompareExchange(ref count, 0, 0) != 0 )
+				if (Interlocked.CompareExchange(ref count, 0, 0) != 0)
 					Monitor.Wait(starvationLock);
 				// Any Exception during wait will
 				// just go to caller.  Do not need to signal
 				// any other threads as PulseAll(starvationLock) is used.
 				// Also note we don't do a spin
-				// while() test as we only care that 
+				// while() test as we only care that
 				// count *did go to zero at some instant.
 			}
 		}
-		#endregion
+
+		#endregion Public Methods
 	} // class SemephoreDijkstra
 }

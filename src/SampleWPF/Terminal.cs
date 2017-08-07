@@ -1,22 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Open3270;
+﻿using Open3270;
 using Open3270.TN3270;
+using System;
+using System.ComponentModel;
 using System.Diagnostics;
-
+using System.Threading.Tasks;
 
 namespace TerminalDemo
 {
 	public class Terminal : INotifyPropertyChanged
 	{
-		Open3270.TNEmulator emu = new TNEmulator();
-		string screenText;
-		bool isConnected;
-		bool isConnecting;
+		private Open3270.TNEmulator emu = new TNEmulator();
+		private string screenText;
+		private bool isConnected;
+		private bool isConnecting;
 
 		public Terminal()
 		{
@@ -25,8 +21,7 @@ namespace TerminalDemo
 			this.emu.CursorLocationChanged += emu_CursorLocationChanged;
 		}
 
-
-		void emu_Disconnected(TNEmulator where, string Reason)
+		private void emu_Disconnected(TNEmulator where, string Reason)
 		{
 			this.IsConnected = false;
 			this.IsConnecting = false;
@@ -35,7 +30,6 @@ namespace TerminalDemo
 
 		public void Connect()
 		{
-
 			emu.Config.FastScreenMode = true;
 
 			//Retrieve host settings
@@ -76,8 +70,6 @@ namespace TerminalDemo
 			}
 		}
 
-
-
 		/// <summary>
 		/// Indicates when the terminal is connected to the host.
 		/// </summary>
@@ -93,7 +85,6 @@ namespace TerminalDemo
 				this.OnPropertyChanged("IsConnected");
 			}
 		}
-
 
 		/// <summary>
 		/// This is the text buffer to display.
@@ -111,9 +102,7 @@ namespace TerminalDemo
 			}
 		}
 
-
-
-		int caretIndex;
+		private int caretIndex;
 
 		public int CaretIndex
 		{
@@ -127,9 +116,6 @@ namespace TerminalDemo
 				this.OnPropertyChanged("CaretIndex");
 			}
 		}
-
-
-
 
 		#region INotifyPropertyChanged
 
@@ -145,8 +131,6 @@ namespace TerminalDemo
 
 		#endregion INotifyPropertyChanged
 
-
-
 		/// <summary>
 		/// Sends text to the terminal.
 		/// This is used for typical alphanumeric text entry.
@@ -157,7 +141,6 @@ namespace TerminalDemo
 			this.emu.SetText(text);
 			this.ScreenText = this.emu.CurrentScreenXML.Dump();
 		}
-
 
 		/// <summary>
 		/// Sends a character to the terminal.
@@ -181,11 +164,10 @@ namespace TerminalDemo
 			this.Refresh(100);
 		}
 
-	
 		/// <summary>
 		/// Forces a refresh and updates the screen display
 		/// </summary>
-		/// <param name="screenCheckInterval">This is the speed in milliseconds at which the library will poll 
+		/// <param name="screenCheckInterval">This is the speed in milliseconds at which the library will poll
 		/// to determine if we have a valid screen of data to display.</param>
 		public void Refresh(int screenCheckInterval)
 		{
@@ -198,14 +180,12 @@ namespace TerminalDemo
 			this.UpdateCaretIndex();
 		}
 
-
 		public void UpdateCaretIndex()
 		{
-			
 			this.CaretIndex = this.emu.CursorY * 81 + this.emu.CursorX;
 		}
 
-		void emu_CursorLocationChanged(object sender, EventArgs e)
+		private void emu_CursorLocationChanged(object sender, EventArgs e)
 		{
 			this.UpdateCaretIndex();
 		}

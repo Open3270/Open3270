@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,8 +21,8 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
+
+#endregion License
 
 namespace Open3270.TN3270
 {
@@ -30,7 +31,6 @@ namespace Open3270.TN3270
 	/// </summary>
 	internal class Util
 	{
-
 		/// <summary>
 		/// Expands a character in the manner of "cat -v".
 		/// </summary>
@@ -41,30 +41,29 @@ namespace Open3270.TN3270
 			string p = "";
 
 			c &= 0xff;
-			if ((c & 0x80)!=0 && (c <= 0xa0)) 
+			if ((c & 0x80) != 0 && (c <= 0xa0))
 			{
-				p+= "M-";
+				p += "M-";
 				c &= 0x7f;
 			}
-			if (c >= ' ' && c != 0x7f) 
+			if (c >= ' ' && c != 0x7f)
 			{
-				p+=System.Convert.ToChar((char)c);
-			} 
-			else 
+				p += System.Convert.ToChar((char)c);
+			}
+			else
 			{
-				p+= "^";
-				if (c == 0x7f) 
+				p += "^";
+				if (c == 0x7f)
 				{
-					p+= "?";
-				} 
-				else 
+					p += "?";
+				}
+				else
 				{
-					p+= ""+System.Convert.ToChar((char)c) + "@";
+					p += "" + System.Convert.ToChar((char)c) + "@";
 				}
 			}
 			return p;
 		}
-
 
 		public static int DecodeBAddress(byte c1, byte c2)
 		{
@@ -77,7 +76,6 @@ namespace Open3270.TN3270
 				return (int)(((c1 & 0x3F) << 6) | (c2 & 0x3F));
 			}
 		}
-
 
 		public static void EncodeBAddress(NetBuffer ptr, int addr)
 		{
@@ -92,6 +90,5 @@ namespace Open3270.TN3270
 				ptr.Add(ControllerConstant.CodeTable[(addr) & 0x3F]);
 			}
 		}
-
 	}
 }
