@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace TerminalDemo
 {
-	class AttachedProperties
+	internal class AttachedProperties
 	{
-
 		public static int GetCaretLocation(DependencyObject obj)
 		{
 			return (int)obj.GetValue(CaretLocationProperty);
@@ -36,7 +31,6 @@ namespace TerminalDemo
 					tb.CaretIndex = (int)e.NewValue;
 				}
 			}));
-
 		}
 	}
 }

@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TerminalDemo
+﻿namespace TerminalDemo
 {
 	public class FieldIndices
 	{
-
 		public static class Login
 		{
 			public static int Username = 18;
@@ -17,6 +10,7 @@ namespace TerminalDemo
 			public static int Language = 29;
 			public static int NewPassword = 34;
 		}
+
 		public static class Lord
 		{
 			public static int Command = 1;

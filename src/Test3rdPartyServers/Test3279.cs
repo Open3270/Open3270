@@ -1,5 +1,5 @@
-﻿using System;
-using Open3270;
+﻿using Open3270;
+using System;
 
 namespace Test3rdPartyServers
 {
@@ -8,6 +8,7 @@ namespace Test3rdPartyServers
 		public Test3279()
 		{
 		}
+
 		public void Run()
 		{
 			TNEmulator emulator = new TNEmulator();
@@ -40,7 +41,6 @@ namespace Test3rdPartyServers
 				string currentScreen = emulator.CurrentScreenXML.Dump();
 				Console.WriteLine(currentScreen);
 
-
 				Console.WriteLine("Enter command : - refresh, text <text>, key <key>, quit");
 				Console.WriteLine("key is one of : Attn, Backspace,BackTab,CircumNot,Clear,CursorSelect,Delete,DeleteField, DeleteWord,Down,Dup,Enter,Erase,EraseEOF,EraseInput,FieldEnd, FieldMark,FieldExit,Home,Insert,Interrupt,Key,Left,Left2,Newline,NextWord, PAnn, PFnn, PreviousWord,Reset,Right,Right2,SysReq,Tab,Toggle,ToggleInsert,ToggleReverse,Up");
 
@@ -64,8 +64,8 @@ namespace Test3rdPartyServers
 			}
 			while (!done);
 			emulator.Close();
-
 		}
+
 		#region IAudit Members
 
 		public void WriteLine(string text)
@@ -78,8 +78,6 @@ namespace Test3rdPartyServers
 			Console.Write(text);
 		}
 
-		#endregion
-	
-
+		#endregion IAudit Members
 	}
 }
