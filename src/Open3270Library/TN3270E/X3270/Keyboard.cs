@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,48 +21,39 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
-using System.Text;
 using System.Collections;
+using System.Text;
 using System.Threading;
 
 namespace Open3270.TN3270
 {
-
 	internal class Keyboard : IDisposable
 	{
-		Telnet telnet;
-		TNTrace trace;
-		Actions action;
-
-
+		private Telnet telnet;
+		private TNTrace trace;
+		private Actions action;
 
 		public int keyboardLock = KeyboardConstants.NotConnected;
 
+		private bool insertMode = false;
+		private bool reverseMode = false;
+		private bool flipped = false;
 
-		bool insertMode = false;
-		bool reverseMode = false;
-		bool flipped = false;
+		private int PF_SZ;
+		private int PA_SZ;
 
-		int PF_SZ;
-		int PA_SZ;
+		private Composing composing = Composing.None;
 
-		Composing composing = Composing.None;
+		private Queue taQueue = new Queue();
 
-		Queue taQueue = new Queue();
-
-		System.Threading.Timer unlock_id = null;
-
-
-
-
-
-
-
+		private System.Threading.Timer unlock_id = null;
 
 #if N_COMPOSITES
-		internal class composite 
+		internal class composite
 		{
 			public akeysym k1, k2;
 			public  akeysym translation;
@@ -69,10 +61,6 @@ namespace Open3270.TN3270
 		composite[] composites = null;
 		int n_composites = 0;
 #endif
-
-
-
-
 
 		#region Ctors, dtors, and clean-up
 
@@ -94,7 +82,6 @@ namespace Open3270.TN3270
 
 		#endregion Ctors, dtors, and clean-up
 
-
 		public Actions Actions
 		{
 			set
@@ -103,15 +90,12 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
 		public bool AkEq(AKeySym k1, AKeySym k2)
 		{
 			return ((k1.keysym == k2.keysym) && (k1.keytype == k2.keytype));
 		}
 
-
-		byte FromHex(char c)
+		private byte FromHex(char c)
 		{
 			const string dx1 = "0123456789abcdef";
 			const string dx2 = "0123456789ABCDEF";
@@ -126,10 +110,9 @@ namespace Open3270.TN3270
 				throw new ApplicationException("sorry, '" + c + "' isn't a valid hex digit");
 			}
 			return (byte)index;
-
 		}
 
-		bool IsXDigit(char ch)
+		private bool IsXDigit(char ch)
 		{
 			string ok = "0123456789ABCDEFabcdef";
 			if (ok.IndexOf((char)ch) != -1)
@@ -142,7 +125,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-		bool IsDigit(char ch)
+		private bool IsDigit(char ch)
 		{
 			if (ch >= '0' && ch <= '9')
 			{
@@ -154,15 +137,12 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
-
 		/// <summary>
 		/// Put an action on the typeahead queue.
 		/// </summary>
 		/// <param name="fn"></param>
 		/// <param name="args"></param>
-		void EnqueueTypeAheadAction(ActionDelegate fn, params object[] args)
+		private void EnqueueTypeAheadAction(ActionDelegate fn, params object[] args)
 		{
 			// If no connection, forget it.
 			if (!this.telnet.IsConnected)
@@ -200,7 +180,6 @@ namespace Open3270.TN3270
 			this.telnet.Trace.trace_event("  action queued (kybdlock 0x" + keyboardLock + ")\n");
 		}
 
-
 		/// <summary>
 		/// Execute an action from the typeahead queue.
 		/// </summary>
@@ -222,12 +201,11 @@ namespace Open3270.TN3270
 			return success;
 		}
 
-
 		/// <summary>
 		/// Flush the typeahead queue.  Returns whether or not anything was flushed.
 		/// </summary>
 		/// <returns></returns>
-		bool FlushTypeAheadQueue()
+		private bool FlushTypeAheadQueue()
 		{
 			bool any = false;
 			if (taQueue.Count > 0)
@@ -282,7 +260,6 @@ namespace Open3270.TN3270
 
 			//push_string(text, false, is_hex);
 			this.EmulateInput(text, false);
-
 		}
 
 		/// <summary>
@@ -323,8 +300,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
 		/// <summary>
 		/// Set or clear enter-inhibit mode.
 		/// </summary>
@@ -340,8 +315,6 @@ namespace Open3270.TN3270
 				this.KeyboardLockClear(KeyboardConstants.EnterInhibit, "kybd_inhibit");
 			}
 		}
-
-
 
 		/// <summary>
 		/// Called when a host connects or disconnects.
@@ -368,7 +341,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		/// <summary>
 		/// Called when we switch between 3270 and ANSI modes.
 		/// </summary>
@@ -382,7 +354,6 @@ namespace Open3270.TN3270
 			this.KeyboardLockClear(-1, "kybd_connect");
 		}
 
-
 		/// <summary>
 		/// Called to initialize the keyboard logic.
 		/// </summary>
@@ -392,18 +363,15 @@ namespace Open3270.TN3270
 			this.telnet.Connected3270 += telnet_Connected3270;
 		}
 
-
-		void telnet_Connected3270(object sender, Connected3270EventArgs e)
+		private void telnet_Connected3270(object sender, Connected3270EventArgs e)
 		{
 			this.SwitchMode3270(e.Is3270);
 		}
 
-
-		void telnet_PrimaryConnectionChanged(object sender, PrimaryConnectionChangedArgs e)
+		private void telnet_PrimaryConnectionChanged(object sender, PrimaryConnectionChangedArgs e)
 		{
 			this.ConnectedStateChanged(e.Success);
 		}
-
 
 		/// <summary>
 		/// Lock the keyboard because of an operator error.
@@ -426,7 +394,6 @@ namespace Open3270.TN3270
 				//ring_bell();
 			}
 		}
-
 
 		/// <summary>
 		/// Handle an AID (Attention IDentifier) key.  This is the common stuff that gets executed for all AID keys (PFs, PAs, Clear and etc).
@@ -487,8 +454,6 @@ namespace Open3270.TN3270
 			this.telnet.Controller.ProcessReadModifiedCommand(this.telnet.Controller.AttentionID, false);
 		}
 
-
-
 		public bool PFAction(params object[] args)
 		{
 			int k;
@@ -539,7 +504,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// ATTN key, per RFC 2355.  Sends IP, regardless.
 		/// </summary>
@@ -554,7 +518,6 @@ namespace Open3270.TN3270
 			}
 			return false;
 		}
-
 
 		/// <summary>
 		/// IAC IP, which works for 5250 System Request and interrupts the program on an AS/400, even when the keyboard is locked.
@@ -572,9 +535,7 @@ namespace Open3270.TN3270
 			return false;
 		}
 
-
-
-		bool WrapCharacter(int cgcode)
+		private bool WrapCharacter(int cgcode)
 		{
 			bool with_ge = false;
 			bool pasting = false;
@@ -595,7 +556,6 @@ namespace Open3270.TN3270
 				Util.ControlSee((byte)Tables.Cg2Ascii[cgcode]));
 			return HandleOrdinaryCharacter(cgcode, with_ge, pasting);
 		}
-
 
 		/// <summary>
 		/// Handle an ordinary displayable character key.  Lots of stuff to handle: insert-mode, protected fields and etc.
@@ -708,7 +668,6 @@ namespace Open3270.TN3270
 						this.telnet.Controller.CopyBlock(address, address + 1, ((this.telnet.Controller.RowCount * this.telnet.Controller.ColumnCount) - 1) - address, false);
 					}
 				}
-
 			}
 
 			// Replace leading nulls with blanks, if desired.
@@ -795,14 +754,13 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Handle an ordinary character key, given an ASCII code.
 		/// </summary>
 		/// <param name="character"></param>
 		/// <param name="keytype"></param>
 		/// <param name="cause"></param>
-		void HandleAsciiCharacter(byte character, KeyType keytype, EIAction cause)
+		private void HandleAsciiCharacter(byte character, KeyType keytype, EIAction cause)
 		{
 			AKeySym keySymbol = new AKeySym();
 
@@ -822,14 +780,14 @@ namespace Open3270.TN3270
 						if (ak_eq(composites[i].k1, ak) ||
 							ak_eq(composites[i].k2, ak))
 							break;
-					if (i < n_composites) 
+					if (i < n_composites)
 					{
 						cc_first.keysym = c;
 						cc_first.keytype = keytype;
 						composing = enum_composing.FIRST;
 //						status_compose(true, c, keytype);
-					} 
-					else 
+					}
+					else
 #endif
 						{
 							composing = Composing.None;
@@ -849,12 +807,12 @@ namespace Open3270.TN3270
 							ak_eq(composites[i].k2, cc_first)))
 							break;
 					}
-					if (i < n_composites) 
+					if (i < n_composites)
 					{
 						c = composites[i].translation.keysym;
 						keytype = composites[i].translation.keytype;
-					} 
-					else 
+					}
+					else
 #endif
 						{
 							return;
@@ -882,8 +840,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
 		/// <summary>
 		/// Simple toggles.
 		/// </summary>
@@ -895,7 +851,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Flip the display left-to-right
 		/// </summary>
@@ -906,8 +861,6 @@ namespace Open3270.TN3270
 			//			screen_flip();
 			return true;
 		}
-
-
 
 		public bool TabForwardAction(params object[] args)
 		{
@@ -924,7 +877,6 @@ namespace Open3270.TN3270
 			this.telnet.Controller.SetCursorAddress(this.telnet.Controller.GetNextUnprotectedField(this.telnet.Controller.CursorAddress));
 			return true;
 		}
-
 
 		/// <summary>
 		/// Tab backward to previous field.
@@ -948,7 +900,7 @@ namespace Open3270.TN3270
 			}
 			baddr = this.telnet.Controller.CursorAddress;
 			this.telnet.Controller.DecrementAddress(ref baddr);
-			if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[baddr]))	/* at bof */
+			if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[baddr]))    /* at bof */
 			{
 				this.telnet.Controller.DecrementAddress(ref baddr);
 			}
@@ -975,20 +927,17 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Deferred keyboard unlock.
 		/// </summary>
 		/// <param name="state"></param>
-		void DeferUnlock(object state)
+		private void DeferUnlock(object state)
 		{
 			lock (telnet)
 			{
 				// Only actually process the event if the keyboard is currently unlocked...
 				if ((this.telnet.Keyboard.keyboardLock | KeyboardConstants.DeferredUnlock) == KeyboardConstants.DeferredUnlock)
 				{
-
 					this.telnet.Trace.WriteLine("--debug--defer_unlock");
 					KeyboardLockClear(KeyboardConstants.DeferredUnlock, "defer_unlock");
 					//status_reset();
@@ -1001,11 +950,8 @@ namespace Open3270.TN3270
 				{
 					this.telnet.Trace.WriteLine("--debug--defer_unlock ignored");
 				}
-
 			}
 		}
-
-
 
 		public void ResetKeyboardLock(bool explicitvalue)
 		{
@@ -1031,7 +977,6 @@ namespace Open3270.TN3270
 				}
 			}
 
-
 			//Always clear insert mode.
 			this.insertMode = false;
 
@@ -1047,7 +992,6 @@ namespace Open3270.TN3270
 			{
 				this.telnet.Controller.RemoveTimeOut(unlock_id);
 			}
-
 
 			//If explicit (from the keyboard), unlock the keyboard now.
 			//Otherwise (from the host), schedule a deferred keyboard unlock.
@@ -1070,13 +1014,11 @@ namespace Open3270.TN3270
 			composing = Composing.None;
 		}
 
-
 		public bool ResetAction(params object[] args)
 		{
 			ResetKeyboardLock(true);
 			return true;
 		}
-
 
 		/// <summary>
 		/// Move to first unprotected field on screen.
@@ -1104,19 +1046,15 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
-
 		/// <summary>
 		/// Cursor left 1 position.
 		/// </summary>
-		void MoveLeft()
+		private void MoveLeft()
 		{
 			int address = this.telnet.Controller.CursorAddress;
 			this.telnet.Controller.DecrementAddress(ref address);
 			this.telnet.Controller.SetCursorAddress(address);
 		}
-
 
 		public bool LeftAction(params object[] args)
 		{
@@ -1141,12 +1079,11 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Delete char key.
 		/// </summary>
 		/// <returns> Returns "true" if succeeds, "false" otherwise.</returns>
-		bool DeleteCharacter()
+		private bool DeleteCharacter()
 		{
 			int address;
 			int endAddress;
@@ -1166,7 +1103,6 @@ namespace Open3270.TN3270
 					this.telnet.Controller.AddCharacter(address, CharacterGenerator.Null, 0);
 				}
 			}
-
 
 			if (FieldAttribute.IsProtected(fa) || FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]))
 			{
@@ -1212,7 +1148,6 @@ namespace Open3270.TN3270
 			return false;
 		}
 
-
 		public bool DeleteAction(params object[] args)
 		{
 			if (this.keyboardLock != 0)
@@ -1246,7 +1181,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		public bool BackSpaceAction(params object[] args)
 		{
 			if (this.keyboardLock != 0)
@@ -1277,8 +1211,6 @@ namespace Open3270.TN3270
 			}
 			return true;
 		}
-
-
 
 		/// <summary>
 		/// Destructive backspace, like Unix "erase".
@@ -1321,7 +1253,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Move cursor right
 		/// </summary>
@@ -1354,7 +1285,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Move cursor left 2 positions.
 		/// </summary>
@@ -1382,8 +1312,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Move cursor to previous word.
 		/// </summary>
@@ -1395,7 +1323,6 @@ namespace Open3270.TN3270
 			int address0;
 			byte c;
 			bool prot;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -1461,9 +1388,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
-
 		/// <summary>
 		/// Move cursor right 2 positions.
 		/// </summary>
@@ -1489,14 +1413,12 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Find the next unprotected word
 		/// </summary>
 		/// <param name="baseAddress"></param>
 		/// <returns>-1 if unsuccessful</returns>
-		int FindNextUnprotectedWord(int baseAddress)
+		private int FindNextUnprotectedWord(int baseAddress)
 		{
 			int address0 = baseAddress;
 			byte c;
@@ -1516,20 +1438,17 @@ namespace Open3270.TN3270
 					return baseAddress;
 				}
 				this.telnet.Controller.IncrementAddress(ref baseAddress);
-
 			} while (baseAddress != address0);
 
 			return -1;
 		}
-
-
 
 		/// <summary>
 		/// Find the next word in this field
 		/// </summary>
 		/// <param name="baseAddress"></param>
 		/// <returns>-1 when unsuccessful</returns>
-		int FindNextWordInField(int baseAddress)
+		private int FindNextWordInField(int baseAddress)
 		{
 			int address0 = baseAddress;
 			byte c;
@@ -1563,8 +1482,6 @@ namespace Open3270.TN3270
 
 			return -1;
 		}
-
-
 
 		/// <summary>
 		/// Cursor to next unprotected word.
@@ -1648,8 +1565,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Cursor up 1 position.
 		/// </summary>
@@ -1682,8 +1597,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Cursor down 1 position.
 		/// </summary>
@@ -1710,8 +1623,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Cursor to first field on next line or any lines after that.
 		/// </summary>
@@ -1722,7 +1633,6 @@ namespace Open3270.TN3270
 			int address;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -1736,8 +1646,8 @@ namespace Open3270.TN3270
 				return false;
 			}
 
-			address = (this.telnet.Controller.CursorAddress + this.telnet.Controller.ColumnCount) % (this.telnet.Controller.ColumnCount * this.telnet.Controller.RowCount);	/* down */
-			address = (address / this.telnet.Controller.ColumnCount) * this.telnet.Controller.ColumnCount;			/* 1st col */
+			address = (this.telnet.Controller.CursorAddress + this.telnet.Controller.ColumnCount) % (this.telnet.Controller.ColumnCount * this.telnet.Controller.RowCount); /* down */
+			address = (address / this.telnet.Controller.ColumnCount) * this.telnet.Controller.ColumnCount;          /* 1st col */
 			faIndex = this.telnet.Controller.GetFieldAttribute(address);
 
 			if (faIndex != -1)
@@ -1754,8 +1664,6 @@ namespace Open3270.TN3270
 			}
 			return true;
 		}
-
-
 
 		/// <summary>
 		/// DUP key
@@ -1776,7 +1684,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// FM key
 		/// </summary>
@@ -1796,8 +1703,6 @@ namespace Open3270.TN3270
 			this.HandleOrdinaryCharacter(CharacterGenerator.fm, false, false);
 			return true;
 		}
-
-
 
 		/// <summary>
 		/// Vanilla AID keys
@@ -1820,7 +1725,6 @@ namespace Open3270.TN3270
 			}
 			return true;
 		}
-
 
 		public bool SystemRequestAction(params object[] args)
 		{
@@ -1849,8 +1753,6 @@ namespace Open3270.TN3270
 			}
 			return true;
 		}
-
-
 
 		/// <summary>
 		/// Clear AID key
@@ -1887,13 +1789,11 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Cursor Select key (light pen simulator).
 		/// </summary>
 		/// <param name="address"></param>
-		void LightPenSelect(int address)
+		private void LightPenSelect(int address)
 		{
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
@@ -1919,29 +1819,32 @@ namespace Open3270.TN3270
 
 			switch (sel)
 			{
-				case CharacterGenerator.GreaterThan:		/* > */
+				case CharacterGenerator.GreaterThan:        /* > */
 					this.telnet.Controller.AddCharacter(designator, CharacterGenerator.QuestionMark, 0); /* change to ? */
 					this.telnet.Controller.MDTClear(this.telnet.Controller.ScreenBuffer, faIndex);
 					break;
-				case CharacterGenerator.QuestionMark:		/* ? */
-					this.telnet.Controller.AddCharacter(designator, CharacterGenerator.GreaterThan, 0);	/* change to > */
+
+				case CharacterGenerator.QuestionMark:       /* ? */
+					this.telnet.Controller.AddCharacter(designator, CharacterGenerator.GreaterThan, 0); /* change to > */
 					this.telnet.Controller.MDTClear(this.telnet.Controller.ScreenBuffer, faIndex);
 					break;
-				case CharacterGenerator.Space:		/* space */
-				case CharacterGenerator.Null:		/* null */
+
+				case CharacterGenerator.Space:      /* space */
+				case CharacterGenerator.Null:       /* null */
 					this.HandleAttentionIdentifierKey(AID.SELECT);
 					break;
-				case CharacterGenerator.Ampersand:		/* & */
+
+				case CharacterGenerator.Ampersand:      /* & */
 					this.telnet.Controller.SetMDT(this.telnet.Controller.ScreenBuffer, faIndex);
 					this.HandleAttentionIdentifierKey(AID.Enter);
 					break;
+
 				default:
 					//ring_bell();
 					break;
 			}
 			return;
 		}
-
 
 		/// <summary>
 		/// Cursor Select key (light pen simulator) -- at the current cursor location.
@@ -1950,7 +1853,6 @@ namespace Open3270.TN3270
 		/// <returns></returns>
 		public bool CursorSelectAction(params object[] args)
 		{
-
 			if (this.keyboardLock != 0)
 			{
 				this.EnqueueTypeAheadAction(new ActionDelegate(CursorSelectAction), args);
@@ -1965,8 +1867,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Erase End Of Field Key.
 		/// </summary>
@@ -1977,7 +1877,6 @@ namespace Open3270.TN3270
 			int address;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -2027,8 +1926,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Erase all Input Key.
 		/// </summary>
@@ -2039,7 +1936,6 @@ namespace Open3270.TN3270
 			int address, sbAddress;
 			byte fa = this.telnet.Controller.FakeFA;
 			Boolean f;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -2090,12 +1986,11 @@ namespace Open3270.TN3270
 						} while (!FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]));
 					}
 					else
-					{	/* skip protected */
+					{   /* skip protected */
 						do
 						{
 							this.telnet.Controller.IncrementAddress(ref address);
 						} while (!FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[address]));
-
 					}
 				} while (address != sbAddress);
 
@@ -2112,11 +2007,8 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
-
 		/// <summary>
-		/// Delete word key.  Backspaces the cursor until it hits the front of a word, deletes characters until it hits a blank or null, 
+		/// Delete word key.  Backspaces the cursor until it hits the front of a word, deletes characters until it hits a blank or null,
 		///and deletes all of these but the last. Which is to say, does a ^W.
 		/// </summary>
 		/// <param name="args"></param>
@@ -2126,8 +2018,6 @@ namespace Open3270.TN3270
 			int address, address2, frontAddress, backAddress, endAddress;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
-
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -2169,7 +2059,7 @@ namespace Open3270.TN3270
 			}
 
 			//If we ran into the edge of the field without seeing any non-blanks,
-			//there isn't any word to delete; just move the cursor. 
+			//there isn't any word to delete; just move the cursor.
 			if (FieldAttribute.IsFA(this.telnet.Controller.ScreenBuffer[frontAddress]))
 			{
 				this.telnet.Controller.SetCursorAddress(frontAddress + 1);
@@ -2233,10 +2123,8 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
-		/// Delete field key.  Similar to EraseEOF, but it wipes out the entire field rather than just 
+		/// Delete field key.  Similar to EraseEOF, but it wipes out the entire field rather than just
 		/// to the right of the cursor, and it leaves the cursor at the front of the field.
 		/// </summary>
 		/// <param name="args"></param>
@@ -2246,7 +2134,6 @@ namespace Open3270.TN3270
 			int address;
 			byte fa = this.telnet.Controller.FakeFA;
 			int faIndex;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -2297,8 +2184,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Set insert mode key.
 		/// </summary>
@@ -2306,7 +2191,6 @@ namespace Open3270.TN3270
 		/// <returns></returns>
 		public bool InsertAction(params object[] args)
 		{
-
 			if (this.keyboardLock != 0)
 			{
 				this.EnqueueTypeAheadAction(new ActionDelegate(this.InsertAction), args);
@@ -2322,8 +2206,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Toggle insert mode key.
 		/// </summary>
@@ -2331,7 +2213,6 @@ namespace Open3270.TN3270
 		/// <returns></returns>
 		public bool ToggleInsertAction(params object[] args)
 		{
-
 			if (this.keyboardLock != 0)
 			{
 				this.EnqueueTypeAheadAction(new ActionDelegate(this.ToggleInsertAction), args);
@@ -2355,8 +2236,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Toggle reverse mode key.
 		/// </summary>
@@ -2364,7 +2243,6 @@ namespace Open3270.TN3270
 		/// <returns></returns>
 		public bool ToggleReverseAction(params object[] args)
 		{
-
 			if (this.keyboardLock != 0)
 			{
 				this.EnqueueTypeAheadAction(new ActionDelegate(this.ToggleReverseAction), args);
@@ -2380,8 +2258,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Move the cursor to the first blank after the last nonblank in the field, or if the field is full, to the last character in the field.
 		/// </summary>
@@ -2394,7 +2270,6 @@ namespace Open3270.TN3270
 			byte fa = this.telnet.Controller.FakeFA;
 			byte c;
 			int lastNonBlank = -1;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -2457,7 +2332,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// MoveCursor action.  Depending on arguments, this is either a move to the mouse cursor position, or to an absolute location.
 		/// </summary>
@@ -2467,7 +2341,6 @@ namespace Open3270.TN3270
 		{
 			int address;
 			int row, col;
-
 
 			if (this.keyboardLock != 0)
 			{
@@ -2512,8 +2385,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Key action.
 		/// </summary>
@@ -2524,7 +2395,6 @@ namespace Open3270.TN3270
 			int i;
 			int k;
 			KeyType keytype;
-
 
 			for (i = 0; i < args.Length; i++)
 			{
@@ -2546,14 +2416,13 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Translate a keysym name to a keysym, including APL and extended characters.
 		/// </summary>
 		/// <param name="s"></param>
 		/// <param name="keytypep"></param>
 		/// <returns></returns>
-		int StringToKeySymbol(string s, out KeyType keytypep)
+		private int StringToKeySymbol(string s, out KeyType keytypep)
 		{
 			throw new NotImplementedException();
 		}
@@ -2584,8 +2453,6 @@ namespace Open3270.TN3270
 			return ok;
 		}
 
-
-
 		public bool HexStringAction(params object[] args)
 		{
 			int i;
@@ -2611,7 +2478,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
 		/// <summary>
 		/// Dual-mode action for the "asciicircum" ("^") key:
 		/// If in ANSI mode, pass through untranslated.
@@ -2636,7 +2502,7 @@ namespace Open3270.TN3270
 		/// PA key action for String actions
 		/// </summary>
 		/// <param name="n"></param>
-		void DoPA(int n)
+		private void DoPA(int n)
 		{
 			if (n < 1 || n > PA_SZ)
 			{
@@ -2655,7 +2521,7 @@ namespace Open3270.TN3270
 		/// PF key action for String actions
 		/// </summary>
 		/// <param name="n"></param>
-		void DoFunctionKey(int n)
+		private void DoFunctionKey(int n)
 		{
 			if (n < 1 || n > PF_SZ)
 			{
@@ -2664,19 +2530,17 @@ namespace Open3270.TN3270
 			}
 			if (this.keyboardLock != 0)
 			{
-
 				this.EnqueueTypeAheadAction(new ActionDelegate(PFAction), n.ToString());
 				return;
 			}
 			this.HandleAttentionIdentifierKey(KeyboardConstants.PfTranslation[n - 1]);
 		}
 
-
 		/// <summary>
 		///  Set or clear the keyboard scroll lock.
 		/// </summary>
 		/// <param name="lockflag"></param>
-		void ToggleScrollLock(bool lockflag)
+		private void ToggleScrollLock(bool lockflag)
 		{
 			if (telnet.Is3270)
 			{
@@ -2691,20 +2555,18 @@ namespace Open3270.TN3270
 			}
 		}
 
-
 		/// <summary>
 		/// Move the cursor back within the legal paste area.
 		/// </summary>
 		/// <param name="lMargin"></param>
 		/// <returns>Returns a bool indicating success.</returns>
-		bool RemarginCursor(int lMargin)
+		private bool RemarginCursor(int lMargin)
 		{
 			bool ever = false;
 			int address = 0;
 			int b0 = 0;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
-
 
 			address = this.telnet.Controller.CursorAddress;
 			while (this.telnet.Controller.AddressToColumn(address) < lMargin)
@@ -2731,15 +2593,13 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		/// <summary>
 		/// Pretend that a sequence of keys was entered at the keyboard.
 		/// "Pasting" means that the sequence came from the X clipboard.  Returns are ignored; newlines mean
-		/// "move to beginning of next line"; tabs and formfeeds become spaces.  Backslashes are not special, 
+		/// "move to beginning of next line"; tabs and formfeeds become spaces.  Backslashes are not special,
 		/// but ASCII ESC characters are used to signify 3270 Graphic Escapes.
 		/// "Not pasting" means that the sequence is a login string specified in the hosts file, or a parameter
-		/// to the String action.  Returns are "move to beginning of next line"; newlines mean "Enter AID" and 
+		/// to the String action.  Returns are "move to beginning of next line"; newlines mean "Enter AID" and
 		/// the termination of processing the string.  Backslashes are processed as in C.
 		/// </summary>
 		/// <param name="args"></param>
@@ -2756,9 +2616,7 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
-		int EmulateInput(string s, bool pasting)
+		private int EmulateInput(string s, bool pasting)
 		{
 			char c;
 
@@ -2770,11 +2628,9 @@ namespace Open3270.TN3270
 			int originalColumn = this.telnet.Controller.AddressToColumn(this.telnet.Controller.CursorAddress);
 			int length = s.Length;
 
-
 			//In the switch statements below, "break" generally means "consume this character," while "continue" means "rescan this character."
 			while (s.Length > 0)
 			{
-
 				//It isn't possible to unlock the keyboard from a string, so if the keyboard is locked, it's fatal
 				if (this.keyboardLock != 0)
 				{
@@ -2788,7 +2644,6 @@ namespace Open3270.TN3270
 
 				if (pasting && this.telnet.Is3270)
 				{
-
 					// Check for cursor wrap to top of screen
 					if (this.telnet.Controller.CursorAddress < originalAddress)
 					{
@@ -2888,7 +2743,7 @@ namespace Open3270.TN3270
 								{
 									// APL left bracket
 
-									//MFW 
+									//MFW
 									/* if (pasting && appres.apl_mode)
 									   key_ACharacter((byte) XK_Yacute,KT_GE, ia);
 							   else*/
@@ -2899,7 +2754,7 @@ namespace Open3270.TN3270
 								{
 									// APL right bracket
 
-									//MFW 
+									//MFW
 									/* if (pasting && appres.apl_mode)
 									   key_ACharacter((byte) XK_diaeresis, KT_GE, ia);
 							   else*/
@@ -2913,6 +2768,7 @@ namespace Open3270.TN3270
 								}
 						}
 						break;
+
 					case EIState.Backslash:
 						{
 							//Last character was a backslash */
@@ -2975,6 +2831,7 @@ namespace Open3270.TN3270
 										state = EIState.Base;
 									}
 									break;
+
 								case 'v':
 									{
 										this.telnet.Events.ShowError("String_action: Vertical tab not supported");
@@ -3189,6 +3046,7 @@ namespace Open3270.TN3270
 						state = EIState.Base;
 					}
 					break;
+
 				case EIState.BackPA:
 					if (nc > 0)
 					{
@@ -3196,6 +3054,7 @@ namespace Open3270.TN3270
 						state = EIState.Base;
 					}
 					break;
+
 				default:
 					break;
 			}
@@ -3208,20 +3067,16 @@ namespace Open3270.TN3270
 			return length;
 		}
 
-
-
-
 		/// <summary>
 		/// Pretend that a sequence of hexadecimal characters was entered at the keyboard.  The input is a sequence
-		///	of hexadecimal bytes, 2 characters per byte.  If connected in ANSI mode, these are treated as ASCII 
+		///	of hexadecimal bytes, 2 characters per byte.  If connected in ANSI mode, these are treated as ASCII
 		/// characters; if in 3270 mode, they are considered EBCDIC.
-		/// 
+		///
 		/// Graphic Escapes are handled as \E.
 		/// </summary>
 		/// <param name="s"></param>
-		void HexInput(string s)
+		private void HexInput(string s)
 		{
-
 			bool escaped;
 			byte[] xBuffer = null;
 			int bufferIndex = 0;
@@ -3309,11 +3164,6 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
-
-
-
 		/// <summary>
 		/// FieldExit for the 5250-like emulation.
 		/// Erases from the current cursor position to the end of the field, and moves the cursor to the beginning of the next field.
@@ -3325,7 +3175,6 @@ namespace Open3270.TN3270
 			int address;
 			int faIndex;
 			byte fa = this.telnet.Controller.FakeFA;
-
 
 			if (this.telnet.IsAnsi)
 			{
@@ -3377,8 +3226,6 @@ namespace Open3270.TN3270
 			return true;
 		}
 
-
-
 		public bool FieldsAction(params object[] args)
 		{
 			byte fa = this.telnet.Controller.FakeFA;
@@ -3411,13 +3258,10 @@ namespace Open3270.TN3270
 
 				index++;
 				fieldpos = newfield;
-
 			} while (true);
 
 			return true;
 		}
-
-
 
 		public bool FieldGetAction(params object[] args)
 		{
@@ -3466,7 +3310,6 @@ namespace Open3270.TN3270
 
 						length++;
 						this.telnet.Controller.IncrementAddress(ref address);
-
 					} while (address != start);
 
 					this.telnet.Controller.DumpRange(start, length, true, this.telnet.Controller.ScreenBuffer, this.telnet.Controller.RowCount, this.telnet.Controller.ColumnCount);
@@ -3476,18 +3319,14 @@ namespace Open3270.TN3270
 
 				index++;
 				fieldpos = newfield;
-
 			} while (true);
 
 			this.telnet.Events.ShowError("FieldGet: Field %d not found", fieldnumber);
 			return true;
 		}
 
-
-
 		public bool FieldSetAction(params object[] args)
 		{
-
 			int fieldnumber = (int)args[0];
 			string fielddata = (string)args[1];
 			int fieldpos = 0;
@@ -3520,23 +3359,11 @@ namespace Open3270.TN3270
 
 				index++;
 				fieldpos = newfield;
-
 			} while (true);
 
 			this.telnet.Events.ShowError("FieldGet: Field %d not found", fieldnumber);
 			return true;
 		}
-
-
-
-
-
-
-
-
-
-
-
 
 		#region Nested Classes
 
@@ -3550,6 +3377,7 @@ namespace Open3270.TN3270
 		{
 			public ActionDelegate fn;
 			public object[] args;
+
 			public TAItem(ActionDelegate fn, object[] args)
 			{
 				this.fn = fn;
@@ -3558,9 +3386,5 @@ namespace Open3270.TN3270
 		}
 
 		#endregion Nested Classes
-
-
-
-
 	}
 }

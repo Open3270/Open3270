@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,7 +21,9 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -28,6 +31,7 @@ using System.Net.Sockets;
 namespace Open3270.Library
 {
 	internal delegate void OnConnectionDelegate(ClientSocket sock);
+
 	internal delegate void OnConnectionDelegateRAW(Socket sock);
 
 	internal enum ServerSocketType
@@ -35,25 +39,30 @@ namespace Open3270.Library
 		RAW,
 		ClientServer
 	}
+
 	/// <summary>
 	/// Summary description for ServerSocket.
 	/// </summary>
 	internal class ServerSocket
 	{
 		public event OnConnectionDelegate OnConnect;
+
 		public event OnConnectionDelegateRAW OnConnectRAW;
-		Socket mSocket;
-		ServerSocketType mSocketType;
-		private AsyncCallback callbackProc ;
+
+		private Socket mSocket;
+		private ServerSocketType mSocketType;
+		private AsyncCallback callbackProc;
 
 		public ServerSocket()
 		{
 			mSocketType = ServerSocketType.ClientServer;
 		}
+
 		public ServerSocket(ServerSocketType socketType)
 		{
 			mSocketType = socketType;
 		}
+
 		public void Close()
 		{
 			try
@@ -66,38 +75,38 @@ namespace Open3270.Library
 			}
 			mSocket = null;
 		}
+
 		public void Listen(int port)
 		{
 			//IPHostEntry lipa = Dns.Resolve("host.contoso.com");
 			IPEndPoint lep = new IPEndPoint(IPAddress.Any, port);
 
-			mSocket				= new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			mSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 			// Create New EndPoint
 			// This is a non blocking IO
-			mSocket.Blocking		= false ;	
+			mSocket.Blocking = false;
 
 			mSocket.Bind(lep);
 			//
 			mSocket.Listen(1000);
 			//
 			// Assign Callback function to read from Asyncronous Socket
-			callbackProc	= new AsyncCallback(ConnectCallback);
+			callbackProc = new AsyncCallback(ConnectCallback);
 			//
 			mSocket.BeginAccept(callbackProc, null);
 		}
-		private void ConnectCallback( IAsyncResult ar )
+
+		private void ConnectCallback(IAsyncResult ar)
 		{
 			Socket newSocket = null;
 			try
 			{
-
 				try
 				{
 					newSocket = mSocket.EndAccept(ar);
 				}
 				catch (System.ObjectDisposedException)
 				{
-					
 					//Console.WriteLine("Server socket error - ConnectCallback failed "+ee.Message);
 					mSocket = null;
 					return;
@@ -127,7 +136,7 @@ namespace Open3270.Library
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine("Exception occured in AcceptCallback\n"+e);
+					Console.WriteLine("Exception occured in AcceptCallback\n" + e);
 					newSocket.Close();
 					newSocket = null;
 				}

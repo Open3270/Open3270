@@ -1,10 +1,11 @@
 ﻿#region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright � 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,10 +21,11 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using Open3270.TN3270;
 using System;
-using System.IO;
 
 namespace Open3270
 {
@@ -45,11 +47,13 @@ namespace Open3270
 		/// </summary>
 		/// <value>The name of the screen</value>
 		string Name { get; }
+
 		/// <summary>
 		/// Returns a formatted text string representing the screen image
 		/// </summary>
 		/// <returns>The textual representation of the screen</returns>
 		string Dump();
+
 		/// <summary>
 		/// Streams the screen out to a TextWriter file
 		/// </summary>
@@ -65,9 +69,7 @@ namespace Open3270
 		/// <returns></returns>
 		string GetText(int x, int y, int length);
 
-
-
-	   /// <summary>
+		/// <summary>
 		/// Does the text on the screen contain this text.
 		/// </summary>
 		/// <param name="offset"></param>
@@ -83,8 +85,7 @@ namespace Open3270
 		/// <returns>StringPoisition structure filled out for the string that was found.</returns>
 		StringPosition LookForTextStrings2(string[] text);
 
-
-	   /// <summary>
+		/// <summary>
 		/// Get text at a specified 3270 offset on the screen
 		/// </summary>
 		/// <param name="offset"></param>
@@ -111,7 +112,6 @@ namespace Open3270
 		/// </summary>
 		int CX { get; }
 
-
 		/// <summary>
 		/// Height of screen in characters
 		/// </summary>
@@ -120,7 +120,7 @@ namespace Open3270
 		/// <summary>
 		/// Returns this screen as an XML text string
 		/// </summary>
-		/// <param name="useCachedValue">False to refresh the cached screen image into XML - 
+		/// <param name="useCachedValue">False to refresh the cached screen image into XML -
 		/// This should never be needed unless you manually update the IXMLScreen object. Default is true.
 		/// </param>
 		/// <returns>XML Text for screen</returns>
@@ -132,7 +132,7 @@ namespace Open3270
 		/// <returns>XML Text for screen</returns>
 		string GetXMLText();
 
-        string[] GetUnformatedStrings();
+		string[] GetUnformatedStrings();
 
 		/// <summary>
 		/// Returns a unique id for the screen so you can tell whether it's changed since you last

@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,7 +21,9 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 using System.Threading;
 
@@ -31,20 +34,18 @@ namespace Open3270.TN3270
 	/// </summary>
 	internal class Idle : IDisposable
 	{
-
 		// 7 minutes
-		const int IdleMilliseconds = (7 * 60 * 1000);
+		private const int IdleMilliseconds = (7 * 60 * 1000);
 
+		private Timer idleTimer = null;
+		private Telnet telnet;
+		private Random rand;
 
-		Timer idleTimer = null;
-		Telnet telnet;
-		Random rand;
+		private bool idleWasIn3270 = false;
+		private bool randomize = false;
+		private bool isTicking = false;
 
-		bool idleWasIn3270 = false;
-		bool randomize = false;
-		bool isTicking = false;
-
-		int milliseconds;
+		private int milliseconds;
 
 		internal Idle(Telnet tn)
 		{
@@ -52,7 +53,7 @@ namespace Open3270.TN3270
 		}
 
 		// Initialization
-		void Initialize()
+		private void Initialize()
 		{
 			// Register for state changes.
 			this.telnet.Connected3270 += telnet_Connected3270;
@@ -61,7 +62,7 @@ namespace Open3270.TN3270
 			this.rand = new Random();
 		}
 
-		void telnet_Connected3270(object sender, Connected3270EventArgs e)
+		private void telnet_Connected3270(object sender, Connected3270EventArgs e)
 		{
 			this.IdleIn3270(e.Is3270);
 		}
@@ -71,7 +72,7 @@ namespace Open3270.TN3270
 		/// </summary>
 		/// <param name="t"></param>
 		/// <returns></returns>
-		int ProcessTimeoutValue(string t)
+		private int ProcessTimeoutValue(string t)
 		{
 			if (t == null || t.Length == 0)
 			{
@@ -88,12 +89,11 @@ namespace Open3270.TN3270
 			throw new ApplicationException("process_timeout_value not implemented");
 		}
 
-
 		/// <summary>
 		/// Called when a host connects or disconnects.
 		/// </summary>
 		/// <param name="in3270"></param>
-		void IdleIn3270(bool in3270)
+		private void IdleIn3270(bool in3270)
 		{
 			if (in3270 && !this.idleWasIn3270)
 			{
@@ -110,8 +110,7 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-		void TimedOut(object state)
+		private void TimedOut(object state)
 		{
 			lock (this.telnet)
 			{
@@ -121,7 +120,6 @@ namespace Open3270.TN3270
 				this.ResetIdleTimer();
 			}
 		}
-
 
 		/// <summary>
 		/// Reset (and re-enable) the idle timer.  Called when the user presses an AID key.
@@ -159,15 +157,12 @@ namespace Open3270.TN3270
 			}
 		}
 
-
-
 		public void Dispose()
 		{
 			if (this.telnet != null)
 			{
 				this.telnet.Connected3270 -= telnet_Connected3270;
 			}
-
 		}
 	}
 }

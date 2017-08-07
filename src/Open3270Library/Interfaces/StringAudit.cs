@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,10 +21,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
+
+#endregion License
+
 using System.Text;
-using Open3270;
 
 namespace Open3270.Internal
 {
@@ -32,7 +33,8 @@ namespace Open3270.Internal
 	/// </summary>
 	public class StringAudit : IAudit
 	{
-		StringBuilder mData = null;
+		private StringBuilder mData = null;
+
 		internal StringAudit()
 		{
 			mData = new StringBuilder();
@@ -45,14 +47,12 @@ namespace Open3270.Internal
 
 		public void WriteLine(string text)
 		{
-			mData.Append(text+"\n");
+			mData.Append(text + "\n");
 		}
 
 		public override string ToString()
 		{
 			return mData.ToString();
 		}
-
-
 	}
 }

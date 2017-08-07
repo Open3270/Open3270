@@ -1,109 +1,125 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Open3270
+﻿namespace Open3270
 {
-
 	internal enum SmsState
 	{
 		/// <summary>
-		/// no command active (scripts only) 
+		/// no command active (scripts only)
 		/// </summary>
 		Idle,
+
 		/// <summary>
 		/// command(s) buffered and ready to run
 		/// </summary>
 		Incomplete,
+
 		/// <summary>
 		/// command executing
 		/// </summary>
-		Running,	
+		Running,
+
 		/// <summary>
 		/// command awaiting keyboard unlock
 		/// </summary>
-		KBWait,	
+		KBWait,
+
 		/// <summary>
 		/// command awaiting connection to complete
 		/// </summary>
 		ConnectWait,
+
 		/// <summary>
 		/// stopped in PauseScript action
 		/// </summary>
-		Paused,	
+		Paused,
+
 		/// <summary>
 		/// awaiting completion of Wait(ansi)
 		/// </summary>
-		WaitAnsi,	
+		WaitAnsi,
+
 		/// <summary>
 		/// awaiting completion of Wait(3270)
 		/// </summary>
-		Wait3270,	
+		Wait3270,
+
 		/// <summary>
 		/// awaiting completion of Wait(Output)
 		/// </summary>
-		WaitOutput,	
+		WaitOutput,
+
 		/// <summary>
 		/// awaiting completion of Snap(Wait)
 		/// </summary>
 		SnapWaitOutput,
+
 		/// <summary>
 		/// awaiting completion of Wait(Disconnect)
 		/// </summary>
-		WaitDisconnect,	
+		WaitDisconnect,
+
 		/// <summary>
 		/// awaiting completion of Wait()
 		/// </summary>
-		Wait,	
+		Wait,
+
 		/// <summary>
 		/// awaiting completion of Expect()
 		/// </summary>
-		Expecting,	
+		Expecting,
+
 		/// <summary>
 		/// awaiting completion of Close()
 		/// </summary>
-		Closing	
+		Closing
 	};
 
-
-	enum ConnectionState
+	internal enum ConnectionState
 	{
 		/// <summary>
 		/// no socket, unknown mode
 		/// </summary>
 		NotConnected = 0,
+
 		/// <summary>
 		/// resolving hostname
 		/// </summary>
 		Resolving,
+
 		/// <summary>
 		/// connection pending
 		/// </summary>
 		Pending,
+
 		/// <summary>
 		/// connected, no mode yet
 		/// </summary>
 		ConnectedInitial,
+
 		/// <summary>
 		/// connected in NVT ANSI mode
 		/// </summary>
 		ConnectedANSI,
+
 		/// <summary>
 		/// connected in old-style 3270 mode
 		/// </summary>
 		Connected3270,
+
 		/// <summary>
 		/// connected in TN3270E mode, unnegotiated
 		/// </summary>
 		ConnectedInitial3270E,
+
 		/// <summary>
 		/// connected in TN3270E mode, NVT mode
 		/// </summary>
 		ConnectedNVT,
+
 		/// <summary>
 		/// connected in TN3270E mode, SSCP-LU mode
 		/// </summary>
 		ConnectedSSCP,
+
 		/// <summary>
 		/// connected in TN3270E mode, 3270 mode
 		/// </summary>
@@ -127,7 +143,6 @@ namespace Open3270
 		SSCP
 	}
 
-
 	public enum KeyboardOp
 	{
 		Reset,
@@ -146,7 +161,6 @@ namespace Open3270
 
 	internal enum PDS
 	{
-		
 		/// <summary>
 		/// Command accepted, produced no output
 		/// </summary>
@@ -156,7 +170,7 @@ namespace Open3270
 		/// Command accepted, produced output
 		/// </summary>
 		OkayOutput = 1,
-	
+
 		/// <summary>
 		/// Command rejected
 		/// </summary>
@@ -165,27 +179,27 @@ namespace Open3270
 		/// <summary>
 		/// Command contained a bad address
 		/// </summary>
-		BadAddress = -2	
+		BadAddress = -2
 	}
 
-	enum ControllerState
+	internal enum ControllerState
 	{
-		Data = 0, 
-		Esc = 1, 
+		Data = 0,
+		Esc = 1,
 		CSDES = 2,
-		N1 = 3, 
-		DECP = 4, 
-		Text = 5, 
+		N1 = 3,
+		DECP = 4,
+		Text = 5,
 		Text2 = 6
 	}
 
-	public enum PreviousEnum 
-	{ 
+	public enum PreviousEnum
+	{
 		None,
 		Order,
 		SBA,
 		Text,
-		NullCharacter 
+		NullCharacter
 	};
 
 	public enum TN3270State
@@ -194,68 +208,74 @@ namespace Open3270
 		ANSI,
 		TN3270
 	}
+
 	internal enum TelnetState
 	{
 		/// <summary>
 		/// receiving data
 		/// </summary>
 		Data,
+
 		/// <summary>
 		/// got an IAC
 		/// </summary>
 		IAC,
+
 		/// <summary>
 		/// got an IAC WILL
 		/// </summary>
 		Will,
+
 		/// <summary>
 		/// got an IAC WONT
 		/// </summary>
 		Wont,
+
 		/// <summary>
 		/// got an IAC DO
 		/// </summary>
 		Do,
+
 		/// <summary>
 		/// got an IAC DONT
 		/// </summary>
 		Dont,
+
 		/// <summary>
 		/// got an IAC SB
 		/// </summary>
 		SB,
+
 		/// <summary>
 		/// got an IAC after an IAC SB
 		/// </summary>
 		SbIac
-
 	}
 
-	public enum KeyType 
-	{ 
-		Standard, 
-		GE 
+	public enum KeyType
+	{
+		Standard,
+		GE
 	};
 
-	public enum Composing 
-	{ 
-		None, 
-		Compose, 
-		First 
+	public enum Composing
+	{
+		None,
+		Compose,
+		First
 	};
 
-
-	public enum EIState 
-	{ 
-		Base, 
-		Backslash, 
-		BackX, 
-		BackP, 
-		BackPA, 
-		BackPF, 
-		Octal, 
-		Hex, 
-		XGE 
+	public enum EIState
+	{
+		Base,
+		Backslash,
+		BackX,
+		BackP,
+		BackPA,
+		BackPF,
+		Octal,
+		Hex,
+		XGE
 	};
 
 	internal enum EIAction

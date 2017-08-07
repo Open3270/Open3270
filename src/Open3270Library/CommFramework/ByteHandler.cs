@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,8 +21,8 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
+
+#endregion License
 
 namespace Open3270.Library
 {
@@ -35,6 +36,7 @@ namespace Open3270.Library
 			buffer[offset++] = (byte)((data & 0xff000000) / 0x1000000);
 			return offset;
 		}
+
 		static public int FromBytes(byte[] buffer, int offset, out int data)
 		{
 			data = 0;

@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,14 +21,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
-using System.Threading;
-using System.Collections;
+
+#endregion License
+
 using System.IO;
-using System.Text;
-using System.Net.Sockets;
-using System.Reflection;
 
 namespace Open3270
 {
@@ -43,6 +40,7 @@ namespace Open3270
 			hostLU = null;
 			termType = null;
 		}
+
 		private bool fastScreenMode = false;
 		private StreamReader logFile = null;
 		private bool ignoreSequenceCount = false;
@@ -59,7 +57,6 @@ namespace Open3270
 		private bool submitAllKeyboardCommands = false;
 		private bool refuseTN3270E = false;
 		private bool useSSL = false;
-
 
 		internal void Dump(IAudit sout)
 		{
@@ -88,6 +85,7 @@ namespace Open3270
 			get { return hostName; }
 			set { hostName = value; }
 		}
+
 		/// <summary>
 		/// Host Port
 		/// </summary>
@@ -96,6 +94,7 @@ namespace Open3270
 			get { return hostPort; }
 			set { hostPort = value; }
 		}
+
 		/// <summary>
 		/// Host LU, null for none
 		/// </summary>
@@ -104,6 +103,7 @@ namespace Open3270
 			get { return hostLU; }
 			set { hostLU = value; }
 		}
+
 		/// <summary>
 		/// Terminal type for host
 		/// </summary>
@@ -111,7 +111,6 @@ namespace Open3270
 		{
 			get { return termType; }
 			set { termType = value; }
-
 		}
 
 		public bool UseSSL
@@ -187,7 +186,7 @@ namespace Open3270
 		}
 
 		/// <summary>
-		/// Whether to ignore keyboard inhibit when moving between screens. Significantly speeds up operations, 
+		/// Whether to ignore keyboard inhibit when moving between screens. Significantly speeds up operations,
 		/// but can result in locked screens and data loss if you try to key data onto a screen that is still locked.
 		/// </summary>
 		public bool FastScreenMode
@@ -195,7 +194,6 @@ namespace Open3270
 			get { return fastScreenMode; }
 			set { fastScreenMode = value; }
 		}
-
 
 		/// <summary>
 		/// Whether the screen should always be refreshed when waiting for an update. Default is false.
@@ -205,7 +203,6 @@ namespace Open3270
 			get { return alwaysRefreshWhenWaiting; }
 			set { alwaysRefreshWhenWaiting = value; }
 		}
-
 
 		/// <summary>
 		/// Whether to refresh the screen for keys like TAB, BACKSPACE etc should refresh the host. Default is now false.
@@ -224,7 +221,5 @@ namespace Open3270
 			get { return refuseTN3270E; }
 			set { refuseTN3270E = value; }
 		}
-
-
 	}
 }

@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,14 +21,12 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
-using System.Threading;
-using System.Globalization;
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
-using System.Xml;
 using System.Xml.Serialization;
 
 namespace Open3270.Library
@@ -43,7 +42,6 @@ namespace Open3270.Library
 		/// Internal - message type
 		/// </summary>
 		public string MessageType;
-		
 
 		public void Send(Socket socket)
 		{
@@ -51,7 +49,6 @@ namespace Open3270.Library
 			//Thread.CurrentThread.CurrentCulture = new CultureInfo("en-gb");
 			//Thread.CurrentThread.CurrentUICulture = Thread.CurrentThread.CurrentCulture;
 
-			
 			//SoapFormatter soap = new SoapFormatter();
 			XmlSerializer soap = new XmlSerializer(typeof(Message));
 			MemoryStream ms = new MemoryStream();
@@ -65,13 +62,13 @@ namespace Open3270.Library
 			//
 			socket.Send(header.ToByte(), 0, MessageHeader.MessageHeaderSize, SocketFlags.None);
 			socket.Send(bMessage, 0, bMessage.Length, SocketFlags.None);
-			
 		}
+
 		public static Message CreateFromByteArray(byte[] data)
 		{
 			//Thread.CurrentThread.CurrentCulture = new CultureInfo("en-gb");
 			//Thread.CurrentThread.CurrentUICulture = Thread.CurrentThread.CurrentCulture;
-			
+
 			//
 			// SOAP Serializer
 			Message msg = null;
@@ -81,27 +78,28 @@ namespace Open3270.Library
 				XmlSerializer soap = new XmlSerializer(typeof(Message));
 				MemoryStream ms = new MemoryStream(data);
 				object dso = soap.Deserialize(ms);
-				
+
 				try
 				{
 					msg = (Message)dso;
 				}
 				catch (Exception ef)
 				{
-					Audit.WriteLine("type="+dso.GetType()+" cast to Message threw exception "+ef);
+					Audit.WriteLine("type=" + dso.GetType() + " cast to Message threw exception " + ef);
 					return null;
 				}
 				ms.Close();
 			}
 			catch (Exception ee)
 			{
-				Audit.WriteLine("Message serialization failed, error="+ee.ToString());
+				Audit.WriteLine("Message serialization failed, error=" + ee.ToString());
 				return null;
 			}
-			Audit.WriteLine("Message type= "+msg.GetType());
+			Audit.WriteLine("Message type= " + msg.GetType());
 			return msg;
 		}
 	}
+
 	[Serializable]
 	internal class HtmlMessage : Message
 	{
@@ -109,15 +107,18 @@ namespace Open3270.Library
 		/// Internal - message type
 		/// </summary>
 		public byte[] Bytes;
+
 		public string GetText()
 		{
-			if (Bytes==null)
+			if (Bytes == null)
 				return null;
 			return System.Text.Encoding.UTF8.GetString(Bytes);
 		}
+
 		public HtmlMessage()
 		{
 		}
+
 		public HtmlMessage(string text)
 		{
 			this.Bytes = System.Text.Encoding.UTF8.GetBytes(text);
@@ -126,11 +127,11 @@ namespace Open3270.Library
 	}
 
 	//
-	internal class MessageHeader 
+	internal class MessageHeader
 	{
-		public int uMagicNumber; 
+		public int uMagicNumber;
 		public int uVersion;
-		public int uMessageSize; 
+		public int uMessageSize;
 
 		public const int ConstantForMagicNumber = 0x0FCDEEDC;
 		public const int MessageHeaderSize = 12;
@@ -138,7 +139,7 @@ namespace Open3270.Library
 		public MessageHeader()
 		{
 			uMagicNumber = ConstantForMagicNumber;
-			uVersion     = 1;
+			uVersion = 1;
 			uMessageSize = 0;
 		}
 
@@ -153,7 +154,6 @@ namespace Open3270.Library
 			if (offset != 12) throw new ApplicationException("FATAL INTERNAL ERROR - MessageHeader is not 12 bytes long");
 			if (uMagicNumber != ConstantForMagicNumber) throw new ApplicationException("FATAL COMMUNICATIONS ERROR - MessageHeader Magic number is invalid");
 		}
-		
 
 		public byte[] ToByte()
 		{

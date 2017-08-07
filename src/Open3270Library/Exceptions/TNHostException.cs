@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,7 +21,9 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 
 namespace Open3270
@@ -32,7 +35,8 @@ namespace Open3270
 	{
 		private string mMessage = null;
 		private string mAuditLog = null;
-		private string mReason   = null;
+		private string mReason = null;
+
 		/// <summary>
 		/// Constructor - used internally.
 		/// </summary>
@@ -40,27 +44,30 @@ namespace Open3270
 		/// <param name="auditlog">The audit log up to this exception</param>
 		public TNHostException(string message, string reason, string auditlog)
 		{
-			mReason  = reason;
+			mReason = reason;
 			mMessage = message;
 			mAuditLog = auditlog;
 		}
+
 		/// <summary>
 		/// Returns the audit log from the start to this exception. Useful for tracing an exception
 		/// </summary>
 		/// <value>The formatted audit log</value>
 		public string AuditLog
 		{
-			get { return mAuditLog;  }
+			get { return mAuditLog; }
 			set { mAuditLog = value; }
 		}
+
 		/// <summary>
 		/// Returns a textual version of the error
 		/// </summary>
 		/// <returns>The error text.</returns>
 		public override string ToString()
 		{
-			return "HostException '"+mMessage+"' "+Reason;
+			return "HostException '" + mMessage + "' " + Reason;
 		}
+
 		public override string Message
 		{
 			get
@@ -69,12 +76,10 @@ namespace Open3270
 			}
 		}
 
-
 		public string Reason
 		{
 			get { return mReason; }
 			set { mReason = value; }
 		}
 	}
-
 }

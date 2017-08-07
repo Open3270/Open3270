@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,13 +21,14 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
+
+#endregion License
+
 using System;
 using System.Text;
 
 namespace Open3270.TN3270
 {
-
 	internal class TraceFormatter
 	{
 		internal TraceFormatter()
@@ -38,18 +40,18 @@ namespace Open3270.TN3270
 			StringBuilder builder = new StringBuilder();
 			int i = 0;
 			int argindex = 0;
-			while (i<fmt.Length)
+			while (i < fmt.Length)
 			{
-				if (fmt[i]=='%')
+				if (fmt[i] == '%')
 				{
-					switch (fmt[i+1])
+					switch (fmt[i + 1])
 					{
 						case '0':
 							if (fmt.Substring(i).StartsWith("%02x"))
 							{
 								try
 								{
-									int v = System.Convert.ToInt32(""+args[argindex]);
+									int v = System.Convert.ToInt32("" + args[argindex]);
 									builder.Append(v.ToString("X2"));
 								}
 								catch (System.FormatException)
@@ -66,36 +68,42 @@ namespace Open3270.TN3270
 								}
 							}
 							else
-								throw new ApplicationException("Format '"+fmt.Substring(i)+"' not known");
+								throw new ApplicationException("Format '" + fmt.Substring(i) + "' not known");
 							break;
+
 						case 'c':
 							builder.Append(System.Convert.ToChar((char)args[argindex]));
 							break;
+
 						case 'f':
 							builder.Append((double)args[argindex]);
 							break;
+
 						case 'd':
 						case 's':
 						case 'u':
-							if (args[argindex]==null)
+							if (args[argindex] == null)
 								builder.Append("(null)");
 							else
 								builder.Append(args[argindex].ToString());
 							break;
+
 						case 'x':
 							builder.Append(String.Format("{0:x}", args[argindex]));
 							break;
+
 						case 'X':
 							builder.Append(String.Format("{0:X}", args[argindex]));
 							break;
+
 						default:
-							throw new ApplicationException("Format '%"+fmt[i+1]+"' not known");
+							throw new ApplicationException("Format '%" + fmt[i + 1] + "' not known");
 					}
 					i++;
 					argindex++;
 				}
 				else
-					builder.Append(""+fmt[i]);
+					builder.Append("" + fmt[i]);
 				i++;
 			}
 			return builder.ToString();

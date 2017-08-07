@@ -1,10 +1,11 @@
 #region License
-/* 
+
+/*
  *
  * Open3270 - A C# implementation of the TN3270/TN3270E protocol
  *
  *   Copyright © 2004-2006 Michael Warriner. All rights reserved
- * 
+ *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
@@ -20,11 +21,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-#endregion
-using System;
-using System.IO;
-using System.Text;
 
+#endregion License
+
+using System;
 
 namespace Open3270
 {
@@ -37,6 +37,7 @@ namespace Open3270
 	{
 		private string mPage;
 		private string mDump;
+
 		/// <summary>
 		/// Identification exception
 		/// </summary>
@@ -45,18 +46,19 @@ namespace Open3270
 		public TNIdentificationException(string page, IXMLScreen screen)
 		{
 			mPage = page;
-			if (screen==null)
+			if (screen == null)
 				mDump = null;
 			else
 				mDump = screen.Dump();
 		}
+
 		/// <summary>
 		/// Provides a textual representation of the exception.
 		/// </summary>
 		/// <returns>Returns the textual representation of the exception.</returns>
 		public override string ToString()
 		{
-			return "TNIdentificationException current screen='"+mPage+"'. Dump is \n\n"+mDump+"\n\n";
+			return "TNIdentificationException current screen='" + mPage + "'. Dump is \n\n" + mDump + "\n\n";
 		}
 	}
 }
