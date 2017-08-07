@@ -8,3 +8,11 @@ insert_final_newline = true
 
 [*.cs]
 indent_style = tab
+
+[*.xaml]
+indent_style = space
+indent_size = 2
+
+[*.config]
+indent_style = space
+indent_size = 2
