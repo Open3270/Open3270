@@ -3077,7 +3077,16 @@ namespace Open3270.TN3270
 			if (faIndex != -1)
 			{
 				fa = screenBuffer[faIndex];
+				if (extendedAttributes[faIndex].fg != 0) 
+					ea.fg = extendedAttributes[faIndex].fg;
+				if (extendedAttributes[faIndex].bg != 0) 
+					ea.bg = extendedAttributes[faIndex].bg;
+				if (extendedAttributes[faIndex].cs != 0) 
+					ea.cs = extendedAttributes[faIndex].cs;
+				if (extendedAttributes[faIndex].gr != 0) 
+					ea.gr = extendedAttributes[faIndex].gr;
 			}
+			
 			start = faIndex;
 			this.IncrementAddress(ref start);
 			baddr = start;
@@ -3086,16 +3095,6 @@ namespace Open3270.TN3270
 			{
 				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
-
-					if (extendedAttributes[baddr].fg != 0) 
-						ea.fg = extendedAttributes[baddr].fg;
-					if (extendedAttributes[baddr].bg != 0) 
-						ea.bg = extendedAttributes[baddr].bg;
-					if (extendedAttributes[baddr].cs != 0) 
-						ea.cs = extendedAttributes[baddr].cs;
-					if (extendedAttributes[baddr].gr != 0) 
-						ea.gr = extendedAttributes[baddr].gr;
-
 					break;
 				}
 				length++;
