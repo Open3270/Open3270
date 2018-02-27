@@ -3076,15 +3076,11 @@ namespace Open3270.TN3270
 			faIndex = GetFieldAttribute(address);
 			if (faIndex != -1)
 			{
-				fa = screenBuffer[faIndex];
-				if (extendedAttributes[faIndex].fg != 0) 
-					ea.fg = extendedAttributes[faIndex].fg;
-				if (extendedAttributes[faIndex].bg != 0) 
-					ea.bg = extendedAttributes[faIndex].bg;
-				if (extendedAttributes[faIndex].cs != 0) 
-					ea.cs = extendedAttributes[faIndex].cs;
-				if (extendedAttributes[faIndex].gr != 0) 
-					ea.gr = extendedAttributes[faIndex].gr;
+				fa = screenBuffer[faIndex];				
+				ea.fg = extendedAttributes[faIndex].fg;				
+				ea.bg = extendedAttributes[faIndex].bg;				
+				ea.cs = extendedAttributes[faIndex].cs;				
+				ea.gr = extendedAttributes[faIndex].gr;
 			}
 			
 			start = faIndex;
@@ -3138,7 +3134,10 @@ namespace Open3270.TN3270
 					temp += " Protected=\"true\"";
 				}
 				else
+				{
 					temp += " Protected=\"false\"";
+				}
+
 				if (FieldAttribute.IsZero(fa))
 				{
 					temp += " FieldType=\"Hidden\"";
@@ -3151,24 +3150,22 @@ namespace Open3270.TN3270
 				{
 					temp += " FieldType=\"Intense\"";
 				}
-				else
+
+				if (ea.fg != 0)
 				{
-					if (ea.fg != 0)
-					{
-						temp += " Foreground=\"" + See.GetEfaUnformatted(See.XA_FOREGROUND, ea.fg) + "\"";
-					}
-					if (ea.bg != 0)
-					{
-						temp += " Background=\"" + See.GetEfaUnformatted(See.XA_BACKGROUND, ea.bg) + "\"";
-					}
-					if (ea.gr != 0)
-					{
-						temp += " Highlighting=\"" + See.GetEfaUnformatted(See.XA_HIGHLIGHTING, (byte)(ea.bg | 0xf0)) + "\"";
-					}
-					if ((ea.cs & ExtendedAttribute.CS_MASK) != 0)
-					{
-						temp += " Mask=\"" + See.GetEfaUnformatted(See.XA_CHARSET, (byte)((ea.cs & ExtendedAttribute.CS_MASK) | 0xf0)) + "\"";
-					}
+					temp += " Foreground=\"" + See.GetEfaUnformatted(See.XA_FOREGROUND, ea.fg) + "\"";
+				}
+				if (ea.bg != 0)
+				{
+					temp += " Background=\"" + See.GetEfaUnformatted(See.XA_BACKGROUND, ea.bg) + "\"";
+				}
+				if (ea.gr != 0)
+				{
+					temp += " Highlighting=\"" + See.GetEfaUnformatted(See.XA_HIGHLIGHTING, (byte)(ea.gr | 0xf0)) + "\"";
+				}
+				if ((ea.cs & ExtendedAttribute.CS_MASK) != 0)
+				{
+					temp += " Mask=\"" + See.GetEfaUnformatted(See.XA_CHARSET, (byte)((ea.cs & ExtendedAttribute.CS_MASK) | 0xf0)) + "\"";
 				}
 
 				temp += "/>";
