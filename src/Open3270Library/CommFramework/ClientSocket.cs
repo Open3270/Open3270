@@ -24,7 +24,9 @@
 using System;
 using System.IO;
 using System.Security;
+#if NET35 || NET40
 using System.Security.Permissions;
+#endif
 using System.Net;
 using System.Net.Sockets;
 
@@ -105,9 +107,11 @@ namespace Open3270.Library
 			mState = State.Waiting;
 			//
 			// permissions
+#if NET35 || NET40
 			SocketPermission mySocketPermission1 = new SocketPermission(PermissionState.None);
 			mySocketPermission1.AddPermission(NetworkAccess.Connect, TransportType.All, "localhost", 8800);
 			mySocketPermission1.Demand();
+#endif
 
 			//
 			// Actually connect
