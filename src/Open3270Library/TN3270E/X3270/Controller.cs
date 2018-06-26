@@ -3097,6 +3097,9 @@ namespace Open3270.TN3270
 				this.IncrementAddress(ref baddr);
 			}
 			while (baddr != start);
+			
+                        if (baddr == 0)
+                            baddr = (this.rowCount * this.columnCount) - 1;
 
 			int columnStart = AddressToColumn(start);
 			int rowStart = AddresstoRow(start);
