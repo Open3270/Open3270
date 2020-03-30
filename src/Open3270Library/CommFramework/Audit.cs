@@ -26,8 +26,10 @@
 using System;
 using System.Web;
 using System.Text;
-using System.Security; 
+using System.Security;
+#if NET35 || NET40
 using System.Security.Permissions;
+#endif
 using System.IO;
 
 namespace Open3270.Library
@@ -74,6 +76,7 @@ namespace Open3270.Library
 						try
 						{
 							Console.WriteLine(text);
+#if NET35 || NET40
 							//
 							// Demand file permission so that we work within the Internet Explorer sandbox
 							//
@@ -81,6 +84,7 @@ namespace Open3270.Library
 							permission.AddPathList(FileIOPermissionAccess.Append, AuditFile);
 							permission.Demand(); 
 							//
+#endif
 							StreamWriter sw = File.AppendText(_auditFile);
 							try
 							{
@@ -91,7 +95,9 @@ namespace Open3270.Library
 							{
 								sw.Close();
 							}
+#if NET35 || NET40
 							permission.Deny();
+#endif
 						}
 						catch (Exception ee)
 						{
