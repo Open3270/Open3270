@@ -3078,8 +3078,13 @@ namespace Open3270.TN3270
 			faIndex = GetFieldAttribute(address);
 			if (faIndex != -1)
 			{
-				fa = screenBuffer[faIndex];
+				fa = screenBuffer[faIndex];				
+				ea.fg = extendedAttributes[faIndex].fg;				
+				ea.bg = extendedAttributes[faIndex].bg;				
+				ea.cs = extendedAttributes[faIndex].cs;				
+				ea.gr = extendedAttributes[faIndex].gr;
 			}
+			
 			start = faIndex;
 			this.IncrementAddress(ref start);
 			baddr = start;
@@ -3088,22 +3093,15 @@ namespace Open3270.TN3270
 			{
 				if (FieldAttribute.IsFA(screenBuffer[baddr]))
 				{
-
-					if (extendedAttributes[baddr].fg != 0) 
-						ea.fg = extendedAttributes[baddr].fg;
-					if (extendedAttributes[baddr].bg != 0) 
-						ea.bg = extendedAttributes[baddr].bg;
-					if (extendedAttributes[baddr].cs != 0) 
-						ea.cs = extendedAttributes[baddr].cs;
-					if (extendedAttributes[baddr].gr != 0) 
-						ea.gr = extendedAttributes[baddr].gr;
-
 					break;
 				}
 				length++;
 				this.IncrementAddress(ref baddr);
 			}
 			while (baddr != start);
+			
+                        if (baddr == 0)
+                            baddr = (this.rowCount * this.columnCount) - 1;
 
 			int columnStart = AddressToColumn(start);
 			int rowStart = AddresstoRow(start);
@@ -3141,7 +3139,10 @@ namespace Open3270.TN3270
 					temp += " Protected=\"true\"";
 				}
 				else
+				{
 					temp += " Protected=\"false\"";
+				}
+
 				if (FieldAttribute.IsZero(fa))
 				{
 					temp += " FieldType=\"Hidden\"";
@@ -3154,24 +3155,22 @@ namespace Open3270.TN3270
 				{
 					temp += " FieldType=\"Intense\"";
 				}
-				else
+
+				if (ea.fg != 0)
 				{
-					if (ea.fg != 0)
-					{
-						temp += " Foreground=\"" + See.GetEfaUnformatted(See.XA_FOREGROUND, ea.fg) + "\"";
-					}
-					if (ea.bg != 0)
-					{
-						temp += " Background=\"" + See.GetEfaUnformatted(See.XA_BACKGROUND, ea.bg) + "\"";
-					}
-					if (ea.gr != 0)
-					{
-						temp += " Highlighting=\"" + See.GetEfaUnformatted(See.XA_HIGHLIGHTING, (byte)(ea.bg | 0xf0)) + "\"";
-					}
-					if ((ea.cs & ExtendedAttribute.CS_MASK) != 0)
-					{
-						temp += " Mask=\"" + See.GetEfaUnformatted(See.XA_CHARSET, (byte)((ea.cs & ExtendedAttribute.CS_MASK) | 0xf0)) + "\"";
-					}
+					temp += " Foreground=\"" + See.GetEfaUnformatted(See.XA_FOREGROUND, ea.fg) + "\"";
+				}
+				if (ea.bg != 0)
+				{
+					temp += " Background=\"" + See.GetEfaUnformatted(See.XA_BACKGROUND, ea.bg) + "\"";
+				}
+				if (ea.gr != 0)
+				{
+					temp += " Highlighting=\"" + See.GetEfaUnformatted(See.XA_HIGHLIGHTING, (byte)(ea.gr | 0xf0)) + "\"";
+				}
+				if ((ea.cs & ExtendedAttribute.CS_MASK) != 0)
+				{
+					temp += " Mask=\"" + See.GetEfaUnformatted(See.XA_CHARSET, (byte)((ea.cs & ExtendedAttribute.CS_MASK) | 0xf0)) + "\"";
 				}
 
 				temp += "/>";
